@@ -1,0 +1,120 @@
+# WikiHole
+
+**The internet's deepest rabbit holes.** A discovery engine for obscure, technically deep Wikipedia articles: a ranked live feed, a focused reader, and Rabbit Hole navigation that follows real links between articles.
+
+Everything shown comes live from Wikipedia through the official MediaWiki APIs. Nothing is hardcoded or invented: the ranking uses only Wikipedia metadata, every related-article connection cites its source, and optional AI analysis is verified against the article text before it is shown.
+
+## Features
+
+- **Discover feed** (`/`): random samples from curated Wikipedia categories, passed through a quality gate, ranked by a transparent model, diversified, and de-duplicated across the session. Infinite scroll, ranking presets (Balanced, Deep, Obscure), topic filters, refresh, and loading, empty and error states. Each entry shows its score breakdown.
+- **Reader** (`/wiki/<Title>`): Wikipedia's parsed HTML transformed server-side into an allow-listed document model and rendered as an editorial reading page. It has sections, a scroll-spied table of contents, KaTeX math, tables, figures, galleries, references, infobox facts, key concepts, terminology quoted in context, an equations index, reading progress, and source and revision links. The lead streams first and the body after it.
+- **Rabbit Hole**: related articles from See also, links in the introduction, links in the body, shared categories and CirrusSearch text similarity, each labelled with its source. A breadcrumb trail tracks depth, back navigation unwinds it, and articles already on your trail are left out.
+- **Topics** (`/topics`, `/topics/<slug>`): 7 groups and 40 collections, each defined by real Wikipedia categories (checked against the live API by a test).
+- **Search**: a debounced header and inline combobox (keyboard navigation, Enter to open, Escape to close, `/` or Ctrl/Cmd+K), plus a full results page with highlighted snippets, suggestions and pagination.
+- **Random** (`/random`): a uniformly random Wikipedia sample combined with random topical samples, run through the same gate and ranking. It shows how many candidates were rejected and why. "Another discovery" is instant because a few are queued in advance; press `N`.
+- **Saved & history** (`/saved`): saved articles, reading history and exploration trails, stored in `localStorage` with schema validation. It survives corrupted data and storage failures.
+- **Optional AI analysis**: on demand in the reader. Every claim must include a verbatim quote that the server finds in the article, and suggested reading must be an article the source actually links to. Anything else is discarded. The analysis is clearly labelled as AI-generated. Without a key the feature is hidden and everything else still works.
+
+## Architecture
+
+- **Next.js 16 (App Router) + React 19 + TypeScript (strict)**, CSS Modules, no UI framework.
+- **Runtime dependencies:** `zod` (validates every API response and request body), `node-html-parser` (server-side article transformation), `katex` (math), `@anthropic-ai/sdk` (optional AI).
+- Server components render articles and initial feeds. Client components handle only the interactive parts (feed controls, search, trail, saved state).
+
+```
+src/lib/wikipedia/   http.ts (UA, timeouts, retries, Retry-After, concurrency) · api.ts (typed endpoints, caching) · titles.ts
+src/lib/content/     parse.ts (HTML → allow-listed AST) · math.ts (KaTeX) · concepts.ts (key concepts, terms, equations)
+src/lib/discovery/   topics.ts (taxonomy) · score.ts (features + quality gate) · select.ts (diversity) · engine.ts (feed, random, related) · config.ts (weights)
+src/lib/ai/          config.ts · insights.ts (structured output + verification) · grounding.ts
+src/lib/storage/     store.ts (validated, failure-tolerant storage) · collections.ts (saved, history, trails)
+src/app/api/         feed · random · search · insights · health
+```
+
+### Wikipedia integration
+
+| Need | Endpoint |
+| --- | --- |
+| Candidate sampling | `action=query&list=search&srsearch=incategory:A\|B…&srsort=random` |
+| Metadata (description, intro extract, thumbnail, WikiProject assessment, 14-day pageviews, categories, last edit, disambiguation) | `action=query&prop=info\|pageprops\|pageimages\|description\|extracts\|pageassessments\|pageviews\|categories\|revisions`, 20 titles per request, `continue` followed |
+| Article content | `action=parse&prop=text\|categories\|displaytitle\|revid` (the lead is fetched separately with `section=0` so it can stream first) |
+| Typeahead / full search | `generator=search` / `list=search` with snippets, totals and suggestions |
+| Uniform random | `list=random` |
+| Similar articles | `list=search&srsearch=morelike:"Title"` |
+| Summaries (page metadata) | REST `GET /page/summary/{title}` |
+
+The client follows the [Wikimedia rate-limit guidance](https://www.mediawiki.org/wiki/Wikimedia_APIs/Rate_limits): a User-Agent with contact information (without it Wikimedia allows only 10 requests per minute), at most 3 concurrent requests (searches limited separately), 8–15 s timeouts, bounded retries with backoff, and `Retry-After` honoured. A long `Retry-After` puts the client into a cooldown instead of retrying. Responses are cached in memory (TTL + LRU, with in-flight de-duplication), and candidate pools are cached per subtopic for 20 minutes, so repeat visitors cost almost no API calls. Failed or malformed responses become typed errors and are never replaced with made-up data.
+
+Article HTML never reaches the browser. The parser keeps only known structures (paragraphs, headings, lists, definition lists, tables, figures, quotes, code, math, references). It drops scripts, styles, attributes, navboxes and maintenance templates, and accepts images only from Wikimedia hosts. The only `dangerouslySetInnerHTML` is KaTeX output, which we generate from the article's TeX source with `trust: false`.
+
+### Discovery model
+
+`score = 25% technical + 20% quality + 20% depth + 15% obscurity + 10% diversity + 10% exploration`. These are the defaults; they can be overridden with `DISCOVERY_WEIGHTS`, and the presets reshape them.
+
+- **Technical relevance:** domain vocabulary in the title, description, categories and intro.
+- **Quality:** WikiProject assessment class (FA … Stub) and article length.
+- **Depth:** density of formal concepts (theorems, models, algorithms), symbols, and curiosity cues (paradox, unsolved, counterintuitive).
+- **Obscurity:** low 14-day pageviews, multiplied by quality, so a thin page that is rarely read never outranks a substantial one.
+- **Diversity:** distance from clusters already picked in the batch, plus a hard per-cluster cap.
+- **Exploration:** strength of the link to the current topic or article.
+
+The hard gate rejects disambiguation pages, lists, date and number pages, stubs, biographies, entertainment, sports, places, organisations and non-technical pages. Successive batches exclude everything seen this session, and a small amount of ranking noise keeps refreshes from repeating.
+
+## Environment variables
+
+All variables are optional. See [`.env.example`](.env.example).
+
+| Variable | Purpose |
+| --- | --- |
+| `WIKIMEDIA_USER_AGENT` | **Strongly recommended.** Identifies your deployment to Wikimedia, e.g. `WikiHole/1.0 (https://your.site; you@example.org)`. Without contact information Wikimedia limits requests to 10 per minute. |
+| `WIKIPEDIA_API_URL`, `WIKIPEDIA_REST_URL` | Override the endpoints (another language edition, or a test double). |
+| `AI_API_KEY` (or `ANTHROPIC_API_KEY`) | Enables AI analysis. Server-side only. |
+| `AI_PROVIDER` | `anthropic` (the only supported provider). |
+| `AI_MODEL` | Claude model id. Default `claude-opus-5-5`. |
+| `DISCOVERY_WEIGHTS` | JSON object of relative weights, e.g. `{"obscurity":30}`. |
+| `NEXT_PUBLIC_SITE_URL` | Canonical origin for metadata and Open Graph (on Vercel the deployment URL is used by default). |
+
+## Running locally
+
+Requires Node 20.9+.
+
+```bash
+npm install
+cp .env.example .env.local   # then set WIKIMEDIA_USER_AGENT
+npm run dev                  # http://localhost:3000
+```
+
+## Quality checks
+
+```bash
+npm run typecheck    # TypeScript
+npm run lint         # ESLint (next/core-web-vitals + typescript)
+npm test             # unit + integration tests (Vitest, hermetic, mocked fetch)
+npm run test:live    # integration tests against live Wikipedia
+npx playwright install chromium
+npm run test:e2e     # production build + Playwright scenarios against live Wikipedia
+npm run build        # production build
+```
+
+The test suites cover:
+
+- **Unit:** parser (real fixtures), math, concepts, ranking, persistence, search component, AI grounding.
+- **Integration:** HTTP client behaviour, API layer, engine, route handlers.
+- **Live:** taxonomy categories exist, feed text matches Wikipedia's own intros, search, parsing, random filtering.
+- **End-to-end:** homepage, search, reading, Rabbit Hole, random, saved, failure handling, responsiveness at 1440, 1280, 1024, 768 and 390 px, console errors, keyboard focus.
+
+## Deploying to Vercel
+
+1. Push the repository to GitHub, GitLab or Bitbucket.
+2. In Vercel, choose **Add New → Project**, import the repository, and keep the detected **Next.js** preset. Build command `next build`, output handled automatically.
+3. Under **Settings → Environment Variables**, set `WIKIMEDIA_USER_AGENT` (with your contact) and, optionally, `AI_API_KEY`, `AI_MODEL` and `NEXT_PUBLIC_SITE_URL`.
+4. Deploy. Afterwards, open `/api/health`. It should report `userAgentConfigured: true`, and `ai: true` if a key is set.
+
+Or from the CLI: `npm i -g vercel && vercel` (first deploy), then `vercel --prod`.
+
+## Limitations
+
+- Caches and rate limiting are in memory, per server instance. On serverless platforms a cold instance starts with empty candidate pools: the first feed takes a few seconds, later ones are fast. A shared cache (e.g. Redis) would help at scale.
+- All server traffic shares one Wikimedia rate-limit identity (about 200 requests per minute with a compliant User-Agent). Very high traffic would need Wikimedia Enterprise or more caching.
+- Reading-time estimates in feeds come from search word counts or wikitext length, so they are approximate.
+- Saved articles and history live in the browser. There is no account sync.
+- English Wikipedia only (endpoints are configurable, but the taxonomy uses English category names).
