@@ -24,6 +24,20 @@
   --header-h: 56px;
   --radius: 2px;
   --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Homepage portal: the encyclopedia palette (night theme). */
+  --portal-bg: #101418;
+  --portal-bg-hover: #1a1f25;
+  --portal-text: #eaecf0;
+  --portal-text-2: #a2a9b1;
+  --portal-text-3: #7f868e;
+  --portal-link: #88a3e8;
+  --portal-link-hover: #a9bcf0;
+  --portal-progressive: #6485d1;
+  --portal-progressive-hover: #7a97dc;
+  --portal-border: #54595d;
+  --portal-border-subtle: #33383d;
+  --portal-sans: system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 @media (max-width: 640px) {

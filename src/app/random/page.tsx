@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { RandomDiscovery } from "@/components/random/RandomDiscovery";
+import { EditionNotice } from "@/components/i18n/EditionNotice";
 import styles from "../pages.module.css";
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export default function RandomPage() {
           rejects stubs, lists and trivia, and picks among the strongest survivors.
         </p>
       </header>
+      <EditionNotice feature="Random discovery" />
       <RandomDiscovery />
     </div>
   );

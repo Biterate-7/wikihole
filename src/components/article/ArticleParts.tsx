@@ -6,6 +6,7 @@ import type { ArticleDocument, InfoboxRow, Section } from "@/lib/content/types";
 import { classifyGroup, readingMinutes, sourcedDate, topCategories } from "@/lib/discovery/score";
 import { GROUPS } from "@/lib/discovery/topics";
 import { ASSESSMENT_LABELS, assessmentBadge, formatCount, formatDate, leadSentences } from "@/lib/format";
+import { DEFAULT_LANGUAGE, wikipediaDomain } from "@/lib/i18n/languages";
 import { articlePath, wikipediaUrl } from "@/lib/wikipedia/titles";
 import { PAGEVIEW_DAYS, type PageMeta } from "@/lib/wikipedia/types";
 import { Blocks } from "./Blocks";
@@ -67,9 +68,10 @@ export function ArticleHeader({ meta, displayTitle }: { meta: PageMeta; displayT
             thumbnail: meta.thumbnail,
             readingMinutes: minutes,
             groupLabel: group?.label,
+            ...(meta.lang ? { lang: meta.lang } : {}),
           }}
         />
-        <a className="btn" href={wikipediaUrl(meta.title)} target="_blank" rel="noopener noreferrer" data-testid="source-link">
+        <a className="btn" href={wikipediaUrl(meta.title, meta.lang)} target="_blank" rel="noopener noreferrer" data-testid="source-link">
           Read on Wikipedia <Icon name="arrow-up-right" size={11} />
         </a>
         <a className="btn" href="#rabbit-hole">
@@ -143,7 +145,7 @@ export function ArticleAside({ doc, meta }: { doc: ArticleDocument; meta: PageMe
           <ul className={styles.concepts}>
             {concepts.map((c) => (
               <li key={c.title}>
-                <Link href={articlePath(c.title)} prefetch={false} data-wiki-link>
+                <Link href={articlePath(c.title, undefined, doc.lang)} prefetch={false} data-wiki-link>
                   {c.title}
                 </Link>
                 <span className="label" title="Times linked in this article">
@@ -201,8 +203,8 @@ export function ArticleAside({ doc, meta }: { doc: ArticleDocument; meta: PageMe
           <div>
             <dt>Article</dt>
             <dd>
-              <a href={wikipediaUrl(doc.title)} target="_blank" rel="noopener noreferrer">
-                en.wikipedia.org
+              <a href={wikipediaUrl(doc.title, doc.lang)} target="_blank" rel="noopener noreferrer">
+                {wikipediaDomain(doc.lang ?? DEFAULT_LANGUAGE)}
               </a>
             </dd>
           </div>
@@ -210,7 +212,7 @@ export function ArticleAside({ doc, meta }: { doc: ArticleDocument; meta: PageMe
             <dt>Revision</dt>
             <dd>
               <a
-                href={`https://en.wikipedia.org/w/index.php?oldid=${doc.revId}`}
+                href={`https://${wikipediaDomain(doc.lang ?? DEFAULT_LANGUAGE)}/w/index.php?oldid=${doc.revId}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

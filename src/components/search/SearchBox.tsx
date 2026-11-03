@@ -3,8 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { ApiError, fetchSuggestions } from "@/lib/api-client";
-import { articlePath } from "@/lib/wikipedia/titles";
+import { getLanguage, languageLocale } from "@/lib/i18n/languages";
+import { articlePath, searchPath } from "@/lib/wikipedia/titles";
 import type { SearchSuggestion } from "@/lib/wikipedia/types";
+import { SearchLanguageSelect } from "@/components/i18n/SearchLanguageSelect";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { Icon } from "@/components/ui/Icon";
 import styles from "./search.module.css";
 
@@ -15,18 +18,27 @@ const memo = new Map<string, SearchSuggestion[]>();
 type Status = "idle" | "loading" | "done" | "error";
 
 interface Props {
-  variant?: "hero" | "dialog";
+  /** "portal" is the homepage field: language selector inside, search button attached. */
+  variant?: "hero" | "dialog" | "portal";
   autoFocus?: boolean;
   /** Called after navigating to a result (e.g. to close the dialog). */
   onNavigate?: () => void;
   /** Called when Escape is pressed with no open results. */
   onEscape?: () => void;
   initialQuery?: string;
+  /** Fixed id for the input, so other controls can focus it. */
+  inputId?: string;
+  /** Search this edition instead of the reader's active one (e.g. a shared results link). */
+  lang?: string;
 }
 
-export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, initialQuery = "" }: Props) {
+export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, initialQuery = "", inputId, lang: langOverride }: Props) {
   const router = useRouter();
-  const id = useId();
+  const activeLanguage = useLanguage();
+  const lang = langOverride ?? activeLanguage.lang;
+  const language = getLanguage(lang);
+  const generatedId = useId();
+  const id = inputId ?? generatedId;
   const listId = `${id}-results`;
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState(initialQuery);
@@ -40,7 +52,7 @@ export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, i
 
   useEffect(() => {
     if (trimmed.length < MIN_CHARS) return;
-    const key = trimmed.toLowerCase();
+    const key = `${lang}|${trimmed.toLowerCase()}`;
     const cached = memo.get(key);
     const controller = new AbortController();
     const timer = window.setTimeout(
@@ -52,7 +64,7 @@ export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, i
         }
         setStatus("loading");
         try {
-          const { results: found } = await fetchSuggestions(trimmed, controller.signal);
+          const { results: found } = await fetchSuggestions(trimmed, lang, controller.signal);
           if (memo.size > 200) memo.clear();
           memo.set(key, found);
           setResults(found);
@@ -70,7 +82,7 @@ export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, i
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [trimmed]);
+  }, [trimmed, lang]);
 
   const showResults = open && trimmed.length >= MIN_CHARS;
   // The final option always offers the full results page.
@@ -83,8 +95,10 @@ export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, i
   };
 
   const choose = (index: number) => {
-    if (index >= 0 && index < results.length) go(articlePath(results[index].title));
-    else if (trimmed) go(`/search?q=${encodeURIComponent(trimmed)}`);
+    if (index >= 0 && index < results.length) go(articlePath(results[index].title, undefined, lang));
+    else if (trimmed) go(searchPath(trimmed, lang));
+    // An empty search goes nowhere; keep the reader in the field.
+    else inputRef.current?.focus();
   };
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -119,46 +133,58 @@ export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, i
   const optionId = (i: number) => `${id}-opt-${i}`;
 
   return (
-    <div className={`${styles.box} ${variant === "dialog" ? styles.dialogBox : styles.heroBox}`} data-trail-ignore>
+    <div
+      className={`${styles.box} ${variant === "dialog" ? styles.dialogBox : variant === "portal" ? styles.portalBox : styles.heroBox}`}
+      data-trail-ignore
+    >
       <form
         role="search"
-        className={styles.field}
+        className={variant === "portal" ? styles.portalForm : styles.field}
         onSubmit={(e) => {
           e.preventDefault();
           choose(active);
         }}
       >
-        <Icon name="search" size={15} className={styles.fieldIcon} />
+        {variant === "portal" ? null : <Icon name="search" size={15} className={styles.fieldIcon} />}
         <label htmlFor={`${id}-input`} className="visually-hidden">
-          Search Wikipedia
+          Search {language.englishName} Wikipedia
         </label>
-        <input
-          ref={inputRef}
-          id={`${id}-input`}
-          className={styles.input}
-          type="search"
-          role="combobox"
-          aria-expanded={showResults}
-          aria-controls={listId}
-          aria-autocomplete="list"
-          aria-activedescendant={showResults && active >= 0 ? optionId(active) : undefined}
-          autoComplete="off"
-          spellCheck={false}
-          autoFocus={autoFocus}
-          placeholder="Search Wikipedia: halting problem, Ramsey theory, ephaptic coupling…"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setOpen(true);
-            setActive(-1);
-          }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => window.setTimeout(() => setOpen(false), 120)}
-          onKeyDown={onKeyDown}
-          maxLength={200}
-        />
-        {status === "loading" && showResults ? <span className={styles.spinner} aria-hidden="true" /> : null}
-        {variant === "hero" ? <kbd className={styles.kbd} aria-hidden="true">/</kbd> : null}
+        <div className={variant === "portal" ? styles.portalField : styles.fieldInner}>
+          <input
+            ref={inputRef}
+            id={`${id}-input`}
+            className={styles.input}
+            type="search"
+            role="combobox"
+            aria-expanded={showResults}
+            aria-controls={listId}
+            aria-autocomplete="list"
+            aria-activedescendant={showResults && active >= 0 ? optionId(active) : undefined}
+            autoComplete="off"
+            spellCheck={false}
+            autoFocus={autoFocus}
+            placeholder={variant === "portal" ? undefined : `Search ${language.englishName} Wikipedia: halting problem, Ramsey theory, ephaptic coupling…`}
+            lang={variant === "portal" ? languageLocale(language) : undefined}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+              setActive(-1);
+            }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+            onKeyDown={onKeyDown}
+            maxLength={200}
+          />
+          {status === "loading" && showResults ? <span className={styles.spinner} aria-hidden="true" /> : null}
+          {variant === "hero" ? <kbd className={styles.kbd} aria-hidden="true">/</kbd> : null}
+          {variant === "portal" ? <SearchLanguageSelect /> : null}
+        </div>
+        {variant === "portal" ? (
+          <button type="submit" className={styles.portalSubmit} aria-label={`Search ${language.englishName} Wikipedia`}>
+            <Icon name="search" size={20} />
+          </button>
+        ) : null}
       </form>
 
       <div className="visually-hidden" aria-live="polite">
@@ -188,7 +214,9 @@ export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, i
               onMouseEnter={() => setActive(i)}
               onClick={() => choose(i)}
             >
-              <span className={styles.optionTitle}>{r.title}</span>
+              <span className={styles.optionTitle} lang={languageLocale(language)}>
+                {r.title}
+              </span>
               {r.description ? <span className={styles.optionDesc}>{r.description}</span> : null}
               {r.disambiguation ? <span className="label">Disambiguation</span> : null}
             </li>

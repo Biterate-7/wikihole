@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { ApiError, fetchInsights } from "@/lib/api-client";
 import type { Insights } from "@/lib/ai/insights";
+import { DEFAULT_LANGUAGE } from "@/lib/i18n/languages";
 import { articlePath } from "@/lib/wikipedia/titles";
 import styles from "./article.module.css";
 
@@ -17,7 +18,7 @@ function Evidence({ quote }: { quote: string }) {
  * On-demand AI analysis. Generated only when asked (it costs money), clearly
  * labelled, and every item carries the article quote that grounds it.
  */
-export function InsightsPanel({ title }: { title: string }) {
+export function InsightsPanel({ title, lang = DEFAULT_LANGUAGE }: { title: string; lang?: string }) {
   const [state, setState] = useState<State>({ status: "idle" });
   const controller = useRef<AbortController | null>(null);
 
@@ -27,7 +28,7 @@ export function InsightsPanel({ title }: { title: string }) {
     controller.current = ac;
     setState({ status: "loading" });
     try {
-      const result = await fetchInsights(title, ac.signal);
+      const result = await fetchInsights(title, lang, ac.signal);
       if (!result.enabled) setState({ status: "error", message: "AI analysis is not configured on this server." });
       else setState({ status: "done", insights: result.insights });
     } catch (err) {
@@ -63,12 +64,12 @@ export function InsightsPanel({ title }: { title: string }) {
           </button>
         </div>
       ) : null}
-      {state.status === "done" ? <InsightsView insights={state.insights} /> : null}
+      {state.status === "done" ? <InsightsView insights={state.insights} lang={lang} /> : null}
     </section>
   );
 }
 
-function InsightsView({ insights }: { insights: Insights }) {
+function InsightsView({ insights, lang }: { insights: Insights; lang: string }) {
   return (
     <div className={styles.insightBody}>
       <div className={styles.complexity}>
@@ -100,7 +101,7 @@ function InsightsView({ insights }: { insights: Insights }) {
           <ul className={styles.insightList}>
             {insights.prerequisites.map((p, i) => (
               <li key={i}>
-                {p.linked ? <Link href={articlePath(p.linked)}>{p.concept}</Link> : p.concept}
+                {p.linked ? <Link href={articlePath(p.linked, undefined, lang)}>{p.concept}</Link> : p.concept}
               </li>
             ))}
           </ul>
@@ -129,7 +130,7 @@ function InsightsView({ insights }: { insights: Insights }) {
           <ul className={styles.insightList}>
             {insights.readNext.map((r) => (
               <li key={r.title}>
-                <Link href={articlePath(r.title)}>{r.title}</Link>: {r.reason}
+                <Link href={articlePath(r.title, undefined, lang)}>{r.title}</Link>: {r.reason}
               </li>
             ))}
           </ul>

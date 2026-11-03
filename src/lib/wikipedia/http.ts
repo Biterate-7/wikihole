@@ -1,4 +1,5 @@
 import "server-only";
+import { DEFAULT_LANGUAGE, isSupportedLanguage, wikipediaDomain } from "@/lib/i18n/languages";
 
 /**
  * Low-level HTTP access to Wikimedia APIs, following
@@ -38,6 +39,20 @@ export class WikipediaError extends Error {
 export const WIKIPEDIA_API_URL = process.env.WIKIPEDIA_API_URL || "https://en.wikipedia.org/w/api.php";
 export const WIKIPEDIA_REST_URL = process.env.WIKIPEDIA_REST_URL || "https://en.wikipedia.org/api/rest_v1";
 
+/**
+ * Action API endpoint for a language edition. The environment overrides
+ * apply to the default (English) edition, which keeps test doubles working.
+ */
+export function apiUrlFor(lang: string = DEFAULT_LANGUAGE): string {
+  if (lang === DEFAULT_LANGUAGE || !isSupportedLanguage(lang)) return WIKIPEDIA_API_URL;
+  return `https://${wikipediaDomain(lang)}/w/api.php`;
+}
+
+export function restUrlFor(lang: string = DEFAULT_LANGUAGE): string {
+  if (lang === DEFAULT_LANGUAGE || !isSupportedLanguage(lang)) return WIKIPEDIA_REST_URL;
+  return `https://${wikipediaDomain(lang)}/api/rest_v1`;
+}
+
 const DEFAULT_USER_AGENT = "WikiHole/1.0 (Wikipedia discovery client; set WIKIMEDIA_USER_AGENT to add operator contact)";
 
 export function userAgent(): string {
@@ -48,6 +63,8 @@ export interface RequestOptions {
   timeoutMs?: number;
   retries?: number;
   signal?: AbortSignal;
+  /** Wikipedia language edition (Action API calls only). Defaults to English. */
+  lang?: string;
 }
 
 const DEFAULT_TIMEOUT_MS = 8000;
@@ -169,7 +186,7 @@ export type ApiParams = Record<string, string | number | boolean | undefined>;
 
 /** Calls the MediaWiki Action API (formatversion=2) and surfaces API errors. */
 export async function mwApi(params: ApiParams, options?: RequestOptions): Promise<Record<string, unknown>> {
-  const url = new URL(WIKIPEDIA_API_URL);
+  const url = new URL(apiUrlFor(options?.lang));
   url.searchParams.set("format", "json");
   url.searchParams.set("formatversion", "2");
   url.searchParams.set("errorformat", "plaintext");

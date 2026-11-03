@@ -66,7 +66,7 @@ export function SavedView() {
               kind="empty"
               title="You haven't saved anything yet."
               action={
-                <Link className="btn" href="/">
+                <Link className="btn" href="/discover">
                   Browse discoveries
                 </Link>
               }
@@ -76,14 +76,14 @@ export function SavedView() {
           ) : (
             <ul className={styles.list} data-testid="saved-list">
               {saved.map((item) => (
-                <li key={item.title} className={styles.item} data-testid="saved-item">
+                <li key={`${item.lang ?? ""}:${item.title}`} className={styles.item} data-testid="saved-item">
                   <div className={styles.itemBody}>
                     <p className="label">
                       {item.groupLabel ?? "Saved"}
                       <span className="dot">{formatRelative(item.savedAt)}</span>
                     </p>
                     <h2 className={styles.itemTitle}>
-                      <Link href={articlePath(item.title)}>{item.title}</Link>
+                      <Link href={articlePath(item.title, undefined, item.lang)} lang={item.lang}>{item.title}</Link>
                     </h2>
                     {item.description ? <p className={styles.itemDesc}>{item.description}</p> : null}
                     {item.extract ? <p className={styles.itemExtract}>{item.extract}</p> : null}
@@ -92,7 +92,7 @@ export function SavedView() {
                       <button
                         type="button"
                         className="action"
-                        onClick={() => removeSaved(item.title)}
+                        onClick={() => removeSaved(item.title, item.lang)}
                         aria-label={`Remove ${item.title} from saved`}
                       >
                         <Icon name="close" size={11} /> Remove
@@ -140,8 +140,8 @@ export function SavedView() {
               </div>
               <ol className={styles.history} data-testid="history-list">
                 {history.map((h) => (
-                  <li key={h.title}>
-                    <Link href={articlePath(h.title)}>{h.title}</Link>
+                  <li key={`${h.lang ?? ""}:${h.title}`}>
+                    <Link href={articlePath(h.title, undefined, h.lang)} lang={h.lang}>{h.title}</Link>
                     {h.description ? <span className={styles.historyDesc}>{h.description}</span> : null}
                     <span className="label">
                       {h.depth && h.depth > 1 ? `depth ${h.depth} · ` : ""}
@@ -172,11 +172,11 @@ export function SavedView() {
                     <ol className={styles.trailSteps}>
                       {t.steps.map((step, i) => (
                         <li key={`${step}-${i}`}>
-                          <Link href={articlePath(step)}>{step}</Link>
+                          <Link href={articlePath(step, undefined, t.lang)} lang={t.lang}>{step}</Link>
                         </li>
                       ))}
                     </ol>
-                    <Link className="btn" href={articlePath(t.steps[t.steps.length - 1])}>
+                    <Link className="btn" href={articlePath(t.steps[t.steps.length - 1], undefined, t.lang)}>
                       Resume exploration
                     </Link>
                   </li>

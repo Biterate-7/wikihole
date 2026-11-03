@@ -36,6 +36,8 @@ export interface RelationSource {
 }
 
 export interface Discovery {
+  /** Language edition, when not English. */
+  lang?: string;
   pageId: number;
   title: string;
   description?: string;

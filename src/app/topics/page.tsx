@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GROUPS, SUBTOPICS } from "@/lib/discovery/topics";
+import { EditionNotice } from "@/components/i18n/EditionNotice";
 import styles from "../pages.module.css";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function TopicsPage() {
           out stubs and trivia, and ranks what is left.
         </p>
       </header>
+      <EditionNotice feature="Topics" />
       <div className={styles.topicGroups}>
         {GROUPS.map((group) => (
           <section key={group.id} className={styles.topicGroup} aria-labelledby={`group-${group.id}`}>

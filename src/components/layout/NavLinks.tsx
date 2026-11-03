@@ -7,7 +7,7 @@ import { useHydrated, useStore } from "@/lib/storage/hooks";
 import styles from "./layout.module.css";
 
 const LINKS = [
-  { href: "/", label: "Discover", match: (p: string) => p === "/" },
+  { href: "/discover", label: "Discover", match: (p: string) => p.startsWith("/discover") },
   { href: "/topics", label: "Topics", match: (p: string) => p.startsWith("/topics") },
   { href: "/random", label: "Random", match: (p: string) => p.startsWith("/random") },
   { href: "/saved", label: "Saved", match: (p: string) => p.startsWith("/saved") },
