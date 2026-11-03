@@ -8,17 +8,19 @@ import type { Discovery } from "@/lib/discovery/types";
 import { leadSentences } from "@/lib/format";
 import { currentTrailStore, historyStore } from "@/lib/storage/collections";
 import { useHydrated, useStore } from "@/lib/storage/hooks";
+import { DEFAULT_LANGUAGE } from "@/lib/i18n/languages";
 import { articlePath } from "@/lib/wikipedia/titles";
 import styles from "./article.module.css";
 
 const DEEPER = new Set(["see-also", "lead-link"]);
 
 function RelatedCard({ item, visited }: { item: Discovery; visited: boolean }) {
+  const href = articlePath(item.title, undefined, item.lang);
   return (
     <li className={styles.related} data-testid="related-item">
       <p className={`label ${styles.relation}`}>{item.relation?.label ?? "Related"}</p>
       <h3 className={styles.relatedTitle}>
-        <Link href={articlePath(item.title)}>{item.title}</Link>
+        <Link href={href}>{item.title}</Link>
         {visited ? <span className={`label ${styles.visitedTag}`}>Visited</span> : null}
       </h3>
       {item.description ? <p className={styles.relatedDesc}>{item.description}</p> : null}
@@ -33,9 +35,10 @@ function RelatedCard({ item, visited }: { item: Discovery; visited: boolean }) {
             thumbnail: item.thumbnail,
             readingMinutes: item.readingMinutes,
             groupLabel: item.groupLabel,
+            ...(item.lang ? { lang: item.lang } : {}),
           }}
         />
-        <Link href={articlePath(item.title)} className="action" aria-label={`Go deeper into ${item.title}`}>
+        <Link href={href} className="action" aria-label={`Go deeper into ${item.title}`}>
           Go deeper <Icon name="arrow-right" size={11} />
         </Link>
       </div>
@@ -47,14 +50,23 @@ function RelatedCard({ item, visited }: { item: Discovery; visited: boolean }) {
  * Related discoveries for the Rabbit Hole. Articles already on the current
  * trail are hidden; previously read ones sink to the end and are marked.
  */
-export function RelatedList({ items, currentTitle }: { items: Discovery[]; currentTitle: string }) {
+export function RelatedList({
+  items,
+  currentTitle,
+  lang = DEFAULT_LANGUAGE,
+}: {
+  items: Discovery[];
+  currentTitle: string;
+  lang?: string;
+}) {
   const hydrated = useHydrated();
   const history = useStore(historyStore);
   const trail = useStore(currentTrailStore);
 
   const { deeper, adjacent, visited } = useMemo(() => {
-    const visitedSet = new Set(hydrated ? history.map((h) => h.title) : []);
-    const onTrail = new Set(hydrated ? (trail?.steps ?? []) : []);
+    const sameEdition = (entry: { lang?: string } | null | undefined) => (entry?.lang ?? DEFAULT_LANGUAGE) === lang;
+    const visitedSet = new Set(hydrated ? history.filter(sameEdition).map((h) => h.title) : []);
+    const onTrail = new Set(hydrated && sameEdition(trail) ? (trail?.steps ?? []) : []);
     const candidates = items.filter((i) => i.title !== currentTitle && !onTrail.has(i.title));
     const ordered = [...candidates].sort((a, b) => Number(visitedSet.has(a.title)) - Number(visitedSet.has(b.title)));
     return {
@@ -62,7 +74,7 @@ export function RelatedList({ items, currentTitle }: { items: Discovery[]; curre
       adjacent: ordered.filter((i) => !i.relation || !DEEPER.has(i.relation.kind)),
       visited: visitedSet,
     };
-  }, [items, currentTitle, history, trail, hydrated]);
+  }, [items, currentTitle, history, trail, hydrated, lang]);
 
   if (deeper.length + adjacent.length === 0) {
     return <p className={styles.muted}>No related articles passed the quality gate for this page.</p>;

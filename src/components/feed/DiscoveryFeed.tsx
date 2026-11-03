@@ -115,7 +115,7 @@ export function DiscoveryFeed({
     if (nextPreset !== "balanced") params.set("mode", nextPreset);
     const qs = params.toString();
     // Native history update: Next keeps it in sync without re-rendering the server feed.
-    window.history.replaceState(null, "", qs ? `/?${qs}` : "/");
+    window.history.replaceState(null, "", qs ? `/discover?${qs}` : "/discover");
   };
 
   const changeTopic = (next: string | null) => {

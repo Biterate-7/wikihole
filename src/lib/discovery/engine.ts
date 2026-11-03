@@ -2,6 +2,7 @@ import "server-only";
 import { TtlCache } from "@/lib/cache";
 import { rankLinks } from "@/lib/content/concepts";
 import type { ArticleDocument } from "@/lib/content/types";
+import { DEFAULT_LANGUAGE } from "@/lib/i18n/languages";
 import { getMoreLike, getPagesMeta, getPagesMetaMap, getRandomTitles, searchCandidates } from "@/lib/wikipedia/api";
 import type { PageMeta } from "@/lib/wikipedia/types";
 import { MODEL, normalizeWeights, weightsFor } from "./config";
@@ -278,7 +279,8 @@ interface RelatedSeed {
 }
 
 export async function getRelated(doc: ArticleDocument, limit = 14): Promise<Discovery[]> {
-  return relatedCache.getOrLoad(`${doc.pageId}|${doc.revId}|${limit}`, async () => {
+  const lang = doc.lang ?? DEFAULT_LANGUAGE;
+  return relatedCache.getOrLoad(`${lang}|${doc.pageId}|${doc.revId}|${limit}`, async () => {
     const seeds = new Map<string, RelatedSeed>();
     const add = (seed: RelatedSeed) => {
       const existing = seeds.get(seed.title);
@@ -307,7 +309,7 @@ export async function getRelated(doc: ArticleDocument, limit = 14): Promise<Disc
         });
       }
     }
-    const similar = await getMoreLike(doc.title, 12).catch(() => []);
+    const similar = await getMoreLike(doc.title, 12, lang).catch(() => []);
     similar.forEach((hit, rank) =>
       add({
         title: hit.title,
@@ -317,7 +319,7 @@ export async function getRelated(doc: ArticleDocument, limit = 14): Promise<Disc
     );
 
     const titles = [...seeds.keys()].slice(0, 60);
-    const metaByTitle = await getPagesMetaMap(titles);
+    const metaByTitle = await getPagesMetaMap(titles, lang);
     const sourceCategories = new Set(topCategories(doc.categories, 50).map((c) => c.toLowerCase()));
     const scored = new Map<number, Scored>();
     for (const title of titles) {

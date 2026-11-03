@@ -6,6 +6,7 @@ import { DiscoveryFeed } from "@/components/feed/DiscoveryFeed";
 import { getFeed } from "@/lib/discovery/engine";
 import { SUBTOPICS, resolveTopic } from "@/lib/discovery/topics";
 import { attempt, describeError } from "@/lib/server/http";
+import { EditionNotice } from "@/components/i18n/EditionNotice";
 import styles from "../../pages.module.css";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -64,6 +65,7 @@ export default async function TopicPage({ params }: Props) {
           </p>
         ) : null}
       </header>
+      <EditionNotice feature="Topics" />
       <Suspense key={slug} fallback={<DiscoveryFeed initial={null} pending topic={slug} preset="balanced" fixedTopic />}>
         <TopicFeed slug={slug} />
       </Suspense>

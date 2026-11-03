@@ -3,7 +3,7 @@ import { VIEWPORTS, clippedElements, expectNoHorizontalOverflow, overlapping, wa
 
 test.describe("G: failure handling", () => {
   test("feed API failure shows a recoverable error", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/discover");
     await waitForFeed(page);
     let fail = true;
     await page.route("**/api/feed", (route) =>
@@ -44,7 +44,7 @@ test.describe("G: failure handling", () => {
 
   test("unavailable thumbnails do not break the feed", async ({ page }) => {
     await page.route(/(thumb|upload)\.wikimedia\.org/, (route) => route.abort());
-    await page.goto("/");
+    await page.goto("/discover");
     await waitForFeed(page);
     await page.waitForTimeout(1000);
     const broken = await page.evaluate(() => [...document.querySelectorAll("img")].filter((i) => i.complete && i.naturalWidth === 0).length);
@@ -75,6 +75,14 @@ test.describe("H: responsiveness", () => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
 
       await page.goto("/");
+      await expect(page.getByTestId("featured-language")).toHaveCount(10);
+      await expectNoHorizontalOverflow(page);
+      expect(await clippedElements(page)).toEqual([]);
+      expect(
+        await overlapping(page, "[data-testid=featured-language] button, form[role=search] button, [data-testid=language-menu-toggle]"),
+      ).toBe(false);
+
+      await page.goto("/discover");
       await waitForFeed(page);
       await expectNoHorizontalOverflow(page);
       expect(await clippedElements(page)).toEqual([]);
@@ -110,7 +118,17 @@ test.describe("H: responsiveness", () => {
     page.on("console", (m) => {
       if (m.type() === "error") problems.push(`console: ${m.text()}`);
     });
-    for (const path of ["/", "/topics", "/topics/cryptography", "/wiki/Kolmogorov_complexity", "/random", "/saved", "/search?q=entropy"]) {
+    for (const path of [
+      "/",
+      "/discover",
+      "/topics",
+      "/topics/cryptography",
+      "/wiki/Kolmogorov_complexity",
+      "/de/wiki/Kolmogorow-Komplexit%C3%A4t",
+      "/random",
+      "/saved",
+      "/search?q=entropy",
+    ]) {
       await page.goto(path);
       await page.waitForLoadState("networkidle").catch(() => {});
     }

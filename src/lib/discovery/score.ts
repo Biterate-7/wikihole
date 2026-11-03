@@ -236,12 +236,13 @@ export function toDiscovery(
   const signals = [...features.signals];
   if (candidate.relation) signals.unshift(candidate.relation.label);
   return {
+    ...(meta.lang ? { lang: meta.lang } : {}),
     pageId: meta.pageId,
     title: meta.title,
     ...(meta.description ? { description: meta.description } : {}),
     extract: meta.extract ?? "",
     ...(meta.thumbnail ? { thumbnail: meta.thumbnail } : {}),
-    url: wikipediaUrl(meta.title),
+    url: wikipediaUrl(meta.title, meta.lang),
     readingMinutes: readingMinutes(meta),
     ...(group ? { group: group.id, groupLabel: group.label } : {}),
     ...(sub ? { subtopic: sub.slug, subtopicLabel: sub.label } : {}),
