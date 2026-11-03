@@ -14,6 +14,7 @@ import styles from "./feed.module.css";
 /** One discovery, laid out as a Wikipedia search result: thumbnail, title, description, intro, data line. */
 export function FeedItem({ item, rank, visited }: { item: Discovery; rank: number; visited?: boolean }) {
   const [open, setOpen] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   const badge = assessmentBadge(item.assessment);
   const kicker = [item.groupLabel, item.subtopicLabel].filter(Boolean).join(" › ");
   const breakdownId = `why-${item.pageId}`;
@@ -21,9 +22,12 @@ export function FeedItem({ item, rank, visited }: { item: Discovery; rank: numbe
 
   return (
     <article className={styles.item} data-testid="feed-item" data-title={item.title} data-rank={rank}>
-      <Link href={href} className={styles.thumb} tabIndex={-1} aria-hidden="true">
-        {item.thumbnail ? <ThumbImage thumbnail={item.thumbnail} size={80} /> : <span className={styles.noThumb} />}
-      </Link>
+      {/* No thumbnail (or one that failed to load) means no thumbnail slot at all: the body takes the full row. */}
+      {item.thumbnail && !imageFailed ? (
+        <Link href={href} className={styles.thumb} tabIndex={-1} aria-hidden="true">
+          <ThumbImage thumbnail={item.thumbnail} size={80} onFail={() => setImageFailed(true)} />
+        </Link>
+      ) : null}
       <div className={styles.body}>
         <h2 className={styles.title}>
           <Link href={href} className={styles.titleLink}>
@@ -97,7 +101,7 @@ export function FeedItemSkeleton() {
   return (
     <div className={styles.item} aria-hidden="true">
       <div className={styles.thumb}>
-        <span className={`skeleton ${styles.noThumb}`} />
+        <span className={`skeleton ${styles.thumbSkeleton}`} />
       </div>
       <div className={styles.body}>
         <div className="skeleton" style={{ width: "45%", height: 18, marginBottom: 8 }} />

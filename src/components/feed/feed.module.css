@@ -121,15 +121,11 @@
   width: 80px;
 }
 
-.noThumb {
+.thumbSkeleton {
   display: block;
   width: 80px;
   height: 80px;
-  border: 1px solid var(--border-light);
   border-radius: var(--radius);
-  background: var(--background-neutral-subtle)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 20 20'%3E%3Cpath fill='%23a2a9b1' d='M5 1a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2zm0 3h5v1H5zm0 2h5v1H5zm0 2h5v1H5zm10 7.5H5v-1h10zm0-2H5v-1h10zm0-2H5v-1h10zm0-2H5v-1h10zm0-2.5h-4V4h4z'/%3E%3C/svg%3E")
-    no-repeat center;
 }
 
 .body {
@@ -272,11 +268,11 @@
 
 @media (max-width: 639px) {
   .thumb,
-  .noThumb {
+  .thumbSkeleton {
     width: 56px;
   }
 
-  .noThumb {
+  .thumbSkeleton {
     height: 56px;
   }
 
