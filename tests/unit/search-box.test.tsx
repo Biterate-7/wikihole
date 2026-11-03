@@ -29,12 +29,12 @@ describe("SearchBox", () => {
     const input = screen.getByRole("combobox");
     await user.type(input, "halting");
 
-    await screen.findByText("Halting problem");
+    await screen.findByRole("option", { name: /^Halting problem/ });
     const options = screen.getAllByRole("option");
     expect(options.map((o) => o.textContent)).toEqual([
       expect.stringContaining("Halting problem"),
       expect.stringContaining("Disambiguation"),
-      expect.stringContaining("All results"),
+      expect.stringContaining("Search for pages containing"),
     ]);
     // Typing seven characters triggers a single debounced request.
     expect(fetchMock).toHaveBeenCalledTimes(1);

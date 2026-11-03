@@ -13,8 +13,8 @@ test.describe("Hacker News", () => {
 
   test("feed renders real submissions with Wikipedia context and source links", async ({ page }) => {
     await page.goto("/hackernews");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("What today’s Hacker News can teach you.");
-    await expect(page.getByRole("link", { name: "Hacker News", exact: true })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Hacker News");
+    await expect(page.getByRole("navigation", { name: "Main menu" }).getByRole("link", { name: "Hacker News", exact: true })).toHaveAttribute("aria-current", "page");
     await waitForHoles(page);
     const items = page.getByTestId("hn-item");
     const first = items.first();
@@ -75,7 +75,7 @@ test.describe("Hacker News", () => {
   test("handles unknown and unsuitable items", async ({ page }) => {
     // The loading boundary streams the page, so a missing item renders the not-found page (status already sent).
     await page.goto("/hackernews/999999999");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("This hole goes nowhere.", { timeout: 30_000 });
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found", { timeout: 30_000 });
     // Item 1 is the very first Hacker News submission ("Y Combinator"), which names nothing to look up.
     await page.goto("/hackernews/1");
     await expect(page.locator("main")).toContainText(/Y Combinator/);
@@ -87,7 +87,8 @@ test.describe("Hacker News", () => {
     await waitForHoles(page);
     await expectNoHorizontalOverflow(page);
     expect(await clippedElements(page)).toEqual([]);
-    await expect(page.getByRole("link", { name: "Hacker News", exact: true })).toBeVisible();
+    // On phones the main menu (with the Hacker News entry) folds into the header dropdown.
+    await expect(page.locator("summary[aria-label='Main menu']")).toBeVisible();
     await page.screenshot({ path: "test-results/hn-feed-mobile.png" });
     await page.getByTestId("hn-item").first().getByRole("heading").getByRole("link").click();
     await expect(page.getByTestId("knowledge-graph")).toBeVisible({ timeout: 60_000 });

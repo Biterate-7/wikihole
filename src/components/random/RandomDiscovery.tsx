@@ -167,13 +167,13 @@ export function RandomDiscovery() {
         </p>
         <div className={styles.actions}>
           <Link href={articlePath(current.title)} className="btn btn-primary">
-            Read article <Icon name="arrow-right" size={11} />
+            Read article <Icon name="arrow-right" size={14} />
           </Link>
           <button type="button" className="btn" onClick={() => void next()} disabled={loading} aria-keyshortcuts="n">
-            <Icon name="shuffle" size={12} /> Another discovery
+            <Icon name="shuffle" size={14} /> Another discovery
           </button>
           <Link href={`${articlePath(current.title)}#rabbit-hole`} className="btn">
-            Explore deeper <Icon name="corner-down-right" size={11} />
+            Explore deeper <Icon name="corner-down-right" size={14} />
           </Link>
           <SaveButton
             variant="button"
@@ -195,7 +195,7 @@ export function RandomDiscovery() {
       </article>
 
       <aside className={styles.why} aria-label="Why this article">
-        <h2 className="label">Why this one</h2>
+        <h2>Why this one</h2>
         <ScoreBreakdown score={current.score} />
         {stats ? (
           <p className={styles.stats} data-testid="random-stats">
@@ -204,7 +204,7 @@ export function RandomDiscovery() {
             {rejected.length ? `; rejected: ${rejected.map(([r, n]) => `${n} ${REASON_LABELS[r]}`).join(", ")}` : ""}.
           </p>
         ) : null}
-        <p className="label">Press N for another</p>
+        <p className="label">Press N for another discovery.</p>
       </aside>
     </div>
   );

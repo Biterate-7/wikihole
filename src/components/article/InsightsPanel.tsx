@@ -40,10 +40,10 @@ export function InsightsPanel({ title, lang = DEFAULT_LANGUAGE }: { title: strin
   return (
     <section className={styles.insights} aria-labelledby="insights-heading" data-testid="insights">
       <div className={styles.asideHead}>
-        <h2 id="insights-heading" className="label">
-          Analysis
+        <h2 id="insights-heading" className={styles.insightsTitle}>
+          Analysis of this article
         </h2>
-        <span className={`label ${styles.aiTag}`}>AI-generated</span>
+        <span className={styles.aiTag}>AI-generated</span>
       </div>
       <p className={styles.disclosure}>
         Written by a language model from this article&rsquo;s text only. Each point quotes the passage it relies on;
@@ -55,7 +55,7 @@ export function InsightsPanel({ title, lang = DEFAULT_LANGUAGE }: { title: strin
           Generate analysis
         </button>
       ) : null}
-      {state.status === "loading" ? <p className="label">Reading the article…</p> : null}
+      {state.status === "loading" ? <p className={styles.disclosure}>Reading the article…</p> : null}
       {state.status === "error" ? (
         <div className={styles.insightError} role="alert">
           <p>{state.message}</p>
@@ -73,7 +73,7 @@ function InsightsView({ insights, lang }: { insights: Insights; lang: string }) 
   return (
     <div className={styles.insightBody}>
       <div className={styles.complexity}>
-        <span className="label">Technical depth</span>
+        <span className={styles.insightsH3}>Technical depth</span>
         <span className={styles.complexityScale} aria-label={`${insights.complexity} out of 5`}>
           {[1, 2, 3, 4, 5].map((n) => (
             <span key={n} className={n <= insights.complexity ? styles.on : undefined} />
@@ -84,7 +84,7 @@ function InsightsView({ insights, lang }: { insights: Insights; lang: string }) 
 
       {insights.whyInteresting.length ? (
         <div>
-          <h3 className="label">Why it&rsquo;s interesting</h3>
+          <h3 className={styles.insightsH3}>Why it&rsquo;s interesting</h3>
           <ul className={styles.insightList}>
             {insights.whyInteresting.map((w, i) => (
               <li key={i}>
@@ -97,7 +97,7 @@ function InsightsView({ insights, lang }: { insights: Insights; lang: string }) 
 
       {insights.prerequisites.length ? (
         <div>
-          <h3 className="label">Helps to know first</h3>
+          <h3 className={styles.insightsH3}>Helps to know first</h3>
           <ul className={styles.insightList}>
             {insights.prerequisites.map((p, i) => (
               <li key={i}>
@@ -110,7 +110,7 @@ function InsightsView({ insights, lang }: { insights: Insights; lang: string }) 
 
       {insights.terms.length ? (
         <div>
-          <h3 className="label">Terminology, explained</h3>
+          <h3 className={styles.insightsH3}>Terminology, explained</h3>
           <dl className={styles.insightTerms}>
             {insights.terms.map((t, i) => (
               <div key={i}>
@@ -126,7 +126,7 @@ function InsightsView({ insights, lang }: { insights: Insights; lang: string }) 
 
       {insights.readNext.length ? (
         <div>
-          <h3 className="label">Read next</h3>
+          <h3 className={styles.insightsH3}>Read next</h3>
           <ul className={styles.insightList}>
             {insights.readNext.map((r) => (
               <li key={r.title}>
@@ -136,7 +136,7 @@ function InsightsView({ insights, lang }: { insights: Insights; lang: string }) 
           </ul>
         </div>
       ) : null}
-      <p className="label">
+      <p className={styles.disclosure}>
         {insights.model}
         {insights.rejected ? ` · ${insights.rejected} unverifiable point${insights.rejected === 1 ? "" : "s"} removed` : ""}
       </p>

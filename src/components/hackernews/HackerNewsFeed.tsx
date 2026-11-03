@@ -96,35 +96,41 @@ export function HackerNewsFeed({ initial, initialError = null, category: initial
       <h2 id="hn-feed-heading" className="visually-hidden">
         Rabbit holes from Hacker News
       </h2>
-      <div className={styles.tabs} role="group" aria-label="Hacker News list">
-        {CATEGORIES.map((c) => (
-          <button key={c.id} type="button" className="btn" aria-pressed={category === c.id} onClick={() => changeCategory(c.id)}>
-            {c.label}
-          </button>
-        ))}
-      </div>
-
-      <div className={styles.status} aria-live="polite">
-        {status === "loading" ? (
-          <span className={styles.statusLive}>
-            <span className={styles.pulse} aria-hidden="true" /> Reading Hacker News and resolving Wikipedia articles…
-          </span>
-        ) : feed ? (
-          <>
-            <span>
-              {feed.total} rabbit hole{feed.total === 1 ? "" : "s"}
-              {feed.insufficient ? ` · ${feed.insufficient} too thin to show` : ""}
-              {feed.rejected ? ` · ${feed.rejected} filtered out` : ""}
+      <div className={styles.controls}>
+        <div className={styles.controlRow} role="group" aria-label="Hacker News list">
+          <span className={styles.controlLabel}>List:</span>
+          <ul className={styles.toggleList}>
+            {CATEGORIES.map((c) => (
+              <li key={c.id}>
+                <button type="button" className={styles.toggle} aria-pressed={category === c.id} onClick={() => changeCategory(c.id)}>
+                  {c.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className={styles.status} aria-live="polite">
+          {status === "loading" ? (
+            <span className={styles.statusLive}>
+              <span className={styles.pulse} aria-hidden="true" /> Reading Hacker News and resolving Wikipedia articles…
             </span>
-            {feed.pending > 0 ? (
-              <span className={styles.statusLive}>
-                <span className={styles.pulse} aria-hidden="true" /> {feed.pending} waiting for analysis
+          ) : feed ? (
+            <>
+              <span>
+                {feed.total} rabbit hole{feed.total === 1 ? "" : "s"}
+                {feed.insufficient ? ` · ${feed.insufficient} too thin to show` : ""}
+                {feed.rejected ? ` · ${feed.rejected} filtered out` : ""}
               </span>
-            ) : null}
-          </>
-        ) : (
-          <span>Hacker News</span>
-        )}
+              {feed.pending > 0 ? (
+                <span className={styles.statusLive}>
+                  <span className={styles.pulse} aria-hidden="true" /> {feed.pending} waiting for analysis
+                </span>
+              ) : null}
+            </>
+          ) : (
+            <span>Hacker News</span>
+          )}
+        </div>
       </div>
       {processing.length && status !== "loading" ? (
         <ul className={styles.processing} aria-label="Being analysed now">

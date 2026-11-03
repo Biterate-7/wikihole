@@ -4,7 +4,7 @@ import { expectNoHorizontalOverflow, waitForFeed, wikipediaIntro, wikipediaSumma
 test.describe("A: discover feed", () => {
   test("loads a feed of real, unique Wikipedia articles", async ({ page }) => {
     await page.goto("/discover");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("The internet’s deepest rabbit holes.");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Discover");
     await waitForFeed(page);
     const items = page.getByTestId("feed-item");
     expect(await items.count()).toBeGreaterThanOrEqual(8);
@@ -60,7 +60,9 @@ test.describe("A: discover feed", () => {
 test.describe("B: search", () => {
   test("finds the Halting problem on Wikipedia and opens the reader", async ({ page }) => {
     await page.goto("/");
-    const box = page.getByRole("combobox", { name: "Search English Wikipedia" });
+    // The header field, as on Wikipedia: magnifier, input and an attached Search button.
+    const box = page.locator("header").getByRole("combobox", { name: "Search Wikipedia" });
+    await expect(page.locator("header").getByRole("button", { name: "Search", exact: true })).toBeVisible();
     await box.fill("halting problem");
     const option = page.getByRole("option", { name: /^Halting problem/ });
     await expect(option).toBeVisible();
@@ -73,9 +75,21 @@ test.describe("B: search", () => {
     await expect(page.getByTestId("article-section").first()).toBeVisible();
   });
 
-  test("header search opens with the keyboard and closes with Escape", async ({ page }) => {
+  test('"/" focuses the header search and Escape closes the suggestions', async ({ page }) => {
     await page.goto("/topics");
     await page.keyboard.press("/");
+    const box = page.getByRole("combobox", { name: "Search Wikipedia" });
+    await expect(box).toBeFocused();
+    await box.fill("turing machine");
+    await expect(page.getByRole("option", { name: /^Turing machine/ })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("listbox", { name: "Search results" })).toBeHidden();
+  });
+
+  test("on narrow screens the search icon opens a search overlay that closes with Escape", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/topics");
+    await page.getByRole("button", { name: "Search Wikipedia" }).click();
     const dialog = page.getByRole("dialog", { name: "Search Wikipedia" });
     await expect(dialog).toBeVisible();
     await dialog.getByRole("combobox").fill("turing machine");
@@ -83,6 +97,20 @@ test.describe("B: search", () => {
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
+  });
+
+  test("sidebars hide and return, and the choice survives a reload", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/topics");
+    const menu = page.getByRole("navigation", { name: "Main menu" });
+    await expect(menu).toBeVisible();
+    await menu.getByRole("button", { name: "hide" }).click();
+    await expect(menu).toBeHidden();
+    await page.reload();
+    await expect(page.getByRole("navigation", { name: "Main menu" })).toBeHidden();
+    await page.locator("summary[aria-label='Main menu']").click();
+    await page.getByRole("navigation", { name: "Site menu" }).getByRole("button", { name: "move to sidebar" }).click();
+    await expect(page.getByRole("navigation", { name: "Main menu" })).toBeVisible();
   });
 
   test("full results page shows Wikipedia snippets", async ({ page }) => {

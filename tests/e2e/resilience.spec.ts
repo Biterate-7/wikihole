@@ -25,8 +25,8 @@ test.describe("G: failure handling", () => {
     );
     await page.goto("/topics");
     await page.keyboard.press("/");
-    await page.getByRole("dialog").getByRole("combobox").fill("entropy");
-    await expect(page.getByRole("dialog").getByText("Wikipedia is unavailable right now.")).toBeVisible();
+    await page.getByRole("combobox", { name: "Search Wikipedia" }).fill("entropy");
+    await expect(page.locator("header").getByText("Wikipedia is unavailable right now.")).toBeVisible();
   });
 
   test("empty search results", async ({ page }) => {

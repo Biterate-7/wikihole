@@ -37,12 +37,10 @@ export function ArticleCollection({
     <div className={styles.collection}>
       {groups.map((group) => (
         <section key={group.kind} aria-labelledby={`group-${group.kind}`}>
-          <div className={styles.groupHead}>
-            <h3 id={`group-${group.kind}`} className="label">
-              {group.title} · {group.items.length}
-            </h3>
-            <span className={styles.groupHint}>{group.hint}</span>
-          </div>
+          <h3 id={`group-${group.kind}`} className={styles.h3}>
+            {group.title} ({group.items.length})
+          </h3>
+          <p className={styles.groupHint}>{group.hint}</p>
           <ul className={styles.cards}>
             {group.items.map((node) => (
               <ArticleNode key={node.id} node={node} edge={introducing.get(node.id)} selected={selected === node.id} onSelect={onSelect} />

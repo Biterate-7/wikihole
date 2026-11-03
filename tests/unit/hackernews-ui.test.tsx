@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KnowledgeGraph } from "@/components/exploration/KnowledgeGraph";
+import { ExplorationTools } from "@/components/exploration/ExplorationTools";
 import { SubmissionExplorer } from "@/components/exploration/SubmissionExplorer";
 import { HackerNewsFeed } from "@/components/hackernews/HackerNewsFeed";
 import { SubmissionCard } from "@/components/hackernews/SubmissionCard";
@@ -171,7 +172,16 @@ describe("SubmissionExplorer", () => {
     // Selecting a node shows its sourced relations.
     fireEvent.click(within(screen.getByTestId("knowledge-graph")).getByRole("button", { name: /Paxos/ }));
     expect(screen.getByTestId("graph-detail").textContent).toContain("“History” section");
-    expect(screen.getByTestId("hole-entities").textContent).toContain("no matching article");
+  });
+
+  it("lists what was extracted, the quality score and sources in the tools column", () => {
+    render(<ExplorationTools exploration={exploration} />);
+    const entities = screen.getByTestId("hole-entities");
+    expect(entities.textContent).toContain("Raft");
+    expect(within(entities).getByRole("link", { name: "Raft (algorithm)" }).getAttribute("href")).toBe("/wiki/Raft_(algorithm)");
+    expect(entities.textContent).toContain("no matching article");
+    expect(screen.getByRole("heading", { name: /Rabbit hole quality: 82/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Submission on Hacker News" }).getAttribute("href")).toBe("https://news.ycombinator.com/item?id=123");
   });
 
   it("labels insufficient holes", () => {

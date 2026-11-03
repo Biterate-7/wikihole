@@ -143,27 +143,31 @@ export function DiscoveryFeed({
       <h2 id="feed-heading" className="visually-hidden">
         Discoveries
       </h2>
-      {fixedTopic ? null : <TopicFilter value={topic} onChange={changeTopic} />}
-
       <div className={styles.controls}>
-        <div className={styles.presets} role="group" aria-label="Ranking mode">
-          <span className="label">Rank</span>
-          {PRESETS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className="btn"
-              aria-pressed={preset === p.id}
-              title={p.hint}
-              onClick={() => preset !== p.id && changePreset(p.id)}
-            >
-              {p.label}
-            </button>
-          ))}
+        {fixedTopic ? null : <TopicFilter value={topic} onChange={changeTopic} />}
+        <div className={styles.controlRow}>
+          <div className={styles.presets} role="group" aria-label="Ranking mode">
+            <span className={styles.controlLabel}>Rank by:</span>
+            <ul className={styles.toggleList}>
+              {PRESETS.map((p) => (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    className={styles.toggle}
+                    aria-pressed={preset === p.id}
+                    title={p.hint}
+                    onClick={() => preset !== p.id && changePreset(p.id)}
+                  >
+                    {p.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <button type="button" className="btn" onClick={refresh} disabled={status === "loading"}>
+            <Icon name="refresh" size={14} /> New batch
+          </button>
         </div>
-        <button type="button" className="action" onClick={refresh} disabled={status === "loading"}>
-          <Icon name="refresh" size={12} /> New batch
-        </button>
       </div>
 
       {status === "error" && failedMode === "replace" && items.length > 0 ? (

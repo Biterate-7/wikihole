@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { ExplorationTools } from "@/components/exploration/ExplorationTools";
 import { SubmissionExplorer } from "@/components/exploration/SubmissionExplorer";
+import { PageShell, type PageTab } from "@/components/layout/PageShell";
+import { SiteTools } from "@/components/layout/SiteTools";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { getExploration } from "@/lib/hackernews/service";
 import { hnItemUrl } from "@/lib/hackernews/normalization";
@@ -43,6 +46,20 @@ const REJECTED: Record<string, string> = {
   "low-information": "The submission does not name anything WikiHole can look up.",
 };
 
+function tabsFor(id: number, url?: string): { left: PageTab[]; right: PageTab[] } {
+  return {
+    left: [
+      { label: "Rabbit hole", href: `/hackernews/${id}`, selected: true },
+      { label: "Discussion", href: hnItemUrl(id), external: true, title: "Discussion on Hacker News" },
+    ],
+    right: [
+      { label: "Read", href: `/hackernews/${id}`, selected: true },
+      ...(url ? [{ label: "Original article", href: url, external: true }] : []),
+      { label: "All rabbit holes", href: "/hackernews" },
+    ],
+  };
+}
+
 export default async function ExplorationPage({ params }: { params: Promise<{ id: string }> }) {
   const id = parseId((await params).id);
   if (id === null) notFound();
@@ -61,11 +78,11 @@ export default async function ExplorationPage({ params }: { params: Promise<{ id
 
   if (!result.ok) {
     return (
-      <div className="container" style={{ paddingTop: 48 }}>
+      <PageShell title="Hacker News" tabs={tabsFor(id)} tools={<SiteTools />}>
         <StateMessage kind="error" title="This rabbit hole could not be dug right now." action={back}>
           {describeError(result.error).message}
         </StateMessage>
-      </div>
+      </PageShell>
     );
   }
 
@@ -73,25 +90,34 @@ export default async function ExplorationPage({ params }: { params: Promise<{ id
   if (value.status === "notfound") notFound();
   if (value.status === "rejected") {
     return (
-      <div className="container" style={{ paddingTop: 48 }}>
-        <StateMessage kind="empty" title={value.submission?.title ?? "Not a rabbit hole"} action={back}>
+      <PageShell title={value.submission?.title ?? "Not a rabbit hole"} tabs={tabsFor(id, value.submission?.url)} tools={<SiteTools />}>
+        <StateMessage kind="empty" title="Not a rabbit hole" action={back}>
           {REJECTED[value.reason] ?? "This submission is not suitable for a Wikipedia rabbit hole."}
         </StateMessage>
-      </div>
+      </PageShell>
     );
   }
   if (value.status === "failed") {
     return (
-      <div className="container" style={{ paddingTop: 48 }}>
-        <StateMessage kind="error" title={value.submission.title} action={back}>
-          The rabbit hole could not be built ({value.error}). It will be retried automatically; try again in a few minutes.
+      <PageShell title={value.submission.title} tabs={tabsFor(id, value.submission.url)} tools={<SiteTools />}>
+        <StateMessage kind="error" title="The rabbit hole could not be built." action={back}>
+          {value.error}. It will be retried automatically; try again in a few minutes.
         </StateMessage>
-      </div>
+      </PageShell>
     );
   }
+  const { exploration } = value;
   return (
-    <div className="container">
-      <SubmissionExplorer exploration={value.exploration} status={value.status} />
-    </div>
+    <PageShell
+      title={exploration.submission.title}
+      tabs={tabsFor(id, exploration.submission.url)}
+      tools={
+        <SiteTools>
+          <ExplorationTools exploration={exploration} />
+        </SiteTools>
+      }
+    >
+      <SubmissionExplorer exploration={exploration} status={value.status} />
+    </PageShell>
   );
 }

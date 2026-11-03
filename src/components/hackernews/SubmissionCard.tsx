@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { Icon } from "@/components/ui/Icon";
 import type { ExplorationPreview } from "@/lib/discovery/hole-types";
-import { formatCount, formatRelative, leadSentences, pad2 } from "@/lib/format";
+import { formatCount, formatRelative, leadSentences } from "@/lib/format";
 import type { SubmissionCategory } from "@/lib/hackernews/types";
 import { articlePath } from "@/lib/wikipedia/titles";
 import styles from "./hackernews.module.css";
@@ -21,42 +20,42 @@ export function explorationPath(id: number): string {
 }
 
 /**
- * One submission in the Hacker News feed. The emphasis is on what can be
- * learned from it (its main Wikipedia article and concepts), with the
- * original submission and discussion kept one click away.
+ * One submission in the Hacker News feed, laid out like a search result.
+ * The emphasis is on what can be learned from it (its main Wikipedia article
+ * and concepts), with the original submission and discussion one click away.
  */
 export function SubmissionCard({ item, rank }: { item: ExplorationPreview; rank: number }) {
   const { submission, primary } = item;
-  const kicker = [...item.disciplines.map((d) => d.label), CATEGORY_LABELS[submission.category]].join(" · ");
+  const kicker = [CATEGORY_LABELS[submission.category], ...item.disciplines.map((d) => d.label)].join(" · ");
   return (
-    <article className={styles.card} data-testid="hn-item" data-id={submission.id}>
-      <div className={styles.rank} aria-hidden="true">
-        {pad2(rank)}
-      </div>
+    <article className={styles.card} data-testid="hn-item" data-id={submission.id} data-rank={rank}>
       <div className={styles.body}>
-        <p className={`label ${styles.kicker}`}>{kicker}</p>
         <h2 className={styles.title}>
           <Link href={explorationPath(submission.id)} className={styles.titleLink}>
             {submission.title}
           </Link>
         </h2>
+        <p className={styles.kicker}>{kicker}</p>
         {primary ? (
           <p className={styles.context}>
-            About <em>{primary.title}</em>
+            About <Link href={articlePath(primary.title)}>{primary.title}</Link>
             {primary.description ? `, ${primary.description.charAt(0).toLowerCase()}${primary.description.slice(1)}` : ""}.{" "}
             {leadSentences(primary.lead, 200)}
           </p>
         ) : null}
         {item.tags.length ? (
-          <ul className={styles.tags} aria-label="Key concepts">
-            {item.tags.map((tag) => (
-              <li key={tag}>
-                <Link className={styles.tag} href={articlePath(tag)}>
-                  {tag}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <div className={styles.tagsRow}>
+            <span className={styles.tagsLabel} aria-hidden="true">
+              Concepts:
+            </span>
+            <ul className={styles.tags} aria-label="Key concepts">
+              {item.tags.map((tag) => (
+                <li key={tag}>
+                  <Link href={articlePath(tag)}>{tag}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : null}
         <div className={styles.meta}>
           <span className={styles.strong}>{item.articleCount} Wikipedia articles</span>
@@ -65,22 +64,26 @@ export function SubmissionCard({ item, rank }: { item: ExplorationPreview; rank:
           <span className="dot" suppressHydrationWarning>
             {formatRelative(submission.time)}
           </span>
-          {submission.url && submission.domain ? (
-            <a className="dot" href={submission.url} target="_blank" rel="noopener noreferrer" aria-label={`Original article on ${submission.domain} (opens in new tab)`}>
-              {submission.domain} <Icon name="arrow-up-right" size={10} />
-            </a>
-          ) : null}
-          <a className="dot" href={submission.hnUrl} target="_blank" rel="noopener noreferrer" aria-label="Discussion on Hacker News (opens in new tab)">
-            Discussion <Icon name="arrow-up-right" size={10} />
-          </a>
+          <span className="dot" title="Rank: technical depth, novelty, topic relevance, entities, Wikipedia coverage, connections, engagement">
+            Score {Math.round(item.score.total)}, quality {Math.round(item.quality)}
+          </span>
         </div>
         <div className={styles.actions}>
           <Link href={explorationPath(submission.id)} className="action">
-            Open rabbit hole <Icon name="corner-down-right" size={11} />
+            Open rabbit hole
           </Link>
-          <span className="label" title="Rank: technical depth, novelty, topic relevance, entities, Wikipedia coverage, connections, engagement">
-            Score {Math.round(item.score.total)} · Quality {Math.round(item.quality)}
-          </span>
+          {submission.url && submission.domain ? (
+            <>
+              <span className="dot" aria-hidden="true" />
+              <a className="action" href={submission.url} target="_blank" rel="noopener noreferrer" aria-label={`Original article on ${submission.domain} (opens in new tab)`}>
+                {submission.domain}
+              </a>
+            </>
+          ) : null}
+          <span className="dot" aria-hidden="true" />
+          <a className="action" href={submission.hnUrl} target="_blank" rel="noopener noreferrer" aria-label="Discussion on Hacker News (opens in new tab)">
+            Discussion
+          </a>
         </div>
       </div>
     </article>
@@ -90,14 +93,11 @@ export function SubmissionCard({ item, rank }: { item: ExplorationPreview; rank:
 export function SubmissionCardSkeleton() {
   return (
     <div className={styles.card} aria-hidden="true">
-      <div className={styles.rank}>&nbsp;</div>
-      <div className={styles.body}>
-        <div className="skeleton" style={{ width: 180, height: 10, marginBottom: 12 }} />
-        <div className="skeleton" style={{ width: "62%", height: 20, marginBottom: 10 }} />
-        <div className="skeleton" style={{ width: "90%", height: 12, marginBottom: 7 }} />
-        <div className="skeleton" style={{ width: "74%", height: 12, marginBottom: 14 }} />
-        <div className="skeleton" style={{ width: 260, height: 10 }} />
-      </div>
+      <div className="skeleton" style={{ width: "62%", height: 18, marginBottom: 8 }} />
+      <div className="skeleton" style={{ width: 200, height: 11, marginBottom: 8 }} />
+      <div className="skeleton" style={{ width: "92%", height: 12, marginBottom: 6 }} />
+      <div className="skeleton" style={{ width: "74%", height: 12, marginBottom: 8 }} />
+      <div className="skeleton" style={{ width: 280, height: 11 }} />
     </div>
   );
 }

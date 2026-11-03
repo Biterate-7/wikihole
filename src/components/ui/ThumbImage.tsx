@@ -7,14 +7,32 @@ import styles from "./thumb.module.css";
 
 /**
  * Square-cropped Wikimedia thumbnail with fixed dimensions (no layout shift).
- * If the image fails to load, the frame collapses to an empty tile.
+ * If the image fails to load, the frame collapses to an empty tile; callers that
+ * would rather drop the whole thumbnail slot pass `onFail` and unmount this.
  */
-export function ThumbImage({ thumbnail, size, alt = "" }: { thumbnail: Thumbnail; size: number; alt?: string }) {
+export function ThumbImage({
+  thumbnail,
+  size,
+  alt = "",
+  onFail,
+}: {
+  thumbnail: Thumbnail;
+  size: number;
+  alt?: string;
+  onFail?: () => void;
+}) {
   const [failed, setFailed] = useState(false);
+  const fail = useCallback(() => {
+    setFailed(true);
+    onFail?.();
+  }, [onFail]);
   // A server-rendered image can fail before hydration attaches onError, so check on attach too.
-  const detectEarlyFailure = useCallback((img: HTMLImageElement | null) => {
-    if (img?.complete && img.naturalWidth === 0) setFailed(true);
-  }, []);
+  const detectEarlyFailure = useCallback(
+    (img: HTMLImageElement | null) => {
+      if (img?.complete && img.naturalWidth === 0) fail();
+    },
+    [fail],
+  );
   return (
     <span className={styles.frame} style={{ width: size, height: size }}>
       {failed ? null : (
@@ -29,7 +47,7 @@ export function ThumbImage({ thumbnail, size, alt = "" }: { thumbnail: Thumbnail
           loading="lazy"
           decoding="async"
           className={`${styles.img} ${isLineArt(thumbnail.src) ? styles.lineArt : ""}`}
-          onError={() => setFailed(true)}
+          onError={fail}
         />
       )}
     </span>
