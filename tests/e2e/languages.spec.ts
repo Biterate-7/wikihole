@@ -10,10 +10,13 @@ async function liveArticleCount(lang: string): Promise<number> {
 }
 
 test.describe("I: homepage portal and languages", () => {
-  test("shows the wordmark, the ten featured editions with live counts, search and the language menu", async ({ page }) => {
+  test("shows the Main Page, the featured editions around the globe with live counts, search and the language menu", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Wikihole");
-    await expect(page.getByText("Explore the world’s knowledge")).toBeVisible();
+    // Like Wikipedia, the Main Page title is hidden and the welcome banner leads.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Main Page");
+    await expect(page.getByText("Welcome to Wikihole,")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "From today’s featured discovery" })).toBeVisible();
+    await expect(page.locator("#languages canvas, #languages img").first()).toBeVisible();
     const entries = page.getByTestId("featured-language");
     await expect(entries).toHaveCount(10);
     expect(await entries.evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.lang))).toEqual([
@@ -30,8 +33,10 @@ test.describe("I: homepage portal and languages", () => {
 
     await expect(page.getByRole("combobox", { name: "Search English Wikipedia" })).toBeVisible();
     await expect(page.getByTestId("language-menu-toggle")).toHaveText(/Explore Wikihole in your language/);
-    // The portal has its own masthead: no site header here.
-    await expect(page.locator("header nav[aria-label=Main]")).toHaveCount(0);
+    // The site chrome is shared with every page: header, pinned main menu and tools.
+    await expect(page.getByRole("navigation", { name: "Personal tools" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Main menu" })).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Tools" })).toBeVisible();
   });
 
   test("a chosen edition drives search, the reader and related articles, and survives a reload", async ({ page }) => {

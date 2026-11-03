@@ -15,11 +15,20 @@ const DEBOUNCE_MS = 180;
 const MIN_CHARS = 2;
 const memo = new Map<string, SearchSuggestion[]>();
 
+/** Id of the header search field ("/" focuses it). */
+export const SITE_SEARCH_ID = "site-search";
+
 type Status = "idle" | "loading" | "done" | "error";
+type Variant = "header" | "hero" | "dialog" | "portal";
 
 interface Props {
-  /** "portal" is the homepage field: language selector inside, search button attached. */
-  variant?: "hero" | "dialog" | "portal";
+  /**
+   * "header": the site-wide field with an attached Search button.
+   * "hero": the large field on the search and not-found pages.
+   * "dialog": the full-width field in the mobile search overlay.
+   * "portal": the homepage languages field, with the edition selector inside it.
+   */
+  variant?: Variant;
   autoFocus?: boolean;
   /** Called after navigating to a result (e.g. to close the dialog). */
   onNavigate?: () => void;
@@ -30,6 +39,26 @@ interface Props {
   inputId?: string;
   /** Search this edition instead of the reader's active one (e.g. a shared results link). */
   lang?: string;
+}
+
+const VARIANT_CLASS: Record<Variant, string> = {
+  header: styles.headerBox,
+  hero: styles.heroBox,
+  dialog: styles.dialogBox,
+  portal: styles.portalBox,
+};
+
+/** Bolds the part of a title that matches what was typed, as Wikipedia's typeahead does. */
+function Highlighted({ title, query }: { title: string; query: string }) {
+  const at = title.toLowerCase().indexOf(query.toLowerCase());
+  if (at < 0 || !query) return <>{title}</>;
+  return (
+    <>
+      {title.slice(0, at)}
+      <strong>{title.slice(at, at + query.length)}</strong>
+      {title.slice(at + query.length)}
+    </>
+  );
 }
 
 export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, initialQuery = "", inputId, lang: langOverride }: Props) {
@@ -131,25 +160,25 @@ export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, i
   };
 
   const optionId = (i: number) => `${id}-opt-${i}`;
+  // The header field is generic like Wikipedia's; the others name the edition they search.
+  const label = variant === "header" ? "Search Wikipedia" : `Search ${language.englishName} Wikipedia`;
+  const locale = languageLocale(language);
 
   return (
-    <div
-      className={`${styles.box} ${variant === "dialog" ? styles.dialogBox : variant === "portal" ? styles.portalBox : styles.heroBox}`}
-      data-trail-ignore
-    >
+    <div className={`${styles.box} ${VARIANT_CLASS[variant]}`} data-trail-ignore>
       <form
         role="search"
-        className={variant === "portal" ? styles.portalForm : styles.field}
+        className={styles.form}
         onSubmit={(e) => {
           e.preventDefault();
           choose(active);
         }}
       >
-        {variant === "portal" ? null : <Icon name="search" size={15} className={styles.fieldIcon} />}
         <label htmlFor={`${id}-input`} className="visually-hidden">
-          Search {language.englishName} Wikipedia
+          {label}
         </label>
-        <div className={variant === "portal" ? styles.portalField : styles.fieldInner}>
+        <div className={styles.field}>
+          {variant === "portal" ? null : <Icon name="search" size={variant === "hero" ? 20 : 18} className={styles.fieldIcon} />}
           <input
             ref={inputRef}
             id={`${id}-input`}
@@ -163,8 +192,8 @@ export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, i
             autoComplete="off"
             spellCheck={false}
             autoFocus={autoFocus}
-            placeholder={variant === "portal" ? undefined : `Search ${language.englishName} Wikipedia: halting problem, Ramsey theory, ephaptic coupling…`}
-            lang={variant === "portal" ? languageLocale(language) : undefined}
+            placeholder={variant === "portal" ? undefined : "Search Wikipedia"}
+            lang={variant === "portal" ? locale : undefined}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -177,14 +206,17 @@ export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, i
             maxLength={200}
           />
           {status === "loading" && showResults ? <span className={styles.spinner} aria-hidden="true" /> : null}
-          {variant === "hero" ? <kbd className={styles.kbd} aria-hidden="true">/</kbd> : null}
           {variant === "portal" ? <SearchLanguageSelect /> : null}
         </div>
         {variant === "portal" ? (
-          <button type="submit" className={styles.portalSubmit} aria-label={`Search ${language.englishName} Wikipedia`}>
+          <button type="submit" className={styles.portalSubmit} aria-label={label}>
             <Icon name="search" size={20} />
           </button>
-        ) : null}
+        ) : variant === "dialog" ? null : (
+          <button type="submit" className={styles.submit}>
+            Search
+          </button>
+        )}
       </form>
 
       <div className="visually-hidden" aria-live="polite">
@@ -214,11 +246,22 @@ export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, i
               onMouseEnter={() => setActive(i)}
               onClick={() => choose(i)}
             >
-              <span className={styles.optionTitle} lang={languageLocale(language)}>
-                {r.title}
+              <span className={styles.optionThumb} aria-hidden="true">
+                {r.thumbnail ? (
+                  // Wikimedia serves the sized thumbnail directly.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={r.thumbnail.src} alt="" width={40} height={40} loading="lazy" decoding="async" />
+                ) : (
+                  <Icon name="article" size={20} />
+                )}
               </span>
-              {r.description ? <span className={styles.optionDesc}>{r.description}</span> : null}
-              {r.disambiguation ? <span className="label">Disambiguation</span> : null}
+              <span className={styles.optionText}>
+                <span className={styles.optionTitle} lang={locale}>
+                  <Highlighted title={r.title} query={trimmed} />
+                </span>
+                {r.description ? <span className={styles.optionDesc}>{r.description}</span> : null}
+                {r.disambiguation ? <span className={styles.optionDesc}>Disambiguation</span> : null}
+              </span>
             </li>
           ))}
           <li
@@ -230,8 +273,14 @@ export function SearchBox({ variant = "hero", autoFocus, onNavigate, onEscape, i
             onMouseEnter={() => setActive(results.length)}
             onClick={() => choose(results.length)}
           >
-            <span className="label">All results for &ldquo;{trimmed}&rdquo;</span>
-            <Icon name="arrow-right" size={12} />
+            <span className={styles.optionThumb} aria-hidden="true">
+              <Icon name="search" size={20} />
+            </span>
+            <span className={styles.optionText}>
+              <span>
+                Search for pages containing <strong>{trimmed}</strong>
+              </span>
+            </span>
           </li>
         </ul>
       ) : null}

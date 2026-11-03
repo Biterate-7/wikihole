@@ -1,21 +1,34 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { Suspense } from "react";
-import { ArticleAside, ArticleHeader, ArticleSections, Facts, SectionsSkeleton } from "@/components/article/ArticleParts";
+import {
+  ArticleSections,
+  ArticleTools,
+  Catlinks,
+  Infobox,
+  KeyConcepts,
+  SectionsSkeleton,
+  StudyNavbox,
+  wikipediaLinks,
+} from "@/components/article/ArticleParts";
 import { Blocks } from "@/components/article/Blocks";
 import { InsightsPanel } from "@/components/article/InsightsPanel";
 import { ReadingProgress } from "@/components/article/ReadingProgress";
 import { RelatedList } from "@/components/article/RelatedList";
-import { Toc } from "@/components/article/Toc";
+import { Toc, TocDropdown } from "@/components/article/Toc";
 import { TrailTracker } from "@/components/article/TrailTracker";
 import styles from "@/components/article/article.module.css";
+import { PageShell, SiteSub } from "@/components/layout/PageShell";
 import { StateMessage } from "@/components/ui/StateMessage";
+import { SaveButton } from "@/components/ui/SaveButton";
 import { isAiEnabled } from "@/lib/ai/config";
 import { loadArticle, loadLead, loadMeta } from "@/lib/article";
-import type { ArticleDocument, Block, Heading } from "@/lib/content/types";
+import type { ArticleDocument, Block, Heading, WikiImage } from "@/lib/content/types";
+import { classifyGroup, readingMinutes } from "@/lib/discovery/score";
 import { getRelated } from "@/lib/discovery/engine";
+import { GROUPS } from "@/lib/discovery/topics";
 import { leadSentences } from "@/lib/format";
-import { getLanguage, languageLocale } from "@/lib/i18n/languages";
+import { DEFAULT_LANGUAGE, getLanguage, languageLocale } from "@/lib/i18n/languages";
 import { attempt, describeError } from "@/lib/server/http";
 import { WikipediaError } from "@/lib/wikipedia/http";
 import { articlePath, titleFromSlug, wikipediaUrl } from "@/lib/wikipedia/titles";
@@ -71,6 +84,19 @@ function proseFirst(blocks: Block[]): Block[] {
   return [blocks[index], ...blocks.slice(0, index), ...blocks.slice(index + 1)];
 }
 
+/** A Wikimedia file's name, whatever thumbnail size the URL asks for. */
+function fileName(src: string): string {
+  const last = src.split("?")[0].split("/").pop() ?? src;
+  return decodeURIComponent(last).replace(/^(?:lossy-|lossless-)?(?:page\d+-)?\d+px-/, "");
+}
+
+/** The infobox shows the lead image, so the same file is not repeated as a thumbnail beside it. */
+function withoutImage(blocks: Block[], image: WikiImage | undefined): Block[] {
+  if (!image) return blocks;
+  const name = fileName(image.src);
+  return blocks.filter((b) => !(b.k === "figure" && fileName(b.img.src) === name));
+}
+
 function tocHeadings(doc: ArticleDocument): Heading[] {
   return doc.sections.flatMap((s) => [
     { id: s.id, text: s.title, level: 2 as const },
@@ -85,27 +111,43 @@ async function TocSlot({ title, lang }: Slot) {
   return doc.ok ? <Toc headings={tocHeadings(doc.value)} /> : null;
 }
 
+async function TocDropdownSlot({ title, lang }: Slot) {
+  const doc = await attempt(() => loadArticle(title, lang));
+  return doc.ok ? <TocDropdown headings={tocHeadings(doc.value)} /> : null;
+}
+
 async function BodySlot({ title, lang }: Slot) {
   const doc = await attempt(() => loadArticle(title, lang));
   if (doc.ok) return <ArticleSections doc={doc.value} />;
   return (
-      <StateMessage
-        kind="error"
-        title="The rest of this article could not be loaded."
-        action={
-          <a className="btn" href={wikipediaUrl(title, lang)} target="_blank" rel="noopener noreferrer">
-            Read it on Wikipedia
-          </a>
-        }
-      >
-        {describeError(doc.error).message}
-      </StateMessage>
+    <StateMessage
+      kind="error"
+      title="The rest of this article could not be loaded."
+      action={
+        <a className="btn" href={wikipediaUrl(title, lang)} target="_blank" rel="noopener noreferrer">
+          Read it on Wikipedia
+        </a>
+      }
+    >
+      {describeError(doc.error).message}
+    </StateMessage>
   );
 }
 
-async function AsideSlot({ title, lang, meta }: Slot & { meta: PageMeta }) {
+async function ToolsSlot({ title, lang, meta }: Slot & { meta: PageMeta }) {
   const doc = await attempt(() => loadArticle(title, lang));
-  return doc.ok ? <ArticleAside doc={doc.value} meta={meta} /> : null;
+  return <ArticleTools meta={meta} doc={doc.ok ? doc.value : null} concepts={doc.ok ? <KeyConcepts doc={doc.value} /> : null} />;
+}
+
+async function FooterSlot({ title, lang }: Slot) {
+  const doc = await attempt(() => loadArticle(title, lang));
+  if (!doc.ok) return null;
+  return <StudyNavbox doc={doc.value} />;
+}
+
+async function CatlinksSlot({ title, lang }: Slot) {
+  const doc = await attempt(() => loadArticle(title, lang));
+  return doc.ok ? <Catlinks doc={doc.value} /> : null;
 }
 
 async function RelatedSlot({ title, lang }: Slot) {
@@ -126,91 +168,143 @@ function RelatedSkeleton() {
     <div aria-hidden="true" className={styles.relatedList}>
       {[0, 1, 2].map((i) => (
         <div key={i} className={styles.related}>
-          <div className="skeleton" style={{ width: 140, height: 10, marginBottom: 12 }} />
-          <div className="skeleton" style={{ width: "70%", height: 18, marginBottom: 10 }} />
-          <div className="skeleton" style={{ width: "95%", height: 12 }} />
+          <div className="skeleton" style={{ width: "40%", height: 16, marginBottom: 8 }} />
+          <div className="skeleton" style={{ width: "95%", height: 12, marginBottom: 6 }} />
+          <div className="skeleton" style={{ width: "70%", height: 12 }} />
         </div>
       ))}
     </div>
   );
 }
 
+function articleTabs(title: string, lang: string) {
+  return {
+    left: [
+      { label: "Article", href: articlePath(title, undefined, lang), selected: true },
+      { label: "Rabbit hole", href: "#rabbit-hole", title: "Related articles and where they lead" },
+    ],
+    right: [
+      { label: "Read", href: articlePath(title, undefined, lang), selected: true },
+      { label: "View on Wikipedia", href: wikipediaUrl(title, lang), external: true, testId: "source-link" },
+      { label: "View history", href: wikipediaLinks(title, lang).history, external: true },
+    ],
+  };
+}
+
+function siteSub(lang: string): string {
+  return lang === DEFAULT_LANGUAGE ? "From Wikipedia, the free encyclopedia" : `From ${getLanguage(lang).englishName} Wikipedia, the free encyclopedia`;
+}
+
 export async function ArticleView({ slug, lang }: { slug: string[]; lang: string }) {
   const title = titleFromSlug(slug);
   if (!title) notFound();
   const language = getLanguage(lang);
+  const locale = languageLocale(language);
 
   const loaded = await attempt(() => Promise.all([loadMeta(title, lang), loadLead(title, lang)]));
   if (!loaded.ok) {
     if (loaded.error instanceof WikipediaError && loaded.error.kind === "notfound") notFound();
     return (
-      <div className="container">
-        <div className={styles.unavailable}>
-          <StateMessage
-            kind="error"
-            title={`“${title}” could not be loaded.`}
-            action={
-              <>
-                <a className="btn" href={articlePath(title, undefined, lang)}>
-                  Try again
-                </a>
-                <a className="btn" href={wikipediaUrl(title, lang)} target="_blank" rel="noopener noreferrer">
-                  Open on Wikipedia
-                </a>
-              </>
-            }
-          >
-            {describeError(loaded.error).message}
-          </StateMessage>
-        </div>
-      </div>
+      <PageShell title={title} titleLang={locale} tabs={articleTabs(title, lang)}>
+        <StateMessage
+          kind="error"
+          title={`“${title}” could not be loaded.`}
+          action={
+            <>
+              <a className="btn" href={articlePath(title, undefined, lang)}>
+                Try again
+              </a>
+              <a className="btn" href={wikipediaUrl(title, lang)} target="_blank" rel="noopener noreferrer">
+                Open on Wikipedia
+              </a>
+            </>
+          }
+        >
+          {describeError(loaded.error).message}
+        </StateMessage>
+      </PageShell>
     );
   }
   const [meta, lead] = loaded.value;
   if (!meta) notFound();
   if (meta.title !== title) permanentRedirect(articlePath(meta.title, undefined, lang));
 
+  const group = GROUPS.find((g) => g.id === classifyGroup(meta));
+  const slot = { title: meta.title, lang };
+  const image = lead.infoboxImage ?? (meta.thumbnail ? { ...meta.thumbnail, alt: "" } : undefined);
+
   return (
     <article className={styles.page} data-testid="reader" data-lang={lang}>
       <ReadingProgress targetId="article-body" />
-      <div className={`container ${styles.grid}`}>
-        <div className={styles.head} lang={languageLocale(language)} dir={language.dir}>
-          <TrailTracker title={meta.title} description={meta.description} lang={lang} />
-          <ArticleHeader meta={meta} displayTitle={lead.displayTitle} />
-        </div>
-        <div className={styles.tocCol} lang={languageLocale(language)} dir={language.dir}>
+      <PageShell
+        start="toc"
+        toc={
           <Suspense fallback={null}>
-            <TocSlot title={meta.title} lang={lang} />
+            <TocSlot {...slot} />
           </Suspense>
-        </div>
-        <div id="article-body" className={styles.prose} lang={languageLocale(language)} dir={language.dir}>
-          <Blocks blocks={proseFirst(lead.lead)} />
+        }
+        titleStart={
+          <Suspense fallback={null}>
+            <TocDropdownSlot {...slot} />
+          </Suspense>
+        }
+        title={lead.displayTitle}
+        titleLang={locale}
+        titleDir={language.dir}
+        tabs={articleTabs(meta.title, lang)}
+        actions={
+          <SaveButton
+            variant="star"
+            article={{
+              title: meta.title,
+              description: meta.description,
+              extract: meta.extract ? leadSentences(meta.extract, 300) : undefined,
+              thumbnail: meta.thumbnail,
+              readingMinutes: readingMinutes(meta),
+              groupLabel: group?.label,
+              ...(meta.lang ? { lang: meta.lang } : {}),
+            }}
+          />
+        }
+        tools={
+          <Suspense fallback={<ArticleTools meta={meta} doc={null} concepts={null} />}>
+            <ToolsSlot {...slot} meta={meta} />
+          </Suspense>
+        }
+      >
+        <SiteSub>{siteSub(lang)}</SiteSub>
+        <TrailTracker title={meta.title} description={meta.description} lang={lang} />
+        <div id="article-body" className={styles.prose} lang={locale} dir={language.dir}>
+          <Infobox title={meta.title} rows={lead.infobox} image={image} description={meta.description} />
+          <Blocks blocks={proseFirst(withoutImage(lead.lead, image))} />
           <Suspense fallback={<SectionsSkeleton />}>
-            <BodySlot title={meta.title} lang={lang} />
+            <BodySlot {...slot} />
+          </Suspense>
+          <Suspense fallback={null}>
+            <FooterSlot {...slot} />
           </Suspense>
         </div>
-        <aside className={styles.asideCol} aria-label="About this article">
-          <Facts rows={lead.infobox} />
-          {isAiEnabled() ? <InsightsPanel title={meta.title} lang={lang} /> : null}
-          <Suspense fallback={null}>
-            <AsideSlot title={meta.title} lang={lang} meta={meta} />
-          </Suspense>
-        </aside>
-      </div>
 
-      <section id="rabbit-hole" className={`container ${styles.rabbitHole}`} aria-labelledby="rabbit-hole-heading">
-        <p className="label">Rabbit hole</p>
-        <h2 id="rabbit-hole-heading" className={styles.rabbitTitle}>
-          Where <span lang={languageLocale(language)}>{meta.title}</span> leads
-        </h2>
-        <p className={styles.rabbitSub}>
-          Every connection below has a source: a link in this article, a shared Wikipedia category, or CirrusSearch
-          text similarity. Articles already on your trail are left out.
-        </p>
-        <Suspense fallback={<RelatedSkeleton />}>
-          <RelatedSlot title={meta.title} lang={lang} />
+        {isAiEnabled() ? <InsightsPanel title={meta.title} lang={lang} /> : null}
+
+        <section id="rabbit-hole" className={styles.rabbitHole} aria-labelledby="rabbit-hole-heading">
+          <h2 id="rabbit-hole-heading" className={styles.h2}>
+            Rabbit hole
+          </h2>
+          <p className={styles.hatnote}>
+            Where <span lang={locale}>{meta.title}</span> leads. Every connection below has a source: a link in this
+            article, a shared Wikipedia category, or CirrusSearch text similarity. Articles already on your trail are
+            left out.
+          </p>
+          <Suspense fallback={<RelatedSkeleton />}>
+            <RelatedSlot {...slot} />
+          </Suspense>
+        </section>
+
+        <Suspense fallback={null}>
+          <CatlinksSlot {...slot} />
         </Suspense>
-      </section>
+      </PageShell>
     </article>
   );
 }

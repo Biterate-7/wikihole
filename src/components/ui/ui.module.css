@@ -1,26 +1,58 @@
+/* Message boxes (Codex "message"), and the toolbar save star. */
+
 .state {
-  padding: 40px 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  margin: 16px 0;
+  padding: 12px 16px;
+  border: 1px solid;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.stateNotice {
+  border-color: var(--border-base);
+  background: var(--background-neutral-subtle);
+}
+
+.stateError {
+  border-color: #9f3526;
+  background: #ffe9e5;
 }
 
 .stateTitle {
-  margin-top: 8px;
-  font-family: var(--serif);
-  font-size: 22px;
-  line-height: 1.3;
+  font-weight: 700;
+  color: var(--color-base);
 }
 
 .stateBody {
-  margin-top: 8px;
-  max-width: 560px;
-  color: var(--text-2);
-  font-size: 14px;
+  margin-top: 4px;
+  max-width: 44rem;
+  color: var(--color-base);
 }
 
 .stateAction {
-  margin-top: 20px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 10px;
+}
+
+.star {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-base);
+}
+
+.star:hover {
+  background: rgba(0, 24, 73, 0.027);
+}
+
+.star[aria-pressed="true"] {
+  color: var(--color-progressive);
 }

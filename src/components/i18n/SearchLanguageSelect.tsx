@@ -1,23 +1,28 @@
 "use client";
 
 import { allLanguages, languageAbbreviation } from "@/lib/i18n/languages";
+import { Icon } from "@/components/ui/Icon";
 import { useLanguage } from "./LanguageProvider";
 import styles from "./i18n.module.css";
 
 /**
- * Compact edition picker ("EN ▾"). A native <select> sits transparently over
- * the abbreviation, so keyboard, screen reader and mobile behaviour are the
- * platform's own; options list each edition by its native name.
+ * Edition picker. In the header it is Wikipedia's "文A" language button; in
+ * the portal search field it is a compact "EN ▾". A native <select> sits
+ * transparently over the label, so keyboard, screen reader and mobile
+ * behaviour are the platform's own; options list each edition by its native name.
  */
 export function SearchLanguageSelect({ variant = "search" }: { variant?: "search" | "header" }) {
   const { lang, language, setLang } = useLanguage();
+  const header = variant === "header";
   return (
-    <span className={`${styles.select} ${variant === "header" ? styles.selectHeader : styles.selectSearch}`}>
+    <span className={`${styles.select} ${header ? styles.selectHeader : styles.selectSearch}`}>
+      {header ? <Icon name="language" size={18} className={styles.selectIcon} /> : null}
       <span className={styles.selectCode} aria-hidden="true">
-        {languageAbbreviation(lang)}
+        {header ? <span className={styles.selectName}>{language.englishName}</span> : null}
+        <span className={header ? styles.selectAbbr : undefined}>{languageAbbreviation(lang)}</span>
       </span>
-      <svg className={styles.selectChevron} width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-        <path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.2" />
+      <svg className={styles.selectChevron} width="10" height="10" viewBox="0 0 20 20" aria-hidden="true">
+        <path fill="currentColor" d="m17.5 4.75-7.5 7.5-7.5-7.5L1 6.25l9 9 9-9z" />
       </svg>
       <select
         className={styles.selectNative}
@@ -25,7 +30,7 @@ export function SearchLanguageSelect({ variant = "search" }: { variant?: "search
         onChange={(event) => setLang(event.target.value)}
         aria-label={`Wikipedia language: ${language.englishName}`}
         title={`${language.nativeName} · ${language.englishName} Wikipedia`}
-        data-testid={variant === "header" ? "header-language" : "search-language"}
+        data-testid={header ? "header-language" : "search-language"}
       >
         {allLanguages().map((l) => (
           <option key={l.code} value={l.code} lang={l.locale ?? l.code}>

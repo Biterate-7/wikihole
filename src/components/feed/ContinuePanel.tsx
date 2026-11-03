@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { Portlet } from "@/components/layout/Portlet";
+import layout from "@/components/layout/layout.module.css";
 import { formatRelative } from "@/lib/format";
 import { historyStore, trailsStore } from "@/lib/storage/collections";
 import { useHydrated, useStore } from "@/lib/storage/hooks";
 import { articlePath } from "@/lib/wikipedia/titles";
 import styles from "./rail.module.css";
 
-/** "Continue exploring": the most recent trail and recently read articles. */
+/** "Continue exploring" in the tools column: the latest trail and recently read articles. */
 export function ContinuePanel() {
   const hydrated = useHydrated();
   const history = useStore(historyStore);
@@ -17,33 +19,25 @@ export function ContinuePanel() {
   const last = trail?.steps[trail.steps.length - 1];
 
   return (
-    <section className={styles.panel} aria-labelledby="continue-heading">
-      <h2 id="continue-heading" className="label">
-        Continue exploring
-      </h2>
+    <Portlet id="tools-continue" heading="Continue exploring" headingTag="h2">
       {trail && last ? (
-        <div className={styles.trail}>
-          <ol className={styles.trailSteps}>
-            {trail.steps.slice(-4).map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-          <Link href={articlePath(last, undefined, trail.lang)} className="btn">
-            Resume at depth {trail.steps.length}
-          </Link>
-        </div>
+        <p className={styles.trail}>
+          <Link href={articlePath(last, undefined, trail.lang)}>Resume at depth {trail.steps.length}</Link>
+          <span className={styles.trailSteps}>{trail.steps.slice(-3).join(" › ")}</span>
+        </p>
       ) : null}
-      <ul className={styles.recent}>
+      <ul className={layout.portletList}>
         {history.slice(0, 5).map((h) => (
           <li key={`${h.lang ?? ""}:${h.title}`}>
-            <Link href={articlePath(h.title, undefined, h.lang)} lang={h.lang}>{h.title}</Link>
-            <span className="label">{formatRelative(h.visitedAt)}</span>
+            <Link href={articlePath(h.title, undefined, h.lang)} lang={h.lang} title={formatRelative(h.visitedAt)}>
+              {h.title}
+            </Link>
           </li>
         ))}
+        <li>
+          <Link href="/saved?tab=history">Full history</Link>
+        </li>
       </ul>
-      <Link href="/saved?tab=history" className="action">
-        Full history
-      </Link>
-    </section>
+    </Portlet>
   );
 }

@@ -1,14 +1,23 @@
 import Link from "next/link";
 import { after } from "next/server";
-import { Suspense } from "react";
+import { Suspense, cache } from "react";
 import { LanguageMenu } from "@/components/i18n/LanguageMenu";
 import { SearchBox } from "@/components/search/SearchBox";
+import { ThumbImage } from "@/components/ui/ThumbImage";
+import { getFeed } from "@/lib/discovery/engine";
+import { GROUPS, SUBTOPICS } from "@/lib/discovery/topics";
+import type { Discovery } from "@/lib/discovery/types";
+import { formatCount, leadSentences } from "@/lib/format";
 import { FEATURED_LANGUAGES, allLanguages, formatArticleCount, getLanguage } from "@/lib/i18n/languages";
+import { attempt, describeError } from "@/lib/server/http";
 import { getSiteStatistics } from "@/lib/wikipedia/api";
+import { articlePath } from "@/lib/wikipedia/titles";
+import { PAGEVIEW_DAYS } from "@/lib/wikipedia/types";
+import { ContinueExploring } from "./ContinueExploring";
 import { LanguageRing, PORTAL_SEARCH_ID } from "./LanguageRing";
 import styles from "./home.module.css";
 
-/** Server-side budget for live article counts; the ring renders without them if Wikipedia is slow. */
+/** Server-side budget for live article counts; the page renders without them if Wikipedia is slow. */
 const COUNTS_TIMEOUT_MS = 3500;
 let menuCountsWarmed = false;
 
@@ -19,11 +28,15 @@ function warmMenuCounts(): void {
   after(() => Promise.allSettled(allLanguages().map((l) => getSiteStatistics(l.code))));
 }
 
-async function featuredCounts(): Promise<Record<string, string | undefined>> {
+function withTimeout<T>(promise: Promise<T>): Promise<T | null> {
   const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), COUNTS_TIMEOUT_MS));
+  return Promise.race([promise.catch(() => null), timeout]);
+}
+
+async function featuredCounts(): Promise<Record<string, string | undefined>> {
   const entries = await Promise.all(
     FEATURED_LANGUAGES.map(async (code) => {
-      const stats = await Promise.race([getSiteStatistics(code).catch(() => null), timeout]);
+      const stats = await withTimeout(getSiteStatistics(code));
       return [code, stats ? formatArticleCount(stats.articles, getLanguage(code)) : undefined] as const;
     }),
   );
@@ -36,116 +49,298 @@ async function RingWithCounts() {
   return <LanguageRing counts={counts} />;
 }
 
-const DESTINATIONS = [
-  {
-    href: "/discover",
-    title: "Discover",
-    blurb: "Ranked deep articles",
-    icon: (
-      <>
-        <circle cx="16" cy="16" r="12.5" />
-        <path d="m20.8 11.2-3.2 6.4-6.4 3.2 3.2-6.4z" />
-      </>
-    ),
-  },
-  {
-    href: "/topics",
-    title: "Topics",
-    blurb: "Curated collections",
-    icon: (
-      <>
-        <rect x="4.5" y="4.5" width="9.5" height="9.5" />
-        <rect x="18" y="4.5" width="9.5" height="9.5" />
-        <rect x="4.5" y="18" width="9.5" height="9.5" />
-        <rect x="18" y="18" width="9.5" height="9.5" />
-      </>
-    ),
-  },
-  {
-    href: "/random",
-    title: "Random",
-    blurb: "A filtered surprise",
-    icon: <path d="M4 9.5h4.5c7.2 0 7.2 13 14.4 13H28M4 22.5h4.5c2.6 0 4.2-1.7 5.6-3.8M24.5 19l3.5 3.5-3.5 3.5M18 13.3c1.3-2 2.8-3.8 4.9-3.8H28M24.5 6 28 9.5 24.5 13" />,
-  },
-  {
-    href: "/saved",
-    title: "Saved",
-    blurb: "Reading list & trails",
-    icon: <path d="M9 4.5h14v23l-7-5.2-7 5.2z" />,
-  },
+/** One ranked sample per request, shared by every Main Page section that shows discoveries. */
+const homeFeed = cache(() => attempt(() => getFeed({ limit: 16 })));
+
+const COLLECTIONS = Object.keys(SUBTOPICS).length;
+
+async function WelcomeCount({ lang }: { lang: string }) {
+  const language = getLanguage(lang);
+  const stats = await withTimeout(getSiteStatistics(lang));
+  return (
+    <>
+      <Link href="/topics">{COLLECTIONS} collections</Link> · <a href="#languages">{allLanguages().length} languages</a>
+      {stats ? (
+        <>
+          {" "}
+          · {stats.articles.toLocaleString("en-US")} articles in{" "}
+          <a href={`https://${lang}.wikipedia.org/`} target="_blank" rel="noopener noreferrer">
+            {language.englishName}
+          </a>
+        </>
+      ) : null}
+    </>
+  );
+}
+
+function FeedUnavailable({ error }: { error: unknown }) {
+  return (
+    <p className={styles.unavailable}>
+      Discoveries could not be loaded from Wikipedia right now ({describeError(error).message}) Try the{" "}
+      <Link href="/random">random article</Link> or <Link href="/topics">browse the topics</Link>.
+    </p>
+  );
+}
+
+async function FeaturedDiscovery() {
+  const feed = await homeFeed();
+  if (!feed.ok) return <FeedUnavailable error={feed.error} />;
+  const [featured, ...rest] = feed.value.items;
+  if (!featured) return <p className={styles.unavailable}>No discovery passed the quality gate in this sample.</p>;
+  const href = articlePath(featured.title);
+  return (
+    <div className={styles.featured} data-testid="featured-discovery">
+      {featured.thumbnail ? (
+        <Link href={href} className={styles.featuredImage} tabIndex={-1} aria-hidden="true">
+          <ThumbImage thumbnail={featured.thumbnail} size={100} />
+        </Link>
+      ) : null}
+      <p>
+        <b>
+          <Link href={href}>{featured.title}</Link>
+        </b>
+        {featured.description ? <> ({featured.description})</> : null}: {leadSentences(featured.extract, 640)} (
+        <b>
+          <Link href={href}>Full article...</Link>
+        </b>
+        )
+      </p>
+      {rest.length ? (
+        <p className={styles.recently}>
+          Also discovered:{" "}
+          {rest.slice(0, 3).map((item, i) => (
+            <span key={item.pageId}>
+              {i ? " · " : ""}
+              <Link href={articlePath(item.title)}>{item.title}</Link>
+            </span>
+          ))}
+        </p>
+      ) : null}
+      <p className={styles.boxFooter}>
+        <Link href="/discover">Discover feed</Link> · <Link href="/discover?mode=obscure">Most obscure</Link> ·{" "}
+        <b>
+          <Link href="/discover?mode=deep">More deep articles</Link>
+        </b>
+      </p>
+    </div>
+  );
+}
+
+/** "... that X ...?" built only from Wikipedia's own metadata: the short description and pageviews. */
+function DidYouKnowItem({ item }: { item: Discovery }) {
+  const link = (
+    <b>
+      <Link href={articlePath(item.title)}>{item.title}</Link>
+    </b>
+  );
+  const description = item.description ? item.description.charAt(0).toLowerCase() + item.description.slice(1) : null;
+  if (item.recentViews !== null) {
+    return (
+      <li>
+        ... that {link}
+        {description ? `, ${/^(a|an|the) /i.test(description) ? "" : "a "}${description},` : ""} was read only{" "}
+        {formatCount(item.recentViews)} times on Wikipedia in the past {PAGEVIEW_DAYS} days?
+      </li>
+    );
+  }
+  return (
+    <li>
+      ... that {link} is {description ? `${/^(a|an|the) /i.test(description) ? "" : "a "}${description}` : "waiting to be read"}?
+    </li>
+  );
+}
+
+async function DidYouKnow() {
+  const feed = await homeFeed();
+  if (!feed.ok) return null;
+  const items = feed.value.items.slice(4, 10);
+  if (items.length === 0) return null;
+  return (
+    <>
+      <ul className={styles.dyk}>
+        {items.map((item) => (
+          <DidYouKnowItem key={item.pageId} item={item} />
+        ))}
+      </ul>
+      <p className={styles.boxFooter}>
+        <Link href="/random">Random article</Link> · <b>
+          <Link href="/discover">More discoveries</Link>
+        </b>
+      </p>
+    </>
+  );
+}
+
+/** "On this day"-style list: discoveries whose Wikipedia categories date them. */
+async function FromTheArchives() {
+  const feed = await homeFeed();
+  if (!feed.ok) return null;
+  const dated = feed.value.items
+    .filter((item) => item.date)
+    .sort((a, b) => Number(a.date!.year) - Number(b.date!.year))
+    .slice(0, 6);
+  if (dated.length === 0) return null;
+  return (
+    <>
+      <h2 className={`${styles.mpH2} ${styles.blueH2}`}>Through the years</h2>
+      <ul className={styles.otd}>
+        {dated.map((item) => (
+          <li key={item.pageId}>
+            <b>{item.date!.year}</b> – <Link href={articlePath(item.title)}>{item.title}</Link>
+            {item.description ? `: ${item.description}` : ""}{" "}
+            <span className={styles.sourced} title={`From Wikipedia category “${item.date!.sourceCategory}”`}>
+              ({item.date!.label.toLowerCase()})
+            </span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function SectionSkeleton({ lines = 5 }: { lines?: number }) {
+  return (
+    <div aria-hidden="true" className={styles.skeleton}>
+      {Array.from({ length: lines }, (_, i) => (
+        <div key={i} className="skeleton" style={{ width: `${[96, 100, 88, 94, 70, 84][i % 6]}%`, height: 14, marginBottom: 10 }} />
+      ))}
+    </div>
+  );
+}
+
+const OTHER_AREAS = [
+  { href: "/discover", title: "Discover", text: "A live, ranked stream of obscure and technically deep articles." },
+  { href: "/topics", title: "Topics", text: `${GROUPS.length} topic areas and ${COLLECTIONS} collections defined by Wikipedia categories.` },
+  { href: "/random", title: "Random article", text: "A random article that passed the quality gate, not Special:Random." },
+  { href: "/search", title: "Search", text: "Full-text search with snippets in any supported language." },
+  { href: "/saved", title: "Saved articles", text: "Your reading list, stored only in this browser." },
+  { href: "/saved?tab=trails", title: "Rabbit-hole trails", text: "Every path you followed from one article to the next." },
+];
+
+const SOURCES = [
+  { href: "https://www.wikipedia.org/", title: "Wikipedia", text: "Article text, images and links" },
+  { href: "https://www.wikidata.org/", title: "Wikidata", text: "Item identifiers" },
+  { href: "https://commons.wikimedia.org/", title: "Wikimedia Commons", text: "Media files" },
+  { href: "https://www.mediawiki.org/wiki/API:Main_page", title: "MediaWiki API", text: "Search, metadata and parsing" },
+  { href: "https://wikimedia.org/api/rest_v1/", title: "Wikimedia REST API", text: "Summaries and pageviews" },
 ];
 
 /**
- * The homepage: an encyclopedia portal. Wordmark, the featured editions
- * around the globe, search in the active edition, the full language list,
- * and the ways into the rest of WikiHole.
+ * The homepage, composed as Wikipedia's Main Page: the welcome banner, the
+ * green and blue boxes (today's featured discovery, did you know, topics,
+ * your trail), the purple languages box with the puzzle globe, and the
+ * other areas of Wikihole.
  */
-export function Portal() {
+export function Portal({ lang }: { lang: string }) {
   return (
-    <div className={styles.portal} data-testid="portal">
-      <header className={styles.brand}>
-        <h1 className={styles.wordmark}>
-          <span className={styles.wordmarkInitial}>W</span>ikihole
-        </h1>
-        <p className={styles.tagline}>Explore the world&rsquo;s knowledge</p>
-      </header>
-
-      <nav className={styles.featured} aria-label="Wikipedia languages">
-        <Suspense fallback={<LanguageRing counts={{}} />}>
-          <RingWithCounts />
-        </Suspense>
-      </nav>
-
-      <div className={styles.search}>
-        <SearchBox variant="portal" inputId={PORTAL_SEARCH_ID} />
+    <div className={styles.mainPage} data-testid="portal">
+      <div className={styles.welcome}>
+        <div className={styles.welcomeTitle}>
+          Welcome to <Link href="/discover">Wikihole</Link>,
+        </div>
+        <div className={styles.welcomeText}>
+          the <Link href="/topics">curated</Link> rabbit hole of the encyclopedia that <Link href="/random">anyone can fall into</Link>.
+        </div>
+        <div className={styles.welcomeCount}>
+          <Suspense
+            fallback={
+              <>
+                <Link href="/topics">{COLLECTIONS} collections</Link> · <a href="#languages">{allLanguages().length} languages</a>
+              </>
+            }
+          >
+            <WelcomeCount lang={lang} />
+          </Suspense>
+        </div>
       </div>
 
-      <div className={styles.languages}>
-        <LanguageMenu />
-      </div>
+      <div className={styles.upper}>
+        <div className={`${styles.column} ${styles.green}`}>
+          <h2 className={`${styles.mpH2} ${styles.greenH2}`}>From today&rsquo;s featured discovery</h2>
+          <Suspense fallback={<SectionSkeleton lines={8} />}>
+            <FeaturedDiscovery />
+          </Suspense>
+          <h2 className={`${styles.mpH2} ${styles.greenH2}`}>Did you know ...</h2>
+          <Suspense fallback={<SectionSkeleton lines={6} />}>
+            <DidYouKnow />
+          </Suspense>
+        </div>
 
-      <footer className={styles.footer}>
-        <div className={styles.footerInner}>
-          <div className={styles.about}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/wikihole-globe.svg" width={44} height={44} alt="" className={styles.aboutMark} />
-            <p>
-              Wikihole is an independent reader for Wikipedia. Article text and media come live from Wikipedia and are
-              available under the{" "}
-              <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license noopener noreferrer" target="_blank">
-                CC BY-SA 4.0 license
-              </a>
-              . Not affiliated with the Wikimedia Foundation.
-            </p>
-          </div>
-          <ul className={styles.destinations} aria-label="Explore Wikihole">
-            {DESTINATIONS.map((d) => (
-              <li key={d.href}>
-                <Link href={d.href} className={styles.destination}>
-                  <svg
-                    className={styles.destinationIcon}
-                    width="32"
-                    height="32"
-                    viewBox="0 0 32 32"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    {d.icon}
-                  </svg>
-                  <span>
-                    <span className={styles.destinationTitle}>{d.title}</span>
-                    <span className={styles.destinationBlurb}>{d.blurb}</span>
+        <div className={`${styles.column} ${styles.blue}`}>
+          <h2 className={`${styles.mpH2} ${styles.blueH2}`}>Explore by topic</h2>
+          <ul className={styles.topics}>
+            {GROUPS.map((group) => (
+              <li key={group.id}>
+                <b>
+                  <Link href={`/topics/${group.id}`}>{group.label}</Link>
+                </b>
+                :{" "}
+                {group.subtopics.map((slug, i) => (
+                  <span key={slug}>
+                    {i ? " · " : ""}
+                    <Link href={`/topics/${slug}`}>{SUBTOPICS[slug].label}</Link>
                   </span>
-                </Link>
+                ))}
               </li>
             ))}
           </ul>
+          <p className={styles.boxFooter}>
+            <b>
+              <Link href="/topics">All topics</Link>
+            </b>
+          </p>
+          <h2 className={`${styles.mpH2} ${styles.blueH2}`}>Continue exploring</h2>
+          <ContinueExploring />
+          <Suspense fallback={null}>
+            <FromTheArchives />
+          </Suspense>
         </div>
-      </footer>
+      </div>
+
+      <div className={`${styles.lower} ${styles.purple}`} id="languages">
+        <h2 className={`${styles.mpH2} ${styles.purpleH2}`}>Wikihole in your language</h2>
+        <p className={styles.lowerIntro}>
+          Search and the reader work in every edition below. Choose one around the globe, or drag the globe to turn it.
+        </p>
+        <nav className={styles.ringWrap} aria-label="Wikipedia languages">
+          <Suspense fallback={<LanguageRing counts={{}} />}>
+            <RingWithCounts />
+          </Suspense>
+        </nav>
+        <div className={styles.portalSearch}>
+          <SearchBox variant="portal" inputId={PORTAL_SEARCH_ID} />
+        </div>
+        <div className={styles.languages}>
+          <LanguageMenu />
+        </div>
+      </div>
+
+      <h2 className={styles.plainH2}>Other areas of Wikihole</h2>
+      <ul className={styles.areas}>
+        {OTHER_AREAS.map((area) => (
+          <li key={area.href}>
+            <b>
+              <Link href={area.href}>{area.title}</Link>
+            </b>{" "}
+            – {area.text}
+          </li>
+        ))}
+      </ul>
+
+      <h2 className={styles.plainH2}>Wikihole&rsquo;s sources</h2>
+      <p className={styles.sourcesIntro}>
+        Everything on Wikihole comes live from the Wikimedia projects through their public APIs. Nothing is invented:
+      </p>
+      <ul className={styles.sources}>
+        {SOURCES.map((s) => (
+          <li key={s.href}>
+            <a href={s.href} target="_blank" rel="noopener noreferrer">
+              <b>{s.title}</b>
+            </a>
+            <span>{s.text}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

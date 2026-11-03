@@ -11,7 +11,8 @@ import styles from "./article.module.css";
 /**
  * Records the visit in history and in the current Rabbit Hole trail, and
  * marks in-article link clicks so the next article extends the trail.
- * Renders the trail as breadcrumbs.
+ * Renders the trail as breadcrumbs under the title, where Wikipedia shows
+ * "(Redirected from …)" and subpage links.
  */
 export function TrailTracker({ title, description, lang = DEFAULT_LANGUAGE }: { title: string; description?: string; lang?: string }) {
   const hydrated = useHydrated();
@@ -35,10 +36,8 @@ export function TrailTracker({ title, description, lang = DEFAULT_LANGUAGE }: { 
   const hidden = steps.length - shown.length;
 
   return (
-    <nav className={styles.trailNav} aria-label="Rabbit hole trail" data-testid="trail">
-      <span className="label">
-        Rabbit hole{steps.length > 1 ? ` · depth ${steps.length}` : ""}
-      </span>
+    <nav className={styles.contentSub} aria-label="Rabbit hole trail" data-testid="trail">
+      <span className={styles.trailLabel}>Rabbit hole{steps.length > 1 ? ` · depth ${steps.length}` : ""}:</span>
       <ol className={styles.trailList}>
         {hidden > 0 ? <li className={styles.trailMore}>+{hidden}</li> : null}
         {shown.map((step, i) => {

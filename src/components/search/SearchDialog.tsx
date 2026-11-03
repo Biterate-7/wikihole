@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { SearchBox } from "./SearchBox";
+import { SITE_SEARCH_ID, SearchBox } from "./SearchBox";
 import styles from "./search.module.css";
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -10,7 +10,11 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
 }
 
-/** Header search: a modal opened by the button, "/" or Ctrl/Cmd+K. */
+/**
+ * Search shortcuts and the narrow-screen search overlay. "/" focuses the
+ * header field (or opens the overlay when the field is collapsed into the
+ * search icon); Ctrl/Cmd+K always opens the overlay.
+ */
 export function SearchDialog() {
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -21,13 +25,11 @@ export function SearchDialog() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const combo = (event.key === "k" || event.key === "K") && (event.metaKey || event.ctrlKey);
-      if (combo || (event.key === "/" && !isTypingTarget(event.target))) {
-        // On the home page "/" focuses the inline search instead.
-        const inline = document.querySelector<HTMLInputElement>("[data-hero-search] input");
-        event.preventDefault();
-        if (inline && !combo) inline.focus();
-        else setOpen(true);
-      }
+      if (!combo && (event.key !== "/" || isTypingTarget(event.target))) return;
+      event.preventDefault();
+      const field = document.getElementById(`${SITE_SEARCH_ID}-input`);
+      if (!combo && field && field.offsetParent !== null) field.focus();
+      else setOpen(true);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -39,7 +41,7 @@ export function SearchDialog() {
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) {
       dialog.close();
-      triggerRef.current?.focus();
+      if (triggerRef.current?.offsetParent) triggerRef.current.focus();
     }
   }, [open]);
 
@@ -52,12 +54,9 @@ export function SearchDialog() {
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-label="Search Wikipedia"
+        title="Search Wikipedia"
       >
-        <Icon name="search" size={14} />
-        <span className={styles.triggerText}>Search</span>
-        <kbd className={styles.kbd} aria-hidden="true">
-          /
-        </kbd>
+        <Icon name="search" size={20} />
       </button>
       <dialog
         ref={dialogRef}
@@ -75,15 +74,13 @@ export function SearchDialog() {
         {open ? (
           <div className={styles.dialogInner}>
             <div className={styles.dialogHead}>
-              <span className="label">Search Wikipedia</span>
+              <span>Search Wikipedia</span>
               <button type="button" className="action" onClick={close} aria-label="Close search">
-                Esc <Icon name="close" size={12} />
+                <Icon name="close" size={14} /> Close
               </button>
             </div>
             <SearchBox variant="dialog" autoFocus onNavigate={close} onEscape={close} />
-            <p className={styles.dialogHint}>
-              <span className="label">↑↓ to move · Enter to open · Esc to close</span>
-            </p>
+            <p className={`label ${styles.dialogHint}`}>↑↓ to move · Enter to open · Esc to close</p>
           </div>
         ) : null}
       </dialog>

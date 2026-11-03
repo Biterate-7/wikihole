@@ -15,23 +15,25 @@ export default function OpengraphImage() {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "72px 80px",
-          background: "#080808",
-          color: "#eeeeee",
+          background: "#ffffff",
+          color: "#202122",
           fontFamily: "serif",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: 28, letterSpacing: 10, fontFamily: "monospace" }}>
-          <div style={{ width: 30, height: 30, borderRadius: 30, border: "4px solid #eeeeee" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 20, fontSize: 40 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 56, border: "5px solid #54595d", background: "#eaecf0" }} />
           WIKIHOLE
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <div style={{ fontSize: 76, lineHeight: 1.05 }}>The internet&rsquo;s deepest rabbit holes.</div>
-          <div style={{ fontSize: 30, color: "#a8a8a8", fontFamily: "sans-serif" }}>
+          <div style={{ fontSize: 72, lineHeight: 1.1, borderBottom: "2px solid #a2a9b1", paddingBottom: 16 }}>
+            The internet&rsquo;s deepest rabbit holes
+          </div>
+          <div style={{ fontSize: 30, color: "#54595d", fontFamily: "sans-serif" }}>
             Obscure, technically deep Wikipedia articles, ranked and ready to read.
           </div>
         </div>
-        <div style={{ display: "flex", borderTop: "1px solid #2a2a2a", paddingTop: 22, fontSize: 22, color: "#7d7d7d", fontFamily: "monospace" }}>
-          COMPUTER SCIENCE · MATHEMATICS · PHYSICS · ENGINEERING · BIOLOGY · ECONOMICS
+        <div style={{ display: "flex", fontSize: 24, color: "#3366cc", fontFamily: "sans-serif" }}>
+          Computer science · Mathematics · Physics · Engineering · Biology · Economics
         </div>
       </div>
     ),
