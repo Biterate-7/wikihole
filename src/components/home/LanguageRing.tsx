@@ -2,6 +2,7 @@
 
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { FEATURED_LANGUAGES, getLanguage, languageLocale } from "@/lib/i18n/languages";
+import { PuzzleGlobe } from "./globe/PuzzleGlobe";
 import styles from "./home.module.css";
 
 /**
@@ -28,8 +29,7 @@ export function LanguageRing({ counts }: { counts: Record<string, string | undef
   return (
     <div className={styles.central}>
       {/* Decorative: the wordmark above names the site. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className={styles.globe} src="/wikihole-globe.svg" width={200} height={200} alt="" fetchPriority="high" />
+      <PuzzleGlobe className={styles.globe} />
       <ul className={styles.ring} aria-label="Featured Wikipedia languages">
         {FEATURED_LANGUAGES.map((code, index) => {
           const language = getLanguage(code);
