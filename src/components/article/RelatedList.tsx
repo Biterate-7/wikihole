@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { Icon } from "@/components/ui/Icon";
 import { SaveButton } from "@/components/ui/SaveButton";
+import { ThumbImage } from "@/components/ui/ThumbImage";
 import type { Discovery } from "@/lib/discovery/types";
 import { leadSentences } from "@/lib/format";
 import { currentTrailStore, historyStore } from "@/lib/storage/collections";
@@ -14,33 +14,45 @@ import styles from "./article.module.css";
 
 const DEEPER = new Set(["see-also", "lead-link"]);
 
-function RelatedCard({ item, visited }: { item: Discovery; visited: boolean }) {
+/** A related article, laid out like a Wikipedia search result: title, source of the link, description, intro. */
+function RelatedEntry({ item, visited }: { item: Discovery; visited: boolean }) {
   const href = articlePath(item.title, undefined, item.lang);
   return (
     <li className={styles.related} data-testid="related-item">
-      <p className={`label ${styles.relation}`}>{item.relation?.label ?? "Related"}</p>
-      <h3 className={styles.relatedTitle}>
-        <Link href={href}>{item.title}</Link>
-        {visited ? <span className={`label ${styles.visitedTag}`}>Visited</span> : null}
-      </h3>
-      {item.description ? <p className={styles.relatedDesc}>{item.description}</p> : null}
-      <p className={styles.relatedExtract}>{leadSentences(item.extract, 200)}</p>
-      <div className={styles.relatedMeta}>
-        <span className="label">{item.readingMinutes} min</span>
-        <SaveButton
-          article={{
-            title: item.title,
-            description: item.description,
-            extract: leadSentences(item.extract, 300),
-            thumbnail: item.thumbnail,
-            readingMinutes: item.readingMinutes,
-            groupLabel: item.groupLabel,
-            ...(item.lang ? { lang: item.lang } : {}),
-          }}
-        />
-        <Link href={href} className="action" aria-label={`Go deeper into ${item.title}`}>
-          Go deeper <Icon name="arrow-right" size={11} />
+      {item.thumbnail ? (
+        <Link href={href} className={styles.relatedThumb} tabIndex={-1} aria-hidden="true">
+          <ThumbImage thumbnail={item.thumbnail} size={64} />
         </Link>
+      ) : null}
+      <div className={styles.relatedBody}>
+        <p className={`label ${styles.relation}`} title={item.relation?.evidence}>
+          {item.relation?.label ?? "Related"}
+        </p>
+        <h3 className={styles.relatedTitle}>
+          <Link href={href}>{item.title}</Link>
+          {visited ? <span className={styles.visitedTag}>Visited</span> : null}
+        </h3>
+        {item.description ? <p className={styles.relatedDesc}>{item.description}</p> : null}
+        <p className={styles.relatedExtract}>{leadSentences(item.extract, 200)}</p>
+        <div className={styles.relatedMeta}>
+          <span>{item.readingMinutes} min read</span>
+          <span className="dot" />
+          <SaveButton
+            article={{
+              title: item.title,
+              description: item.description,
+              extract: leadSentences(item.extract, 300),
+              thumbnail: item.thumbnail,
+              readingMinutes: item.readingMinutes,
+              groupLabel: item.groupLabel,
+              ...(item.lang ? { lang: item.lang } : {}),
+            }}
+          />
+          <span className="dot" />
+          <Link href={href} className="action" aria-label={`Go deeper into ${item.title}`}>
+            Go deeper
+          </Link>
+        </div>
       </div>
     </li>
   );
@@ -84,20 +96,20 @@ export function RelatedList({
     <div className={styles.relatedGroups}>
       {deeper.length ? (
         <div>
-          <h3 className="label">Go deeper: linked from this article</h3>
+          <h3 className={styles.h3}>Go deeper: linked from this article</h3>
           <ul className={styles.relatedList}>
             {deeper.map((item) => (
-              <RelatedCard key={item.pageId} item={item} visited={visited.has(item.title)} />
+              <RelatedEntry key={item.pageId} item={item} visited={visited.has(item.title)} />
             ))}
           </ul>
         </div>
       ) : null}
       {adjacent.length ? (
         <div>
-          <h3 className="label">Adjacent: shared categories and similar text</h3>
+          <h3 className={styles.h3}>Adjacent: shared categories and similar text</h3>
           <ul className={styles.relatedList}>
             {adjacent.map((item) => (
-              <RelatedCard key={item.pageId} item={item} visited={visited.has(item.title)} />
+              <RelatedEntry key={item.pageId} item={item} visited={visited.has(item.title)} />
             ))}
           </ul>
         </div>

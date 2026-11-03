@@ -3,6 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { DiscoveryFeed } from "@/components/feed/DiscoveryFeed";
+import { PageShell } from "@/components/layout/PageShell";
+import { Portlet } from "@/components/layout/Portlet";
+import { SiteTools } from "@/components/layout/SiteTools";
 import { getFeed } from "@/lib/discovery/engine";
 import { SUBTOPICS, resolveTopic } from "@/lib/discovery/topics";
 import { attempt, describeError } from "@/lib/server/http";
@@ -37,38 +40,74 @@ export default async function TopicPage({ params }: Props) {
   const categories = topic.subtopics.flatMap((s) => s.categories);
 
   return (
-    <div className={`container ${styles.narrow}`}>
-      <header className={styles.pageHead}>
-        <p className={`label ${styles.breadcrumb}`}>
-          <Link href="/topics">Topics</Link>
-          {topic.kind === "subtopic" && group ? (
-            <>
-              <span aria-hidden="true">/</span>
-              <Link href={`/topics/${group.id}`}>{group.label}</Link>
-            </>
+    <PageShell
+      title={topic.label}
+      tabs={{
+        left: [
+          { label: "Topic", href: `/topics/${slug}`, selected: true },
+          { label: "All topics", href: "/topics" },
+        ],
+        right: [
+          { label: "Read", href: `/topics/${slug}`, selected: true },
+          { label: "Discover", href: `/discover?topic=${slug}` },
+        ],
+      }}
+      tools={
+        <SiteTools>
+          {group ? (
+            <Portlet
+              id="tools-collections"
+              heading={`${group.label} collections`}
+              items={[
+                { href: `/topics/${group.id}`, label: `All of ${group.label}`, current: slug === group.id },
+                ...group.subtopics.map((s) => ({ href: `/topics/${s}`, label: SUBTOPICS[s].label, current: s === slug })),
+              ]}
+            />
           ) : null}
-        </p>
-        <h1 className={styles.pageTitle}>{topic.label}</h1>
-        {topic.kind === "group" && group ? <p className={styles.pageSub}>{group.blurb}</p> : null}
-        {group ? (
-          <nav className={styles.subtopicNav} aria-label={`${group.label} collections`}>
-            {group.subtopics.map((s) => (
-              <Link key={s} href={`/topics/${s}`} aria-current={s === slug ? "page" : undefined}>
+        </SiteTools>
+      }
+    >
+      <nav className={styles.subpages} aria-label="Breadcrumb">
+        &lt; <Link href="/topics">Topics</Link>
+        {topic.kind === "subtopic" && group ? (
+          <>
+            {" | "}
+            <Link href={`/topics/${group.id}`}>{group.label}</Link>
+          </>
+        ) : null}
+      </nav>
+      {topic.kind === "group" && group ? <p className={styles.intro}>{group.blurb}</p> : null}
+      {group ? (
+        <nav className={styles.subtopicNav} aria-label={`${group.label} collections`}>
+          <b>{group.label}:</b>{" "}
+          {group.subtopics.map((s, i) => (
+            <span key={s}>
+              {i ? " · " : ""}
+              <Link href={`/topics/${s}`} aria-current={s === slug ? "page" : undefined}>
                 {SUBTOPICS[s].label}
               </Link>
+            </span>
+          ))}
+        </nav>
+      ) : null}
+      {topic.kind === "subtopic" ? (
+        <div className={styles.catlinks}>
+          Sampled from Wikipedia categories:{" "}
+          <ul>
+            {categories.map((c) => (
+              <li key={c}>
+                <a href={`https://en.wikipedia.org/wiki/Category:${encodeURIComponent(c.replace(/ /g, "_"))}`} target="_blank" rel="noopener noreferrer">
+                  {c}
+                </a>
+              </li>
             ))}
-          </nav>
-        ) : null}
-        {topic.kind === "subtopic" ? (
-          <p className={styles.categoryList}>
-            Sampled from Wikipedia categories: {categories.map((c) => `“${c}”`).join(", ")}.
-          </p>
-        ) : null}
-      </header>
+          </ul>
+        </div>
+      ) : null}
       <EditionNotice feature="Topics" />
       <Suspense key={slug} fallback={<DiscoveryFeed initial={null} pending topic={slug} preset="balanced" fixedTopic />}>
         <TopicFeed slug={slug} />
       </Suspense>
-    </div>
+    </PageShell>
   );
 }

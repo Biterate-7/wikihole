@@ -7,11 +7,10 @@ interface Props {
   action?: React.ReactNode;
 }
 
-/** Restrained error / empty state block. */
+/** Error / empty state, as a Wikipedia message box. */
 export function StateMessage({ kind, title, children, action }: Props) {
   return (
-    <div className={styles.state} role={kind === "error" ? "alert" : "status"}>
-      <p className="label">{kind === "error" ? "Error" : "Nothing here"}</p>
+    <div className={`${styles.state} ${kind === "error" ? styles.stateError : styles.stateNotice}`} role={kind === "error" ? "alert" : "status"}>
       <p className={styles.stateTitle}>{title}</p>
       {children ? <div className={styles.stateBody}>{children}</div> : null}
       {action ? <div className={styles.stateAction}>{action}</div> : null}

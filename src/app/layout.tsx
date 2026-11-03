@@ -1,30 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans, Newsreader } from "next/font/google";
-import { HideOnPortal } from "@/components/layout/HideOnPortal";
 import { SiteFooter, SiteHeader } from "@/components/layout/SiteHeader";
+import { PINNED_STATE_SCRIPT } from "@/components/layout/pinning";
+import styles from "@/components/layout/layout.module.css";
 import "./globals.css";
-
-const serif = Newsreader({
-  subsets: ["latin", "latin-ext"],
-  style: ["normal", "italic"],
-  axes: ["opsz"],
-  variable: "--font-serif",
-  display: "swap",
-});
-
-const sans = IBM_Plex_Sans({
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600"],
-  variable: "--font-sans",
-  display: "swap",
-});
-
-const mono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-mono",
-  display: "swap",
-});
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
@@ -47,24 +25,30 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#080808",
-  colorScheme: "dark",
+  themeColor: "#ffffff",
+  colorScheme: "light",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${serif.variable} ${sans.variable} ${mono.variable}`}>
+    // The pinned/hidden sidebar state is applied to <html> before first paint (see pinning.ts).
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: PINNED_STATE_SCRIPT }} />
+      </head>
       <body>
         <a href="#main" className="skip-link">
           Skip to content
         </a>
-        <HideOnPortal>
+        <div className={styles.headerContainer}>
           <SiteHeader />
-        </HideOnPortal>
-        <main id="main">{children}</main>
-        <HideOnPortal>
+        </div>
+        <div className={styles.pageContainer}>
+          <main id="main" className={styles.main}>
+            {children}
+          </main>
           <SiteFooter />
-        </HideOnPortal>
+        </div>
       </body>
     </html>
   );

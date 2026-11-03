@@ -6,10 +6,11 @@ Everything shown comes live from Wikipedia through the official MediaWiki APIs. 
 
 ## Features
 
-- **Homepage portal** (`/`): an encyclopedia-style entry point. The Wikihole wordmark, a puzzle globe with the ten largest editions arranged around it (each with its live article count), a search field with an inline edition selector, and an "Explore Wikihole in your language" menu listing every supported edition grouped by size. The footer links into Discover, Topics, Random and Saved.
+- **Interface**: every page uses one encyclopedia skin modelled on Wikipedia's Vector 2022: a header with the puzzle-globe logo, typeahead search and language button; a pinnable left sidebar (main menu, or an article's contents); Read/View tabs; and a pinnable right Tools column. Sidebars can be hidden and restored (remembered per browser) and fold into dropdowns below 1120px; phones get a compact header, a search overlay and article-first layout.
+- **Main Page** (`/`): composed like Wikipedia's Main Page. A welcome banner with live counts, "From today's featured discovery" and "Did you know ..." (green), topic areas, your latest trail and dated discoveries (blue), and a purple languages box with the live WebGL puzzle globe, the ten largest editions arranged around it (each with its live article count), a search field with an inline edition selector, and the "Explore Wikihole in your language" menu.
 - **Languages**: 62 Wikipedia editions. The active edition drives search, the reader, related articles and saved/history entries, persists in a cookie between visits, and can be changed from the globe, the search field, the language menu or the header picker. English articles keep their `/wiki/<Title>` URLs; other editions live at `/<lang>/wiki/<Title>`.
 - **Discover feed** (`/discover`, formerly `/`; old `/?topic=…` links redirect): random samples from curated Wikipedia categories, passed through a quality gate, ranked by a transparent model, diversified, and de-duplicated across the session. Infinite scroll, ranking presets (Balanced, Deep, Obscure), topic filters, refresh, and loading, empty and error states. Each entry shows its score breakdown.
-- **Reader** (`/wiki/<Title>`): Wikipedia's parsed HTML transformed server-side into an allow-listed document model and rendered as an editorial reading page. It has sections, a scroll-spied table of contents, KaTeX math, tables, figures, galleries, references, infobox facts, key concepts, terminology quoted in context, an equations index, reading progress, and source and revision links. The lead streams first and the body after it.
+- **Reader** (`/wiki/<Title>`): Wikipedia's parsed HTML transformed server-side into an allow-listed document model and rendered as a Wikipedia-style article: serif title and section headings, Article/Rabbit hole and Read/View on Wikipedia/View history tabs, a save star, a floated infobox, thumbnails, wikitables, references, a terminology and equations navbox and a categories box. It has a scroll-spied, collapsible contents sidebar, KaTeX math, tables, figures, galleries, references, infobox facts, key concepts, terminology quoted in context, an equations index, reading progress, and source and revision links. The lead streams first and the body after it.
 - **Rabbit Hole**: related articles from See also, links in the introduction, links in the body, shared categories and CirrusSearch text similarity, each labelled with its source. A breadcrumb trail tracks depth, back navigation unwinds it, and articles already on your trail are left out.
 - **Topics** (`/topics`, `/topics/<slug>`): 7 groups and 40 collections, each defined by real Wikipedia categories (checked against the live API by a test).
 - **Search**: a debounced header and inline combobox (keyboard navigation, Enter to open, Escape to close, `/` or Ctrl/Cmd+K), plus a full results page with highlighted snippets, suggestions and pagination.
@@ -19,7 +20,7 @@ Everything shown comes live from Wikipedia through the official MediaWiki APIs. 
 
 ## Architecture
 
-- **Next.js 16 (App Router) + React 19 + TypeScript (strict)**, CSS Modules, no UI framework.
+- **Next.js 16 (App Router) + React 19 + TypeScript (strict)**, CSS Modules with Codex-derived design tokens (`src/app/globals.css`), no UI framework.
 - **Runtime dependencies:** `zod` (validates every API response and request body), `node-html-parser` (server-side article transformation), `katex` (math), `@anthropic-ai/sdk` (optional AI).
 - Server components render articles and initial feeds. Client components handle only the interactive parts (feed controls, search, trail, saved state).
 
@@ -30,7 +31,8 @@ src/lib/content/     parse.ts (HTML → allow-listed AST) · math.ts (KaTeX) · 
 src/lib/discovery/   topics.ts (taxonomy) · score.ts (features + quality gate) · select.ts (diversity) · engine.ts (feed, random, related) · config.ts (weights)
 src/lib/ai/          config.ts · insights.ts (structured output + verification) · grounding.ts
 src/lib/storage/     store.ts (validated, failure-tolerant storage) · collections.ts (saved, history, trails)
-src/components/home/ Portal (homepage) · LanguageRing (globe + featured editions)
+src/components/layout/ PageShell (three-column frame, tabs) · SiteHeader · MainMenu · Portlet · pinning (hide/restore sidebars)
+src/components/home/ Portal (Main Page) · LanguageRing (globe + featured editions)
 src/components/i18n/ LanguageProvider · SearchLanguageSelect · LanguageMenu · EditionNotice
 src/app/api/         feed · random · search · insights · languages · health
 ```

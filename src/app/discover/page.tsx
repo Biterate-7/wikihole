@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import { ContinuePanel } from "@/components/feed/ContinuePanel";
 import { DiscoveryFeed } from "@/components/feed/DiscoveryFeed";
 import { RankingExplainer } from "@/components/feed/RankingExplainer";
-import { SearchBox } from "@/components/search/SearchBox";
+import { PageShell, SiteSub } from "@/components/layout/PageShell";
+import { SiteTools } from "@/components/layout/SiteTools";
 import { getFeed } from "@/lib/discovery/engine";
 import { isTopicSlug } from "@/lib/discovery/topics";
 import type { FeedPreset } from "@/lib/discovery/types";
@@ -36,34 +37,37 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
 
   return (
     <LanguageProvider initialLang={await requestLanguage()}>
-      <div className="container">
-        <section className={styles.hero} aria-labelledby="hero-title">
-          <p className={`label ${styles.heroKicker}`} id="hero-title">
-            WikiHole
-          </p>
-          <h1 className={styles.heroTagline}>The internet&rsquo;s deepest rabbit holes.</h1>
-          <p className={styles.heroSub}>
-            A live, ranked stream of obscure and technically deep Wikipedia articles, sampled from computer science,
-            mathematics, physics, engineering, biology and economics. Open one, and follow its links as far down as you
-            like.
-          </p>
-          <div className={styles.heroSearch} data-hero-search>
-            <SearchBox variant="hero" />
-          </div>
-        </section>
-
-        <EditionNotice feature="The Discover feed" />
-
-        <div className={styles.homeGrid}>
-          <Suspense key={`${topic}-${preset}`} fallback={<DiscoveryFeed initial={null} pending topic={topic} preset={preset} />}>
-            <InitialFeed topic={topic} preset={preset} />
-          </Suspense>
-          <aside className={styles.rail} aria-label="About this feed">
+      <PageShell
+        title="Discover"
+        tabs={{
+          left: [
+            { label: "Discover", href: "/discover", selected: true },
+            { label: "Ranking", href: "#ranking", title: "How this feed is ranked" },
+          ],
+          right: [
+            { label: "Read", href: "/discover", selected: true },
+            { label: "Topics", href: "/topics" },
+            { label: "Random", href: "/random" },
+          ],
+        }}
+        tools={
+          <SiteTools>
             <ContinuePanel />
             <RankingExplainer />
-          </aside>
-        </div>
-      </div>
+          </SiteTools>
+        }
+      >
+        <SiteSub>The internet&rsquo;s deepest rabbit holes</SiteSub>
+        <p className={styles.intro}>
+          A live, ranked stream of obscure and technically deep Wikipedia articles, sampled from computer science,
+          mathematics, physics, engineering, biology and economics. Open one, and follow its links as far down as you
+          like.
+        </p>
+        <EditionNotice feature="The Discover feed" />
+        <Suspense key={`${topic}-${preset}`} fallback={<DiscoveryFeed initial={null} pending topic={topic} preset={preset} />}>
+          <InitialFeed topic={topic} preset={preset} />
+        </Suspense>
+      </PageShell>
     </LanguageProvider>
   );
 }

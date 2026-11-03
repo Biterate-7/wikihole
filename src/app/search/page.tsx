@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PageShell } from "@/components/layout/PageShell";
+import { SiteTools } from "@/components/layout/SiteTools";
 import { SearchBox } from "@/components/search/SearchBox";
 import { StateMessage } from "@/components/ui/StateMessage";
-import { formatCount } from "@/lib/format";
+import { ThumbImage } from "@/components/ui/ThumbImage";
+import { formatCount, formatDate } from "@/lib/format";
 import { LanguageProvider } from "@/components/i18n/LanguageProvider";
 import { getLanguage, isSupportedLanguage, languageLocale } from "@/lib/i18n/languages";
 import { requestLanguage } from "@/lib/i18n/server";
@@ -19,6 +22,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   return { title: typeof q === "string" && q.trim() ? `Search: ${q.trim().slice(0, 80)}` : "Search", robots: { index: false } };
 }
 
+/** Special:Search: the large search form, the result count, then compact article results. */
 export default async function SearchPage({ searchParams }: Props) {
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 200) : "";
@@ -42,29 +46,43 @@ export default async function SearchPage({ searchParams }: Props) {
 
   return (
     <LanguageProvider initialLang={chosen}>
-      <div className={`container ${styles.narrow}`}>
-        <header className={styles.pageHead}>
-          <p className="label">Search Wikipedia</p>
-          <h1 className={styles.pageTitle}>{q ? <>Results for &ldquo;{q}&rdquo;</> : "Search"}</h1>
-          {result ? (
-            <p className={styles.pageSub}>
+      <PageShell
+        title={q ? "Search results" : "Search"}
+        tabs={{
+          left: [{ label: "Special page", href: q ? searchPath(q, lang) : "/search", selected: true }],
+        }}
+        tools={<SiteTools />}
+      >
+        <div className={styles.searchForm}>
+          <SearchBox variant="hero" initialQuery={q} key={`${lang}:${q}`} lang={lang} />
+        </div>
+        {result?.suggestion ? (
+          <p className={styles.suggest}>
+            Did you mean:{" "}
+            <Link href={searchPath(result.suggestion, lang)} lang={locale}>
+              <b>
+                <i>{result.suggestion}</i>
+              </b>
+            </Link>
+          </p>
+        ) : null}
+        {result ? (
+          <div className={styles.resultsInfo}>
+            <span>
               {formatCount(result.total)} articles on {language.englishName} Wikipedia
-              {result.total > 0 ? ` · showing ${offset + 1}–${offset + result.hits.length}` : ""}
-            </p>
-          ) : null}
-          <div className={styles.searchBar} data-hero-search>
-            <SearchBox variant="hero" initialQuery={q} key={`${lang}:${q}`} lang={lang} />
+            </span>
+            {result.total > 0 ? (
+              <span>
+                Results {offset + 1} – {offset + result.hits.length} of {result.total.toLocaleString("en-US")}
+              </span>
+            ) : null}
           </div>
-          {result?.suggestion ? (
-            <p className={styles.suggest}>
-              Did you mean{" "}
-              <Link href={searchPath(result.suggestion, lang)} lang={locale}>
-                {result.suggestion}
-              </Link>
-              ?
-            </p>
-          ) : null}
-        </header>
+        ) : (
+          <p className={styles.intro}>
+            Search the titles and text of {language.englishName} Wikipedia. Suggestions appear as you type; press Enter
+            for the full results.
+          </p>
+        )}
 
         {error ? (
           <StateMessage
@@ -91,40 +109,40 @@ export default async function SearchPage({ searchParams }: Props) {
             <ol className={styles.results} start={offset + 1} data-testid="search-results" lang={locale} dir={language.dir}>
               {result.hits.map((hit) => (
                 <li key={hit.pageId} className={styles.result}>
-                  <h2 className={styles.resultTitle}>
-                    <Link href={articlePath(hit.title, undefined, lang)}>{hit.title}</Link>
-                  </h2>
-                  {hit.description ? <p className={styles.resultDesc}>{hit.description}</p> : null}
-                  {hit.snippet?.length ? (
-                    <p className={styles.snippet}>
-                      {hit.snippet.map((run, i) => (run.match ? <mark key={i}>{run.text}</mark> : <span key={i}>{run.text}</span>))}
-                      &hellip;
+                  {hit.thumbnail ? (
+                    <Link href={articlePath(hit.title, undefined, lang)} className={styles.resultThumb} tabIndex={-1} aria-hidden="true">
+                      <ThumbImage thumbnail={hit.thumbnail} size={60} />
+                    </Link>
+                  ) : (
+                    <span className={styles.resultNoThumb} aria-hidden="true" />
+                  )}
+                  <div className={styles.resultBody}>
+                    <h2 className={styles.resultTitle}>
+                      <Link href={articlePath(hit.title, undefined, lang)}>{hit.title}</Link>
+                    </h2>
+                    {hit.description ? <p className={styles.resultDesc}>{hit.description}</p> : null}
+                    {hit.snippet?.length ? (
+                      <p className={styles.snippet}>
+                        {hit.snippet.map((run, i) => (run.match ? <mark key={i}>{run.text}</mark> : <span key={i}>{run.text}</span>))}
+                        &hellip;
+                      </p>
+                    ) : null}
+                    <p className={styles.resultMeta}>
+                      {Math.round(hit.size / 1024)} KB ({hit.wordCount.toLocaleString("en-US")} words) · {Math.max(1, Math.round(hit.wordCount / 230))} min read
+                      {hit.timestamp ? ` · ${formatDate(hit.timestamp)}` : ""}
+                      {hit.disambiguation ? " · Disambiguation" : ""}
                     </p>
-                  ) : null}
-                  <p className={`label ${styles.resultMeta}`}>
-                    {Math.max(1, Math.round(hit.wordCount / 230))} min read
-                    {hit.disambiguation ? <span className="dot">Disambiguation</span> : null}
-                  </p>
+                  </div>
                 </li>
               ))}
             </ol>
             <nav className={styles.pager} aria-label="Search pages">
-              {offset > 0 ? (
-                <Link className="btn" href={page(Math.max(0, offset - 20))}>
-                  Previous
-                </Link>
-              ) : (
-                <span />
-              )}
-              {result.nextOffset !== undefined ? (
-                <Link className="btn" href={page(result.nextOffset)}>
-                  Next
-                </Link>
-              ) : null}
+              View ({offset > 0 ? <Link href={page(Math.max(0, offset - 20))}>previous 20</Link> : "previous 20"} |{" "}
+              {result.nextOffset !== undefined ? <Link href={page(result.nextOffset)}>next 20</Link> : "next 20"})
             </nav>
           </>
         ) : null}
-      </div>
+      </PageShell>
     </LanguageProvider>
   );
 }

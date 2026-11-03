@@ -1,48 +1,90 @@
-/* WikiHole design tokens and base styles. Dark editorial, no decoration. */
+/*
+ * WikiHole design tokens and base styles: the encyclopedia skin.
+ * Values follow Wikipedia's Vector 2022 skin and the Codex design tokens
+ * (colours, 16px/1.625 body text, serif headings, thin #a2a9b1 rules).
+ */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --bg: #080808;
-  --bg-raised: #0d0d0d;
-  --bg-hover: #111111;
-  --bg-inset: #0b0b0b;
-  --text: #eeeeee;
-  --text-2: #a8a8a8;
-  --text-3: #7d7d7d;
-  --border: #1b1b1b;
-  --border-2: #2a2a2a;
-  --border-3: #3a3a3a;
-  --highlight: rgba(238, 238, 238, 0.1);
+  /* Colour (Codex) */
+  --color-base: #202122;
+  --color-emphasized: #101418;
+  --color-subtle: #54595d;
+  --color-placeholder: #72777d;
+  --color-disabled: #a2a9b1;
+  --color-inverted: #fff;
+  --color-progressive: #36c;
+  --color-progressive-hover: #3056a9;
+  --color-progressive-active: #233566;
+  --color-visited: #6a60b0;
+  --color-destructive: #bf3c2c;
+  --color-success: #177860;
 
-  --serif: var(--font-serif), "Iowan Old Style", Georgia, serif;
-  --sans: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --background-base: #fff;
+  --background-neutral-subtle: #f8f9fa;
+  --background-neutral: #eaecf0;
+  --background-interactive: #eaecf0;
+  --background-interactive-hover: #dadde3;
+  --background-progressive-subtle: #f1f4fd;
+  --background-highlight: #eaf3ff;
 
-  --gutter: 24px;
-  --max: 1240px;
-  --header-h: 56px;
+  --border-base: #a2a9b1;
+  --border-subtle: #c8ccd1;
+  --border-muted: #dadde3;
+  --border-interactive: #72777d;
+  --border-light: #eaecf0;
+  --border-progressive: #36c;
+
+  /* Main Page boxes */
+  --box-green-bg: #f5fffa;
+  --box-green-border: #cef2e0;
+  --box-green-head: #cef2e0;
+  --box-green-head-border: #a3bfb1;
+  --box-blue-bg: #f5faff;
+  --box-blue-border: #cedff2;
+  --box-blue-head: #cedff2;
+  --box-blue-head-border: #a3b0bf;
+  --box-purple-bg: #faf5ff;
+  --box-purple-border: #ddcef2;
+  --box-purple-head: #ddcef2;
+  --box-purple-head-border: #afa3bf;
+
+  /* Type */
+  --sans: sans-serif;
+  --serif: "Linux Libertine", Georgia, Times, "Source Serif 4", serif;
+  --mono: monospace, monospace;
+
+  /* Layout (Vector 2022) */
+  --page-max: 99.75rem;
+  --page-pad: 44px;
+  --column: 12.25rem;
+  --column-gap: 24px;
+  --content-max: 59.25rem;
   --radius: 2px;
-  --ease: cubic-bezier(0.2, 0, 0, 1);
 
-  /* Homepage portal: the encyclopedia palette (night theme). */
-  --portal-bg: #101418;
-  --portal-bg-hover: #1a1f25;
-  --portal-text: #eaecf0;
-  --portal-text-2: #a2a9b1;
-  --portal-text-3: #7f868e;
-  --portal-link: #88a3e8;
-  --portal-link-hover: #a9bcf0;
-  --portal-progressive: #6485d1;
-  --portal-progressive-hover: #7a97dc;
-  --portal-border: #54595d;
-  --portal-border-subtle: #33383d;
-  --portal-sans: system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  /* Legacy aliases still read by a few inline styles. */
+  --text: var(--color-base);
+  --text-2: var(--color-subtle);
+  --text-3: var(--color-placeholder);
+  --border: var(--border-light);
 }
 
-@media (max-width: 640px) {
+@media (min-width: 1680px) {
   :root {
-    --gutter: 16px;
+    --column: 15.5rem;
+  }
+}
+
+@media (max-width: 1119px) {
+  :root {
+    --page-pad: 24px;
+  }
+}
+
+@media (max-width: 639px) {
+  :root {
+    --page-pad: 16px;
   }
 }
 
@@ -55,20 +97,18 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  scroll-padding-top: calc(var(--header-h) + 24px);
+  font-size: 100%;
 }
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--background-base);
+  color: var(--color-base);
   font-family: var(--sans);
-  font-size: 15px;
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+  font-size: 1rem;
+  line-height: 1.625;
   overflow-x: hidden;
+  overflow-wrap: break-word;
 }
 
 img {
@@ -77,8 +117,21 @@ img {
 }
 
 a {
-  color: inherit;
+  color: var(--color-progressive);
   text-decoration: none;
+  border-radius: var(--radius);
+}
+
+a:visited {
+  color: var(--color-visited);
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+a:active {
+  color: var(--color-progressive-active);
 }
 
 button,
@@ -105,14 +158,9 @@ dd {
   margin: 0;
 }
 
-::selection {
-  background: #eeeeee;
-  color: #080808;
-}
-
 :focus-visible {
-  outline: 2px solid var(--text);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-progressive);
+  outline-offset: 1px;
 }
 
 :focus:not(:focus-visible) {
@@ -121,21 +169,12 @@ dd {
 
 /* ---------- Shared primitives ---------- */
 
-.container {
-  width: 100%;
-  max-width: var(--max);
-  margin: 0 auto;
-  padding: 0 var(--gutter);
-}
-
+/* Small secondary text: metadata, captions, kicker lines. */
 .label {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 0.875rem;
+  font-weight: 400;
   line-height: 1.4;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--color-subtle);
 }
 
 .visually-hidden {
@@ -152,106 +191,146 @@ dd {
 
 .skip-link {
   position: absolute;
-  left: var(--gutter);
+  left: 16px;
   top: -100px;
   z-index: 100;
-  padding: 8px 12px;
-  background: var(--text);
-  color: var(--bg);
-  font-family: var(--mono);
-  font-size: 12px;
+  padding: 6px 12px;
+  background: var(--background-base);
+  color: var(--color-progressive);
+  border: 1px solid var(--border-progressive);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
 }
 
 .skip-link:focus {
   top: 8px;
 }
 
-/* Text button used across the app: compact, mono, bordered. */
+/* Codex button: neutral by default, progressive for the primary action. */
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   min-height: 32px;
-  padding: 0 12px;
-  border: 1px solid var(--border-2);
+  padding: 0 11px;
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
-  background: transparent;
-  font-family: var(--mono);
-  font-size: 11.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-2);
+  background: var(--background-neutral-subtle);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-base);
   white-space: nowrap;
+  text-decoration: none;
   transition:
-    color 120ms var(--ease),
-    border-color 120ms var(--ease),
-    background-color 120ms var(--ease);
+    background-color 100ms,
+    border-color 100ms;
+}
+
+.btn:visited {
+  color: var(--color-base);
 }
 
 .btn:hover {
-  color: var(--text);
-  border-color: var(--border-3);
+  background: var(--background-base);
+  border-color: var(--border-base);
+  color: #404244;
+  text-decoration: none;
 }
 
-.btn[aria-pressed="true"],
-.btn.btn-primary {
-  color: var(--bg);
-  background: var(--text);
-  border-color: var(--text);
+.btn:active {
+  background: var(--background-interactive);
+  border-color: var(--border-interactive);
+}
+
+.btn[aria-pressed="true"] {
+  background: var(--background-interactive);
+  border-color: var(--border-interactive);
+  color: var(--color-emphasized);
+}
+
+.btn.btn-primary,
+.btn.btn-primary:visited {
+  background: var(--color-progressive);
+  border-color: var(--color-progressive);
+  color: var(--color-inverted);
+}
+
+.btn.btn-primary:hover {
+  background: var(--color-progressive-hover);
+  border-color: var(--color-progressive-hover);
+  color: var(--color-inverted);
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  background: var(--background-interactive);
+  border-color: var(--border-subtle);
+  color: var(--color-disabled);
   cursor: default;
 }
 
-.btn-primary:hover {
-  color: var(--bg);
-  background: #ffffff;
-}
-
-/* Inline mono action link, e.g. "Rabbit hole ->". */
+/* Inline action that reads as a link, e.g. "Save" or "Rabbit hole". */
 .action {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   padding: 0;
   border: 0;
   background: none;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-3);
-  transition: color 120ms var(--ease);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--color-progressive);
+  text-decoration: none;
 }
 
-.action:hover,
+.action:visited {
+  color: var(--color-progressive);
+}
+
+.action:hover {
+  color: var(--color-progressive-hover);
+  text-decoration: underline;
+}
+
 .action[aria-pressed="true"] {
-  color: var(--text);
+  color: var(--color-base);
 }
 
+.action:disabled {
+  color: var(--color-disabled);
+  text-decoration: none;
+  cursor: default;
+}
+
+/* Middle-dot separated inline items (Wikipedia's "hlist"). */
 .dot::before {
   content: "\00b7";
-  margin: 0 0.5em;
-  color: var(--border-3);
+  margin: 0 0.45em;
+  color: var(--color-base);
+  font-weight: 700;
 }
 
 .skeleton {
-  background: var(--bg-hover);
+  background: var(--background-neutral);
   border-radius: var(--radius);
   animation: pulse 1.6s ease-in-out infinite;
 }
 
 @keyframes pulse {
   50% {
-    opacity: 0.45;
+    opacity: 0.5;
   }
 }
 
-/* KaTeX output inherits the reading colour. */
 .katex {
-  font-size: 1.05em;
+  font-size: 1.1em;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
