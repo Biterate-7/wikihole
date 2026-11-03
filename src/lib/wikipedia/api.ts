@@ -111,6 +111,7 @@ const fullSearchCache = new TtlCache<FullSearchResult>(300, HOUR);
 const parseCache = new TtlCache<ParsedPageHtml>(150, 30 * 60 * 1000);
 const summaryCache = new TtlCache<PageSummary>(1000, 6 * HOUR);
 const moreLikeCache = new TtlCache<SearchHit[]>(300, 6 * HOUR);
+const linksCache = new TtlCache<LinkPair[]>(300, 6 * HOUR);
 
 /* ------------------------------------------------------------------------ */
 /* Helpers                                                                   */
@@ -543,7 +544,70 @@ export async function getSummary(title: string): Promise<PageSummary> {
   });
 }
 
+const linksResponseSchema = z.object({
+  batchcomplete: z.boolean().optional(),
+  continue: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
+  query: z
+    .object({
+      pages: z
+        .array(
+          z.object({
+            title: z.string(),
+            missing: z.boolean().optional(),
+            links: z.array(z.object({ ns: z.number(), title: z.string() })).optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+});
+
+export interface LinkPair {
+  from: string;
+  to: string;
+}
+
+/**
+ * Which of the given articles link to which others, in one batched query:
+ * `prop=links` restricted by `pltitles` to the same set. Titles must be
+ * canonical (resolved) titles; links made through a redirect are not seen.
+ */
+export async function getLinksBetween(titles: string[]): Promise<LinkPair[]> {
+  const unique = [...new Set(titles.map(normalizeTitle).filter((t) => isValidTitle(t) && isArticleNamespace(t)))].slice(0, 50);
+  if (unique.length < 2) return [];
+  const key = [...unique].sort().join("|");
+  return linksCache.getOrLoad(key, async () => {
+    const pairs: LinkPair[] = [];
+    const seen = new Set<string>();
+    let cont: Record<string, string | number> | undefined;
+    for (let round = 0; round < 6; round++) {
+      const raw = await mwApi({
+        action: "query",
+        prop: "links",
+        titles: unique.join("|"),
+        pltitles: unique.join("|"),
+        plnamespace: 0,
+        pllimit: "max",
+        ...(cont ?? {}),
+      });
+      const data = validate(linksResponseSchema, raw, "links");
+      for (const page of data.query?.pages ?? []) {
+        for (const link of page.links ?? []) {
+          const id = `${page.title}\u0000${link.title}`;
+          if (link.title !== page.title && !seen.has(id)) {
+            seen.add(id);
+            pairs.push({ from: page.title, to: link.title });
+          }
+        }
+      }
+      if (!data.continue) break;
+      cont = data.continue;
+    }
+    return pairs;
+  });
+}
+
 /** Exposed for tests. */
 export function __clearWikipediaCaches(): void {
-  for (const cache of [metaCache, searchCache, fullSearchCache, parseCache, summaryCache, moreLikeCache]) cache.clear();
+  for (const cache of [metaCache, searchCache, fullSearchCache, parseCache, summaryCache, moreLikeCache, linksCache]) cache.clear();
 }

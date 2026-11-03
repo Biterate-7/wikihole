@@ -16,6 +16,9 @@ export function cleanExtract(raw: string | undefined): string | undefined {
     text = text.slice(0, start) + text.slice(end + 1);
   }
   const cleaned = text
+    // Pronunciation markup leaves empty brackets behind: "Git () is…", "Kafka (; born…)".
+    .replace(/\s*\(\s*[;,]?\s*\)/g, "")
+    .replace(/\(\s*[;,]\s*/g, "(")
     .replace(/[ \t]+/g, " ")
     .replace(/ ([,.;:)])/g, "$1")
     .replace(/\( /g, "(")

@@ -1,6 +1,7 @@
 import type { FeedResponse, RandomResponse } from "@/lib/discovery/engine";
 import type { FeedPreset } from "@/lib/discovery/types";
 import type { Insights } from "@/lib/ai/insights";
+import type { FeedCategory, HackerNewsFeed } from "@/lib/hackernews/service";
 import type { SearchSuggestion } from "@/lib/wikipedia/types";
 
 /** Browser-side helpers for WikiHole's own API routes. */
@@ -59,6 +60,14 @@ export function fetchRandom(params: { exclude: number[]; topic?: string | null }
 
 export function fetchSuggestions(q: string, signal?: AbortSignal): Promise<{ results: SearchSuggestion[] }> {
   return request(`/api/search?q=${encodeURIComponent(q)}`, { signal, timeoutMs: 10000 });
+}
+
+export function fetchHackerNews(
+  params: { category: FeedCategory; offset?: number; limit?: number },
+  signal?: AbortSignal,
+): Promise<HackerNewsFeed> {
+  const qs = new URLSearchParams({ category: params.category, offset: String(params.offset ?? 0), limit: String(params.limit ?? 15) });
+  return request<HackerNewsFeed>(`/api/hackernews?${qs}`, { signal, timeoutMs: 45000 });
 }
 
 export type InsightsResponse = { enabled: false } | { enabled: true; insights: Insights };

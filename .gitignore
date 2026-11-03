@@ -45,3 +45,6 @@ next-env.d.ts
 /playwright-report/
 /playwright/.cache/
 !.env.example
+
+# server-side data (Hacker News rabbit holes)
+/.data/

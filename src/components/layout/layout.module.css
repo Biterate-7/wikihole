@@ -91,10 +91,23 @@
   background: var(--text);
 }
 
+.shortLabel {
+  display: none;
+}
+
 .count {
   font-family: var(--mono);
   font-size: 10.5px;
   color: var(--text-3);
+}
+
+@media (max-width: 900px) {
+  .longLabel {
+    display: none;
+  }
+  .shortLabel {
+    display: inline;
+  }
 }
 
 @media (max-width: 640px) {

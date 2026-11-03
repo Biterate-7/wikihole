@@ -31,6 +31,11 @@ async function buildDocument(title: string, section?: number): Promise<ArticleDo
 /** Full parsed article. */
 export const loadArticle = cache((title: string) => buildDocument(title));
 
+/** Full parsed article outside a React render (background jobs such as rabbit-hole building). */
+export function fetchArticleDocument(title: string): Promise<ArticleDocument> {
+  return buildDocument(title);
+}
+
 /** Only the lead section: small and fast, so the reader can stream it first. */
 export const loadLead = cache((title: string) => buildDocument(title, 0));
 
