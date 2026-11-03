@@ -129,6 +129,14 @@ describe("Hacker News discovery service", () => {
     expect(result.status).toBe("complete");
   });
 
+  it("paces background builds: one at a time, at least 30 seconds apart", async () => {
+    const { getHackerNewsFeed, processBackground } = await freshService();
+    await getHackerNewsFeed({ warmup: 0, schedule: noSchedule });
+    expect(await processBackground()).toBe(1);
+    // Immediately after a background build, the next one waits for the spacing.
+    expect(await processBackground()).toBe(0);
+  });
+
   it("builds explorations on demand for any story id and explains rejections", async () => {
     hn.items[50] = story(50, "Raft consensus explained");
     const { getExploration } = await freshService();

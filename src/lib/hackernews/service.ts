@@ -19,8 +19,9 @@ import { HN_LISTS, type Submission, type SubmissionRejectReason } from "./types"
  * - Each submission is processed once per builder version. Metadata (points,
  *   comments) is refreshed on later ingestions without rebuilding.
  * - Builds draw on a shared Wikipedia request budget (BUILDS_PER_WINDOW per
- *   window, one at a time in the background), so bursts of traffic never fan
- *   out into hundreds of Wikipedia requests. Background work stops while the
+ *   window; in the background one at a time and at least
+ *   BACKGROUND_SPACING_MS apart), so bursts of traffic never fan out into
+ *   hundreds of Wikipedia requests. Background work stops while the
  *   Wikipedia client is cooling down after a rate limit, so it never starves
  *   interactive features such as search and the reader.
  * - Failed builds are retried with exponential backoff; insufficient holes
@@ -38,6 +39,12 @@ const BUILDS_PER_WINDOW = 8;
 /** Background builds run one at a time; a first visit may warm up with two. */
 const BACKGROUND_CONCURRENCY = 1;
 const WARMUP_CONCURRENCY = 2;
+/**
+ * Minimum gap between background builds. A build costs roughly 15–25 Wikipedia
+ * requests; pacing keeps background traffic near 40 requests a minute so it
+ * cannot burst into the budget that search, the reader and edition counts share.
+ */
+const BACKGROUND_SPACING_MS = 30_000;
 const MAX_FAILED_ATTEMPTS = 3;
 const INSUFFICIENT_RETRY_MS = 6 * 60 * 60 * 1000;
 const MAX_ENTRIES = 1500;
@@ -297,6 +304,19 @@ export async function processQueue(max = 4, concurrency = BACKGROUND_CONCURRENCY
   return processed;
 }
 
+let lastBackgroundBuild = 0;
+
+/**
+ * Background step run after responses: at most one build, and only once the
+ * spacing has elapsed. Requests (including the feed's own polling) keep the
+ * queue moving, so progress continues without ever bursting.
+ */
+export async function processBackground(): Promise<number> {
+  if (building.size > 0 || Date.now() - lastBackgroundBuild < BACKGROUND_SPACING_MS) return 0;
+  lastBackgroundBuild = Date.now();
+  return processQueue(1, BACKGROUND_CONCURRENCY);
+}
+
 /* ------------------------------------------------------------------------ */
 /* Queries                                                                   */
 /* ------------------------------------------------------------------------ */
@@ -368,7 +388,7 @@ export async function getHackerNewsFeed({
     // First visits wait (briefly) for a couple of holes instead of showing an empty page.
     await Promise.race([processQueue(warmup, WARMUP_CONCURRENCY), new Promise((resolve) => setTimeout(resolve, WARMUP_BUDGET_MS))]);
   }
-  schedule(() => processQueue(4));
+  schedule(processBackground);
 
   const doc = await store.read();
   const entries = Object.values(doc.entries).filter((e) => inCategory(e.submission, category));
