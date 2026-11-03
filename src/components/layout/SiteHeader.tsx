@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SearchLanguageSelect } from "@/components/i18n/SearchLanguageSelect";
 import { SearchDialog } from "@/components/search/SearchDialog";
 import { NavLinks } from "./NavLinks";
 import styles from "./layout.module.css";
@@ -21,6 +22,7 @@ export function SiteHeader() {
         </Link>
         <div className={styles.headerRight}>
           <NavLinks />
+          <SearchLanguageSelect variant="header" />
           <SearchDialog />
         </div>
       </nav>
@@ -38,7 +40,7 @@ export function SiteFooter() {
         </div>
         <p className={styles.footerNote}>
           Article text and media come live from{" "}
-          <a href="https://en.wikipedia.org/" rel="noopener noreferrer" target="_blank">
+          <a href="https://www.wikipedia.org/" rel="noopener noreferrer" target="_blank">
             Wikipedia
           </a>{" "}
           via the official MediaWiki API, and are available under the{" "}
@@ -50,7 +52,7 @@ export function SiteFooter() {
         </p>
         <ul className={styles.footerLinks}>
           <li>
-            <Link href="/#ranking">How ranking works</Link>
+            <Link href="/discover#ranking">How ranking works</Link>
           </li>
           <li>
             <Link href="/topics">All topics</Link>

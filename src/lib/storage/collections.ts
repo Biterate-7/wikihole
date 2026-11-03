@@ -1,7 +1,18 @@
 import { z } from "zod";
+import { DEFAULT_LANGUAGE } from "@/lib/i18n/languages";
 import { createStore } from "./store";
 
-/** Persisted user data: saved articles, reading history, exploration trails. */
+/**
+ * Persisted user data: saved articles, reading history, exploration trails.
+ * Entries without `lang` predate language support and are English.
+ */
+
+const lang = z.string().min(2).max(20).optional();
+
+/** Same article: titles are only unique within one language edition. */
+function sameArticle(a: { title: string; lang?: string }, title: string, language?: string): boolean {
+  return a.title === title && (a.lang ?? DEFAULT_LANGUAGE) === (language ?? DEFAULT_LANGUAGE);
+}
 
 const thumbnail = z.object({ src: z.string(), width: z.number(), height: z.number() });
 
@@ -12,6 +23,7 @@ export const savedArticleSchema = z.object({
   thumbnail: thumbnail.optional(),
   readingMinutes: z.number().optional(),
   groupLabel: z.string().optional(),
+  lang,
   savedAt: z.number(),
 });
 export type SavedArticle = z.infer<typeof savedArticleSchema>;
@@ -22,6 +34,7 @@ export const historyEntrySchema = z.object({
   visitedAt: z.number(),
   trailId: z.string().optional(),
   depth: z.number().optional(),
+  lang,
 });
 export type HistoryEntry = z.infer<typeof historyEntrySchema>;
 
@@ -30,6 +43,7 @@ export const trailSchema = z.object({
   steps: z.array(z.string().min(1).max(300)).max(200),
   startedAt: z.number(),
   updatedAt: z.number(),
+  lang,
 });
 export type Trail = z.infer<typeof trailSchema>;
 
@@ -91,22 +105,22 @@ export const seenStore = createStore<number[]>({
 
 /* ------------------------------- actions -------------------------------- */
 
-export function isSaved(items: SavedArticle[], title: string): boolean {
-  return items.some((i) => i.title === title);
+export function isSaved(items: SavedArticle[], title: string, language?: string): boolean {
+  return items.some((i) => sameArticle(i, title, language));
 }
 
 export function toggleSaved(article: Omit<SavedArticle, "savedAt">): boolean {
   let nowSaved = false;
   savedStore.set((items) => {
-    if (isSaved(items, article.title)) return items.filter((i) => i.title !== article.title);
+    if (isSaved(items, article.title, article.lang)) return items.filter((i) => !sameArticle(i, article.title, article.lang));
     nowSaved = true;
     return [{ ...article, savedAt: Date.now() }, ...items];
   });
   return nowSaved;
 }
 
-export function removeSaved(title: string): void {
-  savedStore.set((items) => items.filter((i) => i.title !== title));
+export function removeSaved(title: string, language?: string): void {
+  savedStore.set((items) => items.filter((i) => !sameArticle(i, title, language)));
 }
 
 export function markSeen(ids: number[]): void {
@@ -147,23 +161,29 @@ function newTrailId(): string {
  * Pure trail transition used when an article is opened:
  * - revisiting a step (back navigation, breadcrumb) truncates the trail there;
  * - following a link from the trail's last step extends it;
- * - anything else starts a new trail.
+ * - anything else (including switching language edition) starts a new trail.
  */
-export function advanceTrail(trail: Trail | null, title: string, from: string | null, now = Date.now()): Trail {
-  if (trail) {
+export function advanceTrail(
+  trail: Trail | null,
+  title: string,
+  from: string | null,
+  now = Date.now(),
+  language: string = DEFAULT_LANGUAGE,
+): Trail {
+  if (trail && (trail.lang ?? DEFAULT_LANGUAGE) === language) {
     const index = trail.steps.indexOf(title);
     if (index >= 0) return { ...trail, steps: trail.steps.slice(0, index + 1), updatedAt: now };
     if (from && trail.steps[trail.steps.length - 1] === from) {
       return { ...trail, steps: [...trail.steps, title].slice(-200), updatedAt: now };
     }
   }
-  return { id: newTrailId(), steps: [title], startedAt: now, updatedAt: now };
+  return { id: newTrailId(), steps: [title], startedAt: now, updatedAt: now, ...(language !== DEFAULT_LANGUAGE ? { lang: language } : {}) };
 }
 
 /** Records an article visit: updates the current trail, trail log and history. */
-export function recordVisit(title: string, description?: string): Trail {
+export function recordVisit(title: string, description?: string, language: string = DEFAULT_LANGUAGE): Trail {
   const from = takePendingNavigation();
-  const trail = advanceTrail(currentTrailStore.get(), title, from);
+  const trail = advanceTrail(currentTrailStore.get(), title, from, Date.now(), language);
   currentTrailStore.set(trail);
   // The log keeps the deepest path explored; stepping back up a trail only moves the breadcrumbs.
   trailsStore.set((trails) => {
@@ -173,8 +193,15 @@ export function recordVisit(title: string, description?: string): Trail {
     return [entry, ...trails.filter((t) => t.id !== trail.id)];
   });
   historyStore.set((entries) => [
-    { title, ...(description ? { description } : {}), visitedAt: Date.now(), trailId: trail.id, depth: trail.steps.length },
-    ...entries.filter((e) => e.title !== title),
+    {
+      title,
+      ...(description ? { description } : {}),
+      visitedAt: Date.now(),
+      trailId: trail.id,
+      depth: trail.steps.length,
+      ...(language !== DEFAULT_LANGUAGE ? { lang: language } : {}),
+    },
+    ...entries.filter((e) => !sameArticle(e, title, language)),
   ]);
   return trail;
 }

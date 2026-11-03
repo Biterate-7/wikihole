@@ -15,6 +15,8 @@ export interface Thumbnail {
 }
 
 export interface PageMeta {
+  /** Language edition, when not English. */
+  lang?: string;
   pageId: number;
   title: string;
   description?: string;
@@ -71,6 +73,12 @@ export interface ParsedPageHtml {
   revId: number;
   html: string;
   categories: Array<{ name: string; hidden: boolean }>;
+}
+
+export interface SiteStatistics {
+  lang: string;
+  /** Content-namespace article count reported by the edition's siteinfo. */
+  articles: number;
 }
 
 export interface PageSummary {

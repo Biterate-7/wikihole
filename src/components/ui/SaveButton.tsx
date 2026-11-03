@@ -12,7 +12,7 @@ interface Props {
 export function SaveButton({ article, variant = "action" }: Props) {
   const saved = useStore(savedStore);
   const hydrated = useHydrated();
-  const active = hydrated && isSaved(saved, article.title);
+  const active = hydrated && isSaved(saved, article.title, article.lang);
   return (
     <button
       type="button"

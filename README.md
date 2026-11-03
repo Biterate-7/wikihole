@@ -6,7 +6,9 @@ Everything shown comes live from Wikipedia through the official MediaWiki APIs. 
 
 ## Features
 
-- **Discover feed** (`/`): random samples from curated Wikipedia categories, passed through a quality gate, ranked by a transparent model, diversified, and de-duplicated across the session. Infinite scroll, ranking presets (Balanced, Deep, Obscure), topic filters, refresh, and loading, empty and error states. Each entry shows its score breakdown.
+- **Homepage portal** (`/`): an encyclopedia-style entry point. The Wikihole wordmark, a puzzle globe with the ten largest editions arranged around it (each with its live article count), a search field with an inline edition selector, and an "Explore Wikihole in your language" menu listing every supported edition grouped by size. The footer links into Discover, Topics, Random and Saved.
+- **Languages**: 62 Wikipedia editions. The active edition drives search, the reader, related articles and saved/history entries, persists in a cookie between visits, and can be changed from the globe, the search field, the language menu or the header picker. English articles keep their `/wiki/<Title>` URLs; other editions live at `/<lang>/wiki/<Title>`.
+- **Discover feed** (`/discover`, formerly `/`; old `/?topic=…` links redirect): random samples from curated Wikipedia categories, passed through a quality gate, ranked by a transparent model, diversified, and de-duplicated across the session. Infinite scroll, ranking presets (Balanced, Deep, Obscure), topic filters, refresh, and loading, empty and error states. Each entry shows its score breakdown.
 - **Reader** (`/wiki/<Title>`): Wikipedia's parsed HTML transformed server-side into an allow-listed document model and rendered as an editorial reading page. It has sections, a scroll-spied table of contents, KaTeX math, tables, figures, galleries, references, infobox facts, key concepts, terminology quoted in context, an equations index, reading progress, and source and revision links. The lead streams first and the body after it.
 - **Rabbit Hole**: related articles from See also, links in the introduction, links in the body, shared categories and CirrusSearch text similarity, each labelled with its source. A breadcrumb trail tracks depth, back navigation unwinds it, and articles already on your trail are left out.
 - **Topics** (`/topics`, `/topics/<slug>`): 7 groups and 40 collections, each defined by real Wikipedia categories (checked against the live API by a test).
@@ -23,7 +25,8 @@ Everything shown comes live from Wikipedia through the official MediaWiki APIs. 
 - Server components render articles and initial feeds. Client components handle only the interactive parts (feed controls, search, trail, saved state).
 
 ```
-src/lib/wikipedia/   http.ts (UA, timeouts, retries, Retry-After, concurrency) · api.ts (typed endpoints, caching) · titles.ts
+src/lib/i18n/        languages.ts (edition registry, formatting, validation)
+src/lib/wikipedia/   http.ts (UA, timeouts, retries, Retry-After, concurrency, per-edition endpoints) · api.ts (typed endpoints, caching) · titles.ts
 src/lib/content/     parse.ts (HTML → allow-listed AST) · math.ts (KaTeX) · concepts.ts (key concepts, terms, equations)
 src/lib/discovery/   topics.ts (taxonomy) · score.ts (features + quality gate) · select.ts (diversity) · engine.ts (feed, random, related) · config.ts (weights)
 src/lib/ai/          config.ts · insights.ts (structured output + verification) · grounding.ts
@@ -32,7 +35,9 @@ src/lib/hackernews/  client.ts (Firebase API) · normalization.ts · ingestion.t
 src/lib/discovery/   entity-extraction.ts · topic-classification.ts · relationship-engine.ts · rabbit-hole-builder.ts · quality-scoring.ts · graph-layout.ts
 src/lib/wikipedia/   article-resolution.ts (entity → validated article) · extraction.ts (where an article links: definition, infobox, sections)
 src/lib/server/      http.ts (rate limiting, errors) · persistence.ts (durable JSON documents)
-src/app/api/         feed · random · search · insights · health · hackernews · hackernews/[id]
+src/components/home/ Portal (homepage) · LanguageRing (globe + featured editions)
+src/components/i18n/ LanguageProvider · SearchLanguageSelect · LanguageMenu · EditionNotice
+src/app/api/         feed · random · search · insights · languages · health · hackernews · hackernews/[id]
 ```
 
 ### Wikipedia integration
@@ -46,6 +51,15 @@ src/app/api/         feed · random · search · insights · health · hackernew
 | Uniform random | `list=random` |
 | Similar articles | `list=search&srsearch=morelike:"Title"` |
 | Summaries (page metadata) | REST `GET /page/summary/{title}` |
+| Edition sizes (portal counts) | `action=query&meta=siteinfo&siprop=statistics`, per edition, cached 12 h |
+
+### Languages
+
+`src/lib/i18n/languages.ts` is the single source of truth: code, native name, English name, text direction, number-formatting locale and the portal's word for "articles". Adding an edition is one entry there; the selectors, routes (`/<code>/wiki/<Title>`), API endpoints (`https://<code>.wikipedia.org/w/api.php`) and validation all derive from it. Codes from cookies, query strings and request bodies are validated against the registry before any URL is built.
+
+Every Wikipedia call takes the edition explicitly and caches are keyed per edition (titles and page ids are only unique within one wiki). Article counts come live from each edition's siteinfo statistics and are never estimated: an edition that cannot be reached shows no count. The parser recognises the localised appendix headings and namespaces of the featured editions, so See also, references and `Kategorie:`-style links are handled correctly.
+
+The homepage globe is generated by `scripts/generate-globe.mjs` (deterministic; `node scripts/generate-globe.mjs` rewrites `public/wikihole-globe.svg`).
 
 The client follows the [Wikimedia rate-limit guidance](https://www.mediawiki.org/wiki/Wikimedia_APIs/Rate_limits): a User-Agent with contact information (without it Wikimedia allows only 10 requests per minute), at most 3 concurrent requests (searches limited separately), 8–15 s timeouts, bounded retries with backoff, and `Retry-After` honoured. A long `Retry-After` puts the client into a cooldown instead of retrying. Responses are cached in memory (TTL + LRU, with in-flight de-duplication), and candidate pools are cached per subtopic for 20 minutes, so repeat visitors cost almost no API calls. Failed or malformed responses become typed errors and are never replaced with made-up data.
 
@@ -123,7 +137,8 @@ The test suites cover:
 - **Unit:** parser (real fixtures), math, concepts, ranking, persistence, search component, AI grounding; Hacker News normalisation and ranking, entity extraction, topic classification, link evidence, relationship typing, rabbit-hole quality, graph layout, and the Hacker News UI (feed states, cards, graph interaction, exploration view).
 - **Integration:** HTTP client behaviour, API layer, engine, route handlers; the Hacker News client (lists, items, deleted and missing items, retries, failures), ingestion, entity resolution (exact, redirect, disambiguation, unrelated exact titles, nonexistent, de-duplication, list pages, caching), the rabbit-hole builder on a real parsed article, the service (filtering, no reprocessing, metadata refresh, failed and rate-limited builds, on-demand builds), routes and durable storage.
 - **Live:** taxonomy categories exist, feed text matches Wikipedia's own intros, search, parsing, random filtering; Hacker News lists and items, well-known entity resolutions, and a complete rabbit hole built from live data.
-- **End-to-end:** homepage, search, reading, Rabbit Hole, random, saved, failure handling, responsiveness at 1440, 1280, 1024, 768 and 390 px, console errors, keyboard focus; the Hacker News feed, opening a rabbit hole, Wikipedia links (checked against Wikipedia), the graph and depth control, unknown items, and mobile layout.
+- **Languages:** registry, count formatting, paths, localised parsing, per-edition API endpoints and caches, `/api/languages`, the provider, globe, language menu and search box (unit + integration); the full portal → search → reader → related → trail journey in German, persistence, the menu and legacy redirects (end-to-end).
+- **End-to-end:** homepage portal, Discover feed, search, reading, Rabbit Hole, random, saved, failure handling, responsiveness at 1440, 1280, 1024, 768 and 390 px, console errors, keyboard focus; the Hacker News feed, opening a rabbit hole, Wikipedia links (checked against Wikipedia), the graph and depth control, unknown items, and mobile layout.
 
 ## Deploying to Vercel
 
@@ -140,7 +155,10 @@ Or from the CLI: `npm i -g vercel && vercel` (first deploy), then `vercel --prod
 - All server traffic shares one Wikimedia rate-limit identity (about 200 requests per minute with a compliant User-Agent). Very high traffic would need Wikimedia Enterprise or more caching.
 - Reading-time estimates in feeds come from search word counts or wikitext length, so they are approximate.
 - Saved articles and history live in the browser. There is no account sync.
-- Hacker News entity extraction is deterministic. It reads the title, post and first comments, not the linked page, so a terse title that names nothing ("I quit") produces no rabbit hole by design. It also reads English only.
+- Hacker News entity extraction is deterministic. It reads the title, post and first comments, not the linked page, so a terse title that names nothing ("I quit") produces no rabbit hole by design. It reads English only, and rabbit holes are built from English Wikipedia whatever edition is selected.
 - Link evidence comes from the three main articles; links made through redirects are not seen by the link-matrix query, so a few real connections can be missing (never invented).
 - The Hacker News store is a single JSON document per server instance. On serverless platforms without a writable disk it lives in the temp directory or memory, so cold instances rebuild; a shared database would be the next step at scale.
-- English Wikipedia only (endpoints are configurable, but the taxonomy uses English category names).
+- Search, the reader, related articles and saved/history work in every supported edition. Discover, Topics and Random are built on English Wikipedia's category taxonomy and ranking vocabulary, so they always show English articles; with another edition active they say so and offer a switch back to English.
+- Interface text (labels, buttons) is English in every edition; article content and search are in the chosen language.
+- Localised appendix headings and namespaces are recognised for the ten featured editions. In other editions "See also" is not singled out, so related articles come from links, shared categories and text similarity.
+- The first time the language menu opens on a cold server instance, counts for all 62 editions are fetched (3 at a time); they are warmed in the background after the homepage renders and cached for 12 hours.

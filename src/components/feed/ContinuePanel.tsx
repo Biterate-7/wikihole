@@ -28,15 +28,15 @@ export function ContinuePanel() {
               <li key={step}>{step}</li>
             ))}
           </ol>
-          <Link href={articlePath(last)} className="btn">
+          <Link href={articlePath(last, undefined, trail.lang)} className="btn">
             Resume at depth {trail.steps.length}
           </Link>
         </div>
       ) : null}
       <ul className={styles.recent}>
         {history.slice(0, 5).map((h) => (
-          <li key={h.title}>
-            <Link href={articlePath(h.title)}>{h.title}</Link>
+          <li key={`${h.lang ?? ""}:${h.title}`}>
+            <Link href={articlePath(h.title, undefined, h.lang)} lang={h.lang}>{h.title}</Link>
             <span className="label">{formatRelative(h.visitedAt)}</span>
           </li>
         ))}

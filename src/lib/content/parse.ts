@@ -1,4 +1,5 @@
 import { parse, HTMLElement, TextNode, type Node } from "node-html-parser";
+import { DEFAULT_LANGUAGE } from "@/lib/i18n/languages";
 import { isArticleNamespace, titleFromWikiHref, wikipediaUrl } from "@/lib/wikipedia/titles";
 import { renderTex } from "./math";
 import { normalizeMediaUrl } from "./media";
@@ -109,12 +110,21 @@ const BLOCK_TAGS = new Set([
 const REFERENCE_SECTION =
   /^(references|notes|footnotes|citations|sources|bibliography|works cited|notes and references|references and notes|explanatory notes|general references|cited sources|primary sources|secondary sources|literature|cited works|notes and citations|citations and notes|general and cited references)$/i;
 
+// Standard appendix headings of the featured language editions (de, fr, es, it, pt, pl, ru, ja, zh, nl).
+const SEE_ALSO_SECTION =
+  /^(see also|siehe auch|voir aussi|articles connexes|véase también|voci correlate|ver também|zobacz też|см\. также|関連項目|参见|參見|zie ook)$/i;
+const EXTERNAL_SECTION =
+  /^(external links?|weblinks|liens externes|enlaces externos|collegamenti esterni|ligações externas|linki zewnętrzne|ссылки|外部リンク|外部链接|外部連結|externe links?)$/i;
+const FURTHER_SECTION = /^(further reading|literatur|bibliographie|bibliografía|bibliografia|литература)$/i;
+const LOCAL_REFERENCE_SECTION =
+  /^(einzelnachweise|anmerkungen|notes et références|références|referencias|notas|note|referências|przypisy|примечания|脚注|出典|参考文献|注釈|注释|參考文獻|参考资料|參考資料|bronnen|referenties)$/i;
+
 function sectionKind(title: string): SectionKind {
   const t = title.trim();
-  if (/^see also$/i.test(t)) return "see-also";
-  if (/^external links?$/i.test(t)) return "external";
-  if (/^further reading$/i.test(t)) return "further";
-  if (REFERENCE_SECTION.test(t)) return "references";
+  if (SEE_ALSO_SECTION.test(t)) return "see-also";
+  if (EXTERNAL_SECTION.test(t)) return "external";
+  if (FURTHER_SECTION.test(t)) return "further";
+  if (REFERENCE_SECTION.test(t) || LOCAL_REFERENCE_SECTION.test(t)) return "references";
   return "content";
 }
 
@@ -223,6 +233,8 @@ class ArticleBuilder {
   readonly seeAlso: string[] = [];
   infobox: InfoboxRow[] = [];
   infoboxImage?: WikiImage;
+
+  constructor(private readonly lang: string = DEFAULT_LANGUAGE) {}
 
   get linkStats(): LinkStat[] {
     return [...this.links.values()];
@@ -357,12 +369,20 @@ class ArticleBuilder {
     const c = this.inline(el.childNodes);
     if (c.length === 0) return [];
     if (classesOf(el).includes("new")) return c; // red link: page does not exist
-    const wiki = titleFromWikiHref(href);
+    const wiki = titleFromWikiHref(href, this.lang);
     if (wiki) {
       if (/^help:/i.test(wiki.title)) return c;
-      if (!isArticleNamespace(wiki.title)) return [{ k: "ext", href: wikipediaUrl(wiki.title), c }];
+      if (!isArticleNamespace(wiki.title)) return [{ k: "ext", href: wikipediaUrl(wiki.title, this.lang), c }];
       this.trackLink(wiki.title);
-      return [{ k: "link", to: wiki.title, ...(wiki.fragment ? { fragment: wiki.fragment } : {}), c }];
+      return [
+        {
+          k: "link",
+          to: wiki.title,
+          ...(wiki.fragment ? { fragment: wiki.fragment } : {}),
+          ...(this.lang !== DEFAULT_LANGUAGE ? { lang: this.lang } : {}),
+          c,
+        },
+      ];
     }
     if (href.startsWith("#")) {
       const target = href.slice(1);
@@ -775,6 +795,8 @@ export interface ParseInput {
   revId: number;
   html: string;
   categories: string[];
+  /** Language edition the HTML came from. Defaults to English. */
+  lang?: string;
 }
 
 function rootOf(html: string): HTMLElement {
@@ -784,7 +806,8 @@ function rootOf(html: string): HTMLElement {
 
 /** Parses a full article (or a single section) into an ArticleDocument. */
 export function parseArticle(input: ParseInput): ArticleDocument {
-  const builder = new ArticleBuilder();
+  const lang = input.lang ?? DEFAULT_LANGUAGE;
+  const builder = new ArticleBuilder(lang);
   const flat = builder.blocks(rootOf(input.html).childNodes);
 
   const lead: Block[] = [];
@@ -822,6 +845,7 @@ export function parseArticle(input: ParseInput): ArticleDocument {
     );
 
   return {
+    ...(lang !== DEFAULT_LANGUAGE ? { lang } : {}),
     title: input.title,
     displayTitle: input.displayTitle,
     pageId: input.pageId,

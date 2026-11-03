@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { expectNoHorizontalOverflow, waitForFeed, wikipediaIntro, wikipediaSummary } from "./helpers";
 
-test.describe("A: homepage", () => {
+test.describe("A: discover feed", () => {
   test("loads a feed of real, unique Wikipedia articles", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/discover");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("The internet’s deepest rabbit holes.");
     await waitForFeed(page);
     const items = page.getByTestId("feed-item");
@@ -29,7 +29,7 @@ test.describe("A: homepage", () => {
   });
 
   test("topic filters and new batches load different real articles", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/discover");
     await waitForFeed(page);
     const before = await page.getByTestId("feed-item").evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.title));
     await page.getByRole("button", { name: "Mathematics", exact: true }).click();
@@ -46,7 +46,7 @@ test.describe("A: homepage", () => {
   });
 
   test("infinite scroll appends more unique articles", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/discover");
     await waitForFeed(page);
     const first = await page.getByTestId("feed-item").count();
     await page.getByTestId("feed-item").last().scrollIntoViewIfNeeded();
@@ -60,13 +60,13 @@ test.describe("A: homepage", () => {
 test.describe("B: search", () => {
   test("finds the Halting problem on Wikipedia and opens the reader", async ({ page }) => {
     await page.goto("/");
-    const box = page.locator("[data-hero-search]").getByRole("combobox");
+    const box = page.getByRole("combobox", { name: "Search English Wikipedia" });
     await box.fill("halting problem");
     const option = page.getByRole("option", { name: /^Halting problem/ });
     await expect(option).toBeVisible();
     await expect(option).toContainText("Problem in computer science");
     await box.press("ArrowDown");
-    await expect(page.getByRole("option").first()).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("listbox", { name: "Search results" }).getByRole("option").first()).toHaveAttribute("aria-selected", "true");
     await box.press("Enter");
     await expect(page).toHaveURL(/\/wiki\/Halting_problem$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Halting problem");

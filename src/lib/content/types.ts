@@ -8,7 +8,7 @@ export type Inline =
   | { k: "text"; v: string }
   | { k: "em" | "strong" | "sub" | "sup" | "code" | "small" | "s"; c: Inline[] }
   /** Link to another Wikipedia article, rendered as a WikiHole reader link. */
-  | { k: "link"; to: string; fragment?: string; c: Inline[] }
+  | { k: "link"; to: string; fragment?: string; /** Edition of the target, when not English. */ lang?: string; c: Inline[] }
   /** In-page anchor (e.g. a Harvard-style short citation). */
   | { k: "anchor"; target: string; c: Inline[] }
   /** External http(s) link, or a Wikipedia page we do not render (Help:, File:…). */
@@ -108,6 +108,8 @@ export interface Equation {
 }
 
 export interface ArticleDocument {
+  /** Language edition, when not English. */
+  lang?: string;
   title: string;
   displayTitle: string;
   pageId: number;

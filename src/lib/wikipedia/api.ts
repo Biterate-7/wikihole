@@ -3,7 +3,8 @@ import { parse as parseHtml, HTMLElement, TextNode } from "node-html-parser";
 import { z } from "zod";
 import { TtlCache } from "@/lib/cache";
 import { normalizeMediaUrl } from "@/lib/content/media";
-import { fetchJson, mwApi, WikipediaError, WIKIPEDIA_REST_URL, type ApiParams } from "./http";
+import { DEFAULT_LANGUAGE } from "@/lib/i18n/languages";
+import { fetchJson, mwApi, restUrlFor, WikipediaError, type ApiParams } from "./http";
 import { cleanExtract } from "./text";
 import { isArticleNamespace, isValidTitle, normalizeTitle, slugFromTitle } from "./titles";
 import { PAGEVIEW_DAYS } from "./types";
@@ -15,6 +16,7 @@ import type {
   ParsedPageHtml,
   SearchHit,
   SearchSuggestion,
+  SiteStatistics,
   Thumbnail,
 } from "./types";
 
@@ -92,6 +94,10 @@ const summarySchema = z.object({
   timestamp: z.string().optional(),
 });
 
+const statisticsSchema = z.object({
+  query: z.object({ statistics: z.object({ articles: z.number() }) }),
+});
+
 function validate<T>(schema: z.ZodType<T>, data: unknown, what: string): T {
   const result = schema.safeParse(data);
   if (!result.success) {
@@ -112,6 +118,11 @@ const parseCache = new TtlCache<ParsedPageHtml>(150, 30 * 60 * 1000);
 const summaryCache = new TtlCache<PageSummary>(1000, 6 * HOUR);
 const moreLikeCache = new TtlCache<SearchHit[]>(300, 6 * HOUR);
 const linksCache = new TtlCache<LinkPair[]>(300, 6 * HOUR);
+const statisticsCache = new TtlCache<SiteStatistics>(200, 12 * HOUR);
+const statisticsFailures = new TtlCache<WikipediaError>(200, 10 * 60 * 1000);
+
+/** Cache keys are scoped per edition: titles and page ids are only unique within one wiki. */
+const scoped = (lang: string, key: string) => (lang === DEFAULT_LANGUAGE ? key : `${lang}:${key}`);
 
 /* ------------------------------------------------------------------------ */
 /* Helpers                                                                   */
@@ -165,9 +176,10 @@ function toThumbnail(raw: z.infer<typeof thumbnailSchema> | undefined): Thumbnai
   return { src, width: raw.width, height: raw.height };
 }
 
-function toPageMeta(page: QueryPage): PageMeta | null {
+function toPageMeta(page: QueryPage, lang: string): PageMeta | null {
   if (page.missing || page.invalid || page.pageid === undefined || page.ns !== 0) return null;
   return {
+    ...(lang !== DEFAULT_LANGUAGE ? { lang } : {}),
     pageId: page.pageid,
     title: page.title,
     description: page.description || undefined,
@@ -210,12 +222,12 @@ interface QueryResult {
  * is complete. With a generator, stopping at `batchcomplete` avoids silently
  * fetching the generator's next page.
  */
-async function queryAll(params: ApiParams, maxRounds = 6): Promise<QueryResult> {
+async function queryAll(params: ApiParams, maxRounds = 6, lang: string = DEFAULT_LANGUAGE): Promise<QueryResult> {
   const pages = new Map<string, QueryPage>();
   const aliases = new Map<string, string>();
   let cont: Record<string, string | number> | undefined;
   for (let round = 0; round < maxRounds; round++) {
-    const raw = await mwApi({ action: "query", ...params, ...(cont ?? {}) });
+    const raw = await mwApi({ action: "query", ...params, ...(cont ?? {}) }, { lang });
     const data = validate(queryResponseSchema, raw, "query");
     for (const n of data.query?.normalized ?? []) aliases.set(n.from, n.to);
     for (const r of data.query?.redirects ?? []) aliases.set(r.from, r.to);
@@ -277,6 +289,8 @@ function createLimiter(max: number) {
   };
 }
 const searchLimiter = createLimiter(3);
+/** Edition sizes are fetched in bulk for the language menu; keep them from crowding out reading traffic. */
+const statisticsLimiter = createLimiter(2);
 
 function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -293,9 +307,9 @@ function chunk<T>(items: T[], size: number): T[][] {
  * assessment, pageviews, categories, last edit). Results are returned in the
  * order requested; missing pages are omitted. Redirects are followed.
  */
-export async function getPagesMeta(titles: string[]): Promise<PageMeta[]> {
+export async function getPagesMeta(titles: string[], lang: string = DEFAULT_LANGUAGE): Promise<PageMeta[]> {
   const requested = [...new Set(titles.map(normalizeTitle).filter((t) => isValidTitle(t) && isArticleNamespace(t)))];
-  const result = await getPagesMetaMap(requested);
+  const result = await getPagesMetaMap(requested, lang);
   const seen = new Set<number>();
   const ordered: PageMeta[] = [];
   for (const title of requested) {
@@ -309,12 +323,12 @@ export async function getPagesMeta(titles: string[]): Promise<PageMeta[]> {
 }
 
 /** Like getPagesMeta, but keyed by the (normalised) requested title; redirects resolve to their target. */
-export async function getPagesMetaMap(titles: string[]): Promise<Map<string, PageMeta | null>> {
+export async function getPagesMetaMap(titles: string[], lang: string = DEFAULT_LANGUAGE): Promise<Map<string, PageMeta | null>> {
   const requested = [...new Set(titles.map(normalizeTitle).filter((t) => isValidTitle(t) && isArticleNamespace(t)))];
   const result = new Map<string, PageMeta | null>();
   const toFetch: string[] = [];
   for (const title of requested) {
-    const cached = metaCache.get(title);
+    const cached = metaCache.get(scoped(lang, title));
     if (cached !== undefined) result.set(title, cached);
     else toFetch.push(title);
   }
@@ -322,13 +336,13 @@ export async function getPagesMetaMap(titles: string[]): Promise<Map<string, Pag
   // TextExtracts returns at most 20 intro extracts per request.
   await Promise.all(
     chunk(toFetch, 20).map(async (batch) => {
-      const { pages, aliases } = await queryAll({ ...META_PROPS, titles: batch.join("|") });
+      const { pages, aliases } = await queryAll({ ...META_PROPS, titles: batch.join("|") }, 6, lang);
       const byTitle = new Map<string, PageMeta | null>();
-      for (const page of pages) byTitle.set(page.title, toPageMeta(page));
+      for (const page of pages) byTitle.set(page.title, toPageMeta(page, lang));
       for (const title of batch) {
         const meta = byTitle.get(resolveAlias(title, aliases)) ?? null;
-        metaCache.set(title, meta);
-        if (meta) metaCache.set(meta.title, meta);
+        metaCache.set(scoped(lang, title), meta);
+        if (meta) metaCache.set(scoped(lang, meta.title), meta);
         result.set(title, meta);
       }
     }),
@@ -336,15 +350,20 @@ export async function getPagesMetaMap(titles: string[]): Promise<Map<string, Pag
   return result;
 }
 
-export async function getPageMeta(title: string): Promise<PageMeta | null> {
-  const [meta] = await getPagesMeta([title]);
+export async function getPageMeta(title: string, lang: string = DEFAULT_LANGUAGE): Promise<PageMeta | null> {
+  const [meta] = await getPagesMeta([title], lang);
   return meta ?? null;
 }
 
 /** CirrusSearch full-text search returning lightweight hits (used for candidate generation). */
 export async function searchCandidates(
   query: string,
-  { limit = 50, sort = "relevance", offset = 0 }: { limit?: number; sort?: "relevance" | "random"; offset?: number } = {},
+  {
+    limit = 50,
+    sort = "relevance",
+    offset = 0,
+    lang = DEFAULT_LANGUAGE,
+  }: { limit?: number; sort?: "relevance" | "random"; offset?: number; lang?: string } = {},
 ): Promise<SearchHit[]> {
   const raw = await searchLimiter(() => mwApi({
     action: "query",
@@ -356,7 +375,7 @@ export async function searchCandidates(
     srsort: sort === "random" ? "random" : undefined,
     srprop: "size|wordcount|timestamp",
     srinfo: "",
-  }));
+  }, { lang }));
   const data = validate(queryResponseSchema, raw, "search");
   return (data.query?.search ?? [])
     .filter((hit) => hit.ns === 0)
@@ -370,10 +389,10 @@ export async function searchCandidates(
 }
 
 /** Typeahead search: titles + short descriptions, ordered by relevance. */
-export async function searchSuggestions(query: string, limit = 8): Promise<SearchSuggestion[]> {
+export async function searchSuggestions(query: string, limit = 8, lang: string = DEFAULT_LANGUAGE): Promise<SearchSuggestion[]> {
   const q = query.trim();
   if (!q) return [];
-  const key = `${q.toLowerCase()}|${limit}`;
+  const key = scoped(lang, `${q.toLowerCase()}|${limit}`);
   return searchCache.getOrLoad(key, async () => {
     const { pages } = await searchLimiter(() => queryAll(
       {
@@ -388,6 +407,7 @@ export async function searchSuggestions(query: string, limit = 8): Promise<Searc
         pilimit: limit,
       },
       2,
+      lang,
     ));
     return pages
       .filter((p) => p.pageid !== undefined && p.ns === 0)
@@ -425,9 +445,9 @@ export function snippetRuns(snippet: string): Array<{ text: string; match: boole
 }
 
 /** Full search results page with snippets, totals and spelling suggestions. */
-export async function fullSearch(query: string, offset = 0, limit = 20): Promise<FullSearchResult> {
+export async function fullSearch(query: string, offset = 0, limit = 20, lang: string = DEFAULT_LANGUAGE): Promise<FullSearchResult> {
   const q = query.trim();
-  const key = `${q.toLowerCase()}|${offset}|${limit}`;
+  const key = scoped(lang, `${q.toLowerCase()}|${offset}|${limit}`);
   return fullSearchCache.getOrLoad(key, async () => {
     const raw = await searchLimiter(() => mwApi({
       action: "query",
@@ -438,10 +458,10 @@ export async function fullSearch(query: string, offset = 0, limit = 20): Promise
       sroffset: offset || undefined,
       srprop: "size|wordcount|timestamp|snippet",
       srinfo: "totalhits|suggestion",
-    }));
+    }, { lang }));
     const data = validate(queryResponseSchema, raw, "search");
     const hits = (data.query?.search ?? []).filter((h) => h.ns === 0);
-    const meta = await getPagesMeta(hits.map((h) => h.title)).catch(() => [] as PageMeta[]);
+    const meta = await getPagesMeta(hits.map((h) => h.title), lang).catch(() => [] as PageMeta[]);
     const metaById = new Map(meta.map((m) => [m.pageId, m]));
     const total = data.query?.searchinfo?.totalhits ?? hits.length;
     return {
@@ -469,22 +489,22 @@ export async function fullSearch(query: string, offset = 0, limit = 20): Promise
 }
 
 /** Uniformly random main-namespace articles (Special:Random equivalent). */
-export async function getRandomTitles(limit = 30): Promise<string[]> {
+export async function getRandomTitles(limit = 30, lang: string = DEFAULT_LANGUAGE): Promise<string[]> {
   const raw = await mwApi({
     action: "query",
     list: "random",
     rnnamespace: 0,
     rnfilterredir: "nonredirects",
     rnlimit: Math.min(Math.max(limit, 1), 100),
-  });
+  }, { lang });
   const data = validate(queryResponseSchema, raw, "random");
   return (data.query?.random ?? []).map((r) => r.title);
 }
 
 /** Articles textually similar to `title` (CirrusSearch morelike). */
-export async function getMoreLike(title: string, limit = 15): Promise<SearchHit[]> {
-  return moreLikeCache.getOrLoad(`${title}|${limit}`, () =>
-    searchCandidates(`morelike:"${title.replace(/"/g, "")}"`, { limit }),
+export async function getMoreLike(title: string, limit = 15, lang: string = DEFAULT_LANGUAGE): Promise<SearchHit[]> {
+  return moreLikeCache.getOrLoad(scoped(lang, `${title}|${limit}`), () =>
+    searchCandidates(`morelike:"${title.replace(/"/g, "")}"`, { limit, lang }),
   );
 }
 
@@ -492,10 +512,10 @@ export async function getMoreLike(title: string, limit = 15): Promise<SearchHit[
  * Parsed article HTML via action=parse. `section` limits the output to one
  * section (0 = lead), which lets the reader stream the lead first.
  */
-export async function getParsedHtml(title: string, section?: number): Promise<ParsedPageHtml> {
+export async function getParsedHtml(title: string, section?: number, lang: string = DEFAULT_LANGUAGE): Promise<ParsedPageHtml> {
   const normalized = normalizeTitle(title);
   if (!isValidTitle(normalized)) throw new WikipediaError("Invalid article title", "notfound");
-  const key = `${normalized}|${section ?? "all"}`;
+  const key = scoped(lang, `${normalized}|${section ?? "all"}`);
   return parseCache.getOrLoad(key, async () => {
     const raw = await mwApi(
       {
@@ -508,7 +528,7 @@ export async function getParsedHtml(title: string, section?: number): Promise<Pa
         disablelimitreport: true,
         section,
       },
-      { timeoutMs: 15000 },
+      { timeoutMs: 15000, lang },
     );
     const { parse } = validate(parseResponseSchema, raw, "article");
     const displayTitle = parse.displaytitle ? parseHtml(parse.displaytitle).text.trim() || parse.title : parse.title;
@@ -527,11 +547,11 @@ export async function getParsedHtml(title: string, section?: number): Promise<Pa
 }
 
 /** Page summary from the Wikimedia REST API. */
-export async function getSummary(title: string): Promise<PageSummary> {
+export async function getSummary(title: string, lang: string = DEFAULT_LANGUAGE): Promise<PageSummary> {
   const normalized = normalizeTitle(title);
   if (!isValidTitle(normalized)) throw new WikipediaError("Invalid article title", "notfound");
-  return summaryCache.getOrLoad(normalized, async () => {
-    const raw = await fetchJson(`${WIKIPEDIA_REST_URL}/page/summary/${slugFromTitle(normalized)}?redirect=true`);
+  return summaryCache.getOrLoad(scoped(lang, normalized), async () => {
+    const raw = await fetchJson(`${restUrlFor(lang)}/page/summary/${slugFromTitle(normalized)}?redirect=true`);
     const data = validate(summarySchema, raw, "summary");
     return {
       title: data.title,
@@ -572,10 +592,10 @@ export interface LinkPair {
  * `prop=links` restricted by `pltitles` to the same set. Titles must be
  * canonical (resolved) titles; links made through a redirect are not seen.
  */
-export async function getLinksBetween(titles: string[]): Promise<LinkPair[]> {
+export async function getLinksBetween(titles: string[], lang: string = DEFAULT_LANGUAGE): Promise<LinkPair[]> {
   const unique = [...new Set(titles.map(normalizeTitle).filter((t) => isValidTitle(t) && isArticleNamespace(t)))].slice(0, 50);
   if (unique.length < 2) return [];
-  const key = [...unique].sort().join("|");
+  const key = scoped(lang, [...unique].sort().join("|"));
   return linksCache.getOrLoad(key, async () => {
     const pairs: LinkPair[] = [];
     const seen = new Set<string>();
@@ -589,7 +609,7 @@ export async function getLinksBetween(titles: string[]): Promise<LinkPair[]> {
         plnamespace: 0,
         pllimit: "max",
         ...(cont ?? {}),
-      });
+      }, { lang });
       const data = validate(linksResponseSchema, raw, "links");
       for (const page of data.query?.pages ?? []) {
         for (const link of page.links ?? []) {
@@ -607,7 +627,29 @@ export async function getLinksBetween(titles: string[]): Promise<LinkPair[]> {
   });
 }
 
+/** Size of a language edition (siteinfo statistics), as reported by that wiki. */
+export async function getSiteStatistics(lang: string): Promise<SiteStatistics> {
+  const failed = statisticsFailures.get(lang);
+  if (failed) throw failed;
+  return statisticsCache.getOrLoad(lang, () =>
+    statisticsLimiter(async () => {
+      try {
+        const raw = await mwApi({ action: "query", meta: "siteinfo", siprop: "statistics" }, { lang, timeoutMs: 6000, retries: 0 });
+        const data = validate(statisticsSchema, raw, "statistics");
+        return { lang, articles: data.query.statistics.articles };
+      } catch (error) {
+        // Counts are decorative: remember the failure briefly rather than retrying on every page view.
+        if (error instanceof WikipediaError) statisticsFailures.set(lang, error);
+        throw error;
+      }
+    }),
+  );
+}
+
 /** Exposed for tests. */
 export function __clearWikipediaCaches(): void {
-  for (const cache of [metaCache, searchCache, fullSearchCache, parseCache, summaryCache, moreLikeCache, linksCache]) cache.clear();
+  for (const cache of [metaCache, searchCache, fullSearchCache, parseCache, summaryCache, moreLikeCache, linksCache, statisticsCache]) {
+    cache.clear();
+  }
+  statisticsFailures.clear();
 }

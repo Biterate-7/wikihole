@@ -76,7 +76,7 @@ function renderInline(node: Inline, key: number): React.ReactNode {
       );
     case "link":
       return (
-        <Link key={key} href={articlePath(node.to, node.fragment)} prefetch={false} className={styles.wikiLink} data-wiki-link>
+        <Link key={key} href={articlePath(node.to, node.fragment, node.lang)} prefetch={false} className={styles.wikiLink} data-wiki-link>
           <InlineContent nodes={node.c} />
         </Link>
       );

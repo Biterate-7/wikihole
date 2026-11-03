@@ -221,3 +221,110 @@
     margin-top: 10px;
   }
 }
+
+/* Wraps the input so the portal variant can frame it; transparent to layout elsewhere. */
+.fieldInner {
+  display: contents;
+}
+
+/* ---------- Homepage portal field ---------- */
+
+.portalBox {
+  max-width: 450px;
+  margin: 0 auto;
+  font-family: var(--portal-sans);
+  text-align: left;
+}
+
+.portalForm {
+  display: flex;
+  align-items: stretch;
+  height: 44px;
+}
+
+.portalField {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--portal-border);
+  border-radius: 2px 0 0 2px;
+  background: var(--portal-bg);
+  transition:
+    border-color 160ms var(--ease),
+    box-shadow 160ms var(--ease);
+}
+
+.portalField:hover {
+  border-color: #72777d;
+}
+
+.portalField:focus-within {
+  border-color: var(--portal-progressive);
+  box-shadow: inset 0 0 0 1px var(--portal-progressive);
+}
+
+.portalField .input {
+  height: 100%;
+  padding: 0 8px 0 12px;
+  font-family: var(--portal-sans);
+  font-size: 16px;
+  color: var(--portal-text);
+}
+
+.portalField .input:focus-visible {
+  outline: none;
+}
+
+.portalField .spinner {
+  position: static;
+  flex: none;
+  margin-right: 4px;
+  border-color: var(--portal-border);
+  border-top-color: var(--portal-text);
+}
+
+.portalSubmit {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 56px;
+  padding: 0;
+  border: 1px solid var(--portal-progressive);
+  border-radius: 0 2px 2px 0;
+  background: var(--portal-progressive);
+  color: #ffffff;
+  transition:
+    background-color 160ms var(--ease),
+    border-color 160ms var(--ease);
+}
+
+.portalSubmit:hover {
+  background: var(--portal-progressive-hover);
+  border-color: var(--portal-progressive-hover);
+}
+
+.portalSubmit:active {
+  background: #5272c0;
+  border-color: #5272c0;
+}
+
+.portalSubmit:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: -4px;
+}
+
+.portalSubmit svg {
+  stroke-width: 1.6;
+}
+
+.portalBox .results {
+  border-color: var(--portal-border);
+  background: #161a1f;
+}
+
+.portalBox .option[aria-selected="true"] {
+  background: var(--portal-bg-hover);
+  border-left-color: var(--portal-progressive);
+}

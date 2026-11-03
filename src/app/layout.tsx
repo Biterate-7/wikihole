@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, Newsreader } from "next/font/google";
+import { HideOnPortal } from "@/components/layout/HideOnPortal";
 import { SiteFooter, SiteHeader } from "@/components/layout/SiteHeader";
 import "./globals.css";
 
@@ -57,9 +58,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <a href="#main" className="skip-link">
           Skip to content
         </a>
-        <SiteHeader />
+        <HideOnPortal>
+          <SiteHeader />
+        </HideOnPortal>
         <main id="main">{children}</main>
-        <SiteFooter />
+        <HideOnPortal>
+          <SiteFooter />
+        </HideOnPortal>
       </body>
     </html>
   );

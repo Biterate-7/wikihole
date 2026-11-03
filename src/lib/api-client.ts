@@ -2,6 +2,7 @@ import type { FeedResponse, RandomResponse } from "@/lib/discovery/engine";
 import type { FeedPreset } from "@/lib/discovery/types";
 import type { Insights } from "@/lib/ai/insights";
 import type { FeedCategory, HackerNewsFeed } from "@/lib/hackernews/service";
+import { DEFAULT_LANGUAGE } from "@/lib/i18n/languages";
 import type { SearchSuggestion } from "@/lib/wikipedia/types";
 
 /** Browser-side helpers for WikiHole's own API routes. */
@@ -58,8 +59,17 @@ export function fetchRandom(params: { exclude: number[]; topic?: string | null }
   return request<RandomResponse>("/api/random", { ...json(params), signal });
 }
 
-export function fetchSuggestions(q: string, signal?: AbortSignal): Promise<{ results: SearchSuggestion[] }> {
-  return request(`/api/search?q=${encodeURIComponent(q)}`, { signal, timeoutMs: 10000 });
+export function fetchSuggestions(q: string, lang: string = DEFAULT_LANGUAGE, signal?: AbortSignal): Promise<{ results: SearchSuggestion[] }> {
+  const edition = lang === DEFAULT_LANGUAGE ? "" : `&lang=${encodeURIComponent(lang)}`;
+  return request(`/api/search?q=${encodeURIComponent(q)}${edition}`, { signal, timeoutMs: 10000 });
+}
+
+export type LanguageStatsResponse = { languages: Array<{ code: string; articles: number | null }> };
+
+/** Live article counts for language editions (all supported editions when `codes` is omitted). */
+export function fetchLanguageStats(codes?: string[], signal?: AbortSignal): Promise<LanguageStatsResponse> {
+  const query = codes?.length ? `?codes=${encodeURIComponent(codes.join(","))}` : "";
+  return request<LanguageStatsResponse>(`/api/languages${query}`, { signal, timeoutMs: 30000 });
 }
 
 export function fetchHackerNews(
@@ -72,6 +82,6 @@ export function fetchHackerNews(
 
 export type InsightsResponse = { enabled: false } | { enabled: true; insights: Insights };
 
-export function fetchInsights(title: string, signal?: AbortSignal): Promise<InsightsResponse> {
-  return request<InsightsResponse>("/api/insights", { ...json({ title }), signal, timeoutMs: 90000 });
+export function fetchInsights(title: string, lang: string = DEFAULT_LANGUAGE, signal?: AbortSignal): Promise<InsightsResponse> {
+  return request<InsightsResponse>("/api/insights", { ...json({ title, lang }), signal, timeoutMs: 90000 });
 }
