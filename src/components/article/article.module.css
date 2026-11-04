@@ -1,8 +1,9 @@
 /*
- * The article reader, styled as a Wikipedia article in Vector 2022:
- * 16px/1.625 sans-serif body, serif h1/h2 over #a2a9b1 rules, a floated
- * infobox and thumbnails, wikitables, references, a navbox and the
- * categories box. The pinned contents live in the left sidebar.
+ * The article reader, styled as a Wikipedia article in Vector 2022: serif
+ * h1/h2 over #a2a9b1 rules, a floated infobox and thumbnails, wikitables,
+ * references, a navbox and the categories box. The pinned contents live in the
+ * left sidebar. Running text keeps to a comfortable measure inside the wider
+ * content column, which tables, figures and rules still use in full.
  */
 
 .page {
@@ -26,6 +27,45 @@
   background: var(--color-progressive);
   transform: scaleX(0);
   transform-origin: 0 50%;
+}
+
+/* ---------- Under the title: description and history facts ---------- */
+
+.description {
+  margin-top: 4px;
+  font-family: var(--reading);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-base);
+}
+
+.metaLine {
+  display: flex;
+  flex-wrap: wrap;
+  min-height: 1.5em;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-subtle);
+}
+
+.metaLine li {
+  white-space: nowrap;
+}
+
+/* After each item rather than before the next, so a wrapped line never starts with a dot. */
+.metaLine li:not(:last-child)::after {
+  content: "\00b7";
+  margin: 0 0.45em;
+  font-weight: 700;
+}
+
+@media (max-width: 479px) {
+  .metaLine li {
+    white-space: normal;
+  }
 }
 
 /* ---------- Under the title: trail breadcrumbs ---------- */
@@ -79,7 +119,7 @@
 /* ---------- Contents (left sidebar) ---------- */
 
 .toc {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
 .toc .tocList {
@@ -104,8 +144,8 @@
 .tocLink,
 .tocLink:visited {
   display: block;
-  padding: 6px 0;
-  line-height: 1.2;
+  padding: 4px 0;
+  line-height: 1.25;
   color: var(--color-progressive);
   word-break: break-word;
 }
@@ -217,6 +257,66 @@
   padding-left: 24px;
 }
 
+/* ---------- Section bar: contents once the title has scrolled away ---------- */
+
+.sectionBar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 60;
+  border-bottom: 1px solid var(--border-muted);
+  background: var(--background-base);
+  font-family: var(--reading);
+  font-size: 0.875rem;
+}
+
+.sectionBar[hidden] {
+  display: none;
+}
+
+.sectionBarButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 var(--page-pad);
+  border: 0;
+  background: none;
+  text-align: left;
+  color: var(--color-base);
+}
+
+.sectionBarTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sectionBarList {
+  max-height: min(65vh, 32rem);
+  margin: 0;
+  padding: 4px var(--page-pad) 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--border-light);
+  list-style: none;
+}
+
+.sectionBarCurrent,
+.sectionBarCurrent:visited {
+  font-weight: 700;
+  color: var(--color-base);
+}
+
+@media (min-width: 1120px) {
+  :global(html:not([data-hide-toc])) .sectionBar {
+    display: none;
+  }
+}
+
 @media (min-width: 1120px) {
   :global(html:not([data-hide-toc])) .tocDropdown {
     display: none;
@@ -226,10 +326,44 @@
 /* ---------- Body text ---------- */
 
 .prose {
-  margin-top: 16px;
+  margin-top: 14px;
+  font-family: var(--reading);
   font-size: 1rem;
-  line-height: 1.625;
+  line-height: 1.65;
   color: var(--color-base);
+  text-wrap: pretty;
+  text-rendering: optimizeLegibility;
+}
+
+/* About 80 characters a line. Floats sit in the column's right-hand space. */
+.prose > .p,
+.prose > .note,
+.prose > .list,
+.prose > .dl,
+.prose > .quote,
+.section > .p,
+.section > .note,
+.section > .list,
+.section > .dl,
+.section > .quote {
+  max-width: 44rem;
+}
+
+/* Terms the reader can explain: quiet enough to read past. */
+.prose [data-term] {
+  text-decoration: underline dotted var(--border-base);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  cursor: help;
+}
+
+.prose a[data-term] {
+  cursor: pointer;
+}
+
+.prose [data-term]:hover,
+.prose [data-term][aria-expanded="true"] {
+  text-decoration-color: currentColor;
 }
 
 .prose::after {
@@ -247,9 +381,45 @@
   contain-intrinsic-size: auto 900px;
 }
 
+/* Real heights while a section link scrolls the page; see scrollToSection. */
+:global(html[data-section-nav]) .section {
+  content-visibility: visible;
+  contain: layout style paint;
+}
+
+/* Clears the section bar when navigating on narrow screens. */
+.section,
+.recentChanges,
+.rabbitHole,
+.h3,
+.h4,
+.h5 {
+  scroll-margin-top: 52px;
+}
+
+/* The heading's tool shares its row, and anything the tool opens goes in the row below. */
+.sectionHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.sectionHead > .h2 {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.h2WithTool {
+  padding-right: 6.5em;
+}
+
+.h2:focus,
+.h3:focus {
+  outline: none;
+}
+
 .h2 {
   margin: 0.25em 0;
-  padding: 0.5em 0 0.17em;
+  padding: 0.75em 0 0.17em;
   border-bottom: 1px solid var(--border-base);
   font-family: var(--serif);
   font-size: 1.5em;
@@ -260,7 +430,7 @@
 }
 
 .h3 {
-  margin: 0.25em 0;
+  margin: 0.4em 0 0.15em;
   padding-top: 0.5em;
   font-size: 1.2em;
   font-weight: 700;
@@ -501,6 +671,7 @@
   clear: right;
   display: table;
   width: min-content;
+  max-width: 100%;
   margin: 0.5em 0 1.3em 1.4em;
   border: 1px solid var(--border-subtle);
   background: var(--background-neutral-subtle);
@@ -990,6 +1161,18 @@
   margin-top: 1em;
 }
 
+.recentChanges {
+  clear: both;
+  margin-top: 1em;
+}
+
+@media print {
+  .sectionBar,
+  .recentChanges {
+    display: none !important;
+  }
+}
+
 .relatedGroups {
   display: grid;
   gap: 0.5em;
@@ -1080,10 +1263,31 @@
 /* ---------- Narrow screens: article-first, as on Wikipedia's mobile site ---------- */
 
 @media (max-width: 719px) {
-  .infobox {
+  /* The opening paragraph comes before the infobox, as on Wikipedia's mobile site. */
+  .prose {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .prose > * {
+    order: 2;
+    min-width: 0;
+  }
+
+  .prose > .p:first-of-type {
+    order: 0;
+  }
+
+  /* Flex items do not collapse margins, so paragraphs here carry only their lower one. */
+  .prose > .p {
+    margin-top: 0;
+  }
+
+  .prose > .infobox {
+    order: 1;
     float: none;
     width: 100%;
-    margin: 0.5em 0 1em;
+    margin: 0.25em 0 1em;
   }
 
   .figure {
@@ -1102,6 +1306,12 @@
   .figure .img,
   .portrait .img {
     max-width: 100%;
+  }
+
+  /* Landscape images fill the width; portraits would dwarf the text, so they keep their size. */
+  .figure:not(.portrait) .img {
+    width: 100%;
+    max-height: none;
   }
 
   /* The navbox stacks: group heading over its list, as on Wikipedia's narrow layouts. */

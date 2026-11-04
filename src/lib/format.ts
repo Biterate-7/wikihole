@@ -15,6 +15,29 @@ export function formatDate(iso: string | undefined): string | null {
   return Number.isNaN(date.getTime()) ? null : dateFormat.format(date);
 }
 
+const dateTimeFormat = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+  timeZone: "UTC",
+});
+
+/** Date and time in UTC, as Wikipedia's history pages show them to logged-out readers. */
+export function formatDateTime(iso: string | undefined): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? null : `${dateTimeFormat.format(date)} UTC`;
+}
+
+/** A signed size change, with a true minus sign: "+120", "−340", "0". */
+export function formatDelta(n: number): string {
+  const digits = Math.abs(n).toLocaleString("en-US");
+  return n > 0 ? `+${digits}` : n < 0 ? `−${digits}` : "0";
+}
+
 export function formatRelative(timestamp: number, now = Date.now()): string {
   const seconds = Math.max(0, Math.round((now - timestamp) / 1000));
   if (seconds < 60) return "just now";

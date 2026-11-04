@@ -1,10 +1,10 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import { TtlCache } from "@/lib/cache";
 import { articlePlainText, keyConcepts, rankLinks } from "@/lib/content/concepts";
 import type { ArticleDocument } from "@/lib/content/types";
+import { getClient } from "./client";
 import { getAiConfig } from "./config";
 import { isGrounded, normalizeForMatch } from "./grounding";
 
@@ -64,12 +64,6 @@ Rules:
 - Write plainly and concretely. No hype.`;
 
 const cache = new TtlCache<Insights>(500, 24 * 60 * 60 * 1000);
-let client: Anthropic | null = null;
-
-function getClient(apiKey: string): Anthropic {
-  client ??= new Anthropic({ apiKey, timeout: 60_000, maxRetries: 1 });
-  return client;
-}
 
 export function verifyInsights(raw: RawInsights, doc: ArticleDocument, source: string, model: string): Insights {
   const normalized = normalizeForMatch(source);

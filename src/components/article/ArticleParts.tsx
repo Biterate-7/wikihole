@@ -3,16 +3,18 @@ import { Portlet } from "@/components/layout/Portlet";
 import { PrintLink } from "@/components/layout/PrintLink";
 import layout from "@/components/layout/layout.module.css";
 import { equations, keyConcepts, terminology } from "@/lib/content/concepts";
-import type { ArticleDocument, InfoboxRow, Section, WikiImage } from "@/lib/content/types";
+import { inlineText } from "@/lib/content/parse";
+import type { ArticleDocument, Block, InfoboxRow, Section, WikiImage } from "@/lib/content/types";
 import type { RecommendedArticle } from "@/lib/curated/types";
 import { classifyGroup, readingMinutes, sourcedDate } from "@/lib/discovery/score";
 import { GROUPS } from "@/lib/discovery/topics";
 import { ASSESSMENT_LABELS, formatCount, formatDate } from "@/lib/format";
 import { DEFAULT_LANGUAGE, wikipediaDomain } from "@/lib/i18n/languages";
-import { articlePath } from "@/lib/wikipedia/titles";
+import { articlePath, historyPath, wikipediaUrl } from "@/lib/wikipedia/titles";
 import { PAGEVIEW_DAYS, type PageMeta } from "@/lib/wikipedia/types";
 import { Blocks } from "./Blocks";
 import { InlineContent, MathView } from "./Inline";
+import { SectionSummary } from "./SectionSummary";
 import styles from "./article.module.css";
 
 const wikiPage = (domain: string, title: string) => `https://${domain}/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
@@ -29,6 +31,21 @@ export function wikipediaLinks(title: string, lang = DEFAULT_LANGUAGE) {
     category: (name: string) => wikiPage(domain, `Category:${name}`),
     revision: (revId: number) => `https://${domain}/w/index.php?oldid=${revId}`,
     domain,
+  };
+}
+
+/** The article's namespace and view tabs. The history page shares them, so it marks a different tab as current. */
+export function articleTabs(title: string, lang: string, view: "read" | "history" = "read") {
+  return {
+    left: [
+      { label: "Article", href: articlePath(title, undefined, lang), selected: view === "read" },
+      { label: "Rabbit hole", href: `${view === "read" ? "" : articlePath(title, undefined, lang)}#rabbit-hole`, title: "Related articles and where they lead" },
+    ],
+    right: [
+      { label: "Read", href: articlePath(title, undefined, lang), selected: view === "read" },
+      { label: "View on Wikipedia", href: wikipediaUrl(title, lang), external: true, testId: "source-link" },
+      { label: "View history", href: historyPath(title, lang), selected: view === "history", testId: "history-link" },
+    ],
   };
 }
 
@@ -80,27 +97,45 @@ export function Infobox({
   );
 }
 
-function SectionView({ section }: { section: Section }) {
+/** Text this short summarises itself. */
+const MIN_SECTION_WORDS_FOR_SUMMARY = 120;
+
+function sectionWords(blocks: Block[]): number {
+  let words = 0;
+  for (const block of blocks) {
+    if (block.k === "p") words += inlineText(block.c).split(/\s+/).length;
+    else if (block.k === "list") words += block.items.reduce((n, item) => n + inlineText(item.c).split(/\s+/).length, 0);
+  }
+  return words;
+}
+
+function SectionView({ section, summary }: { section: Section; summary?: { title: string; lang: string } }) {
+  const offerSummary = summary && section.kind === "content" && sectionWords(section.blocks) >= MIN_SECTION_WORDS_FOR_SUMMARY;
   return (
     <section
       id={section.id}
       aria-labelledby={`${section.id}-h`}
       className={`${styles.section} ${section.kind !== "content" ? styles.appendix : ""}`}
       data-testid="article-section"
+      data-no-terms={section.kind !== "content" ? "" : undefined}
     >
-      <h2 id={`${section.id}-h`} className={styles.h2}>
-        {section.title}
-      </h2>
+      <div className={styles.sectionHead}>
+        <h2 id={`${section.id}-h`} className={`${styles.h2} ${offerSummary ? styles.h2WithTool : ""}`}>
+          {section.title}
+        </h2>
+        {offerSummary ? <SectionSummary title={summary.title} lang={summary.lang} sectionId={section.id} sectionTitle={section.title} /> : null}
+      </div>
       <Blocks blocks={section.blocks} />
     </section>
   );
 }
 
-export function ArticleSections({ doc }: { doc: ArticleDocument }) {
+export function ArticleSections({ doc, aiEnabled }: { doc: ArticleDocument; aiEnabled: boolean }) {
+  const summary = aiEnabled ? { title: doc.title, lang: doc.lang ?? DEFAULT_LANGUAGE } : undefined;
   return (
     <>
       {doc.sections.map((s) => (
-        <SectionView key={s.id} section={s} />
+        <SectionView key={s.id} section={s} summary={summary} />
       ))}
     </>
   );
@@ -180,6 +215,7 @@ export function ArticleTools({
           { href: links.whatLinksHere, label: "What links here", external: true },
           { href: links.info, label: "Page information", external: true },
           ...(doc ? [{ href: links.revision(doc.revId), label: "Permanent link", external: true, title: `Revision ${doc.revId}` }] : []),
+          { href: "#recent-changes", label: "Recent changes" },
           { href: "#rabbit-hole", label: "Related articles" },
           { href: "/random", label: "Random discovery" },
         ]}
@@ -261,7 +297,7 @@ export function StudyNavbox({ doc }: { doc: ArticleDocument }) {
   const eqs = equations(doc, 6);
   if (terms.length === 0 && eqs.length === 0) return null;
   return (
-    <details className={styles.navbox} open>
+    <details className={styles.navbox} open data-no-terms>
       <summary className={styles.navboxTitle}>
         <span className={styles.navboxToggle} aria-hidden="true" />
         <span>Study aids for {doc.title}</span>

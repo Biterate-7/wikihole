@@ -54,6 +54,8 @@
   --sans: sans-serif;
   --serif: "Linux Libertine", Georgia, Times, "Source Serif 4", serif;
   --mono: monospace, monospace;
+  /* Long-form text: the stack Wikipedia's reading skins use, for a clean sans on every system. */
+  --reading: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   /* Layout (Vector 2022) */
   --page-max: 99.75rem;

@@ -3,6 +3,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { Suspense } from "react";
 import {
   ArticleSections,
+  articleTabs,
   ArticleTools,
   Catlinks,
   Infobox,
@@ -10,13 +11,15 @@ import {
   Recommendation,
   SectionsSkeleton,
   StudyNavbox,
-  wikipediaLinks,
 } from "@/components/article/ArticleParts";
+import { ArticleDescription, ArticleMetadata } from "@/components/article/ArticleMetadata";
 import { Blocks } from "@/components/article/Blocks";
 import { InsightsPanel } from "@/components/article/InsightsPanel";
+import { ReadingLayer } from "@/components/article/ReadingLayer";
 import { ReadingProgress } from "@/components/article/ReadingProgress";
+import { RecentChanges, RecentChangesSkeleton } from "@/components/article/RecentChanges";
 import { RelatedList } from "@/components/article/RelatedList";
-import { Toc, TocDropdown } from "@/components/article/Toc";
+import { SectionBar, Toc, TocDropdown } from "@/components/article/Toc";
 import { TrailTracker } from "@/components/article/TrailTracker";
 import styles from "@/components/article/article.module.css";
 import { PageShell, SiteSub } from "@/components/layout/PageShell";
@@ -24,7 +27,7 @@ import { StateMessage } from "@/components/ui/StateMessage";
 import { SaveButton } from "@/components/ui/SaveButton";
 import { isAiEnabled } from "@/lib/ai/config";
 import { getRecommendation } from "@/lib/curated/service";
-import { loadArticle, loadLead, loadMeta } from "@/lib/article";
+import { loadArticle, loadHistory, loadLead, loadMeta } from "@/lib/article";
 import type { ArticleDocument, Block, Heading, WikiImage } from "@/lib/content/types";
 import { classifyGroup, readingMinutes } from "@/lib/discovery/score";
 import { getRelated } from "@/lib/discovery/engine";
@@ -99,11 +102,20 @@ function withoutImage(blocks: Block[], image: WikiImage | undefined): Block[] {
   return blocks.filter((b) => !(b.k === "figure" && fileName(b.img.src) === name));
 }
 
+/** Parsed alone, the lead comes with its own copy of the references it cites; the References section is the real list. */
+function withoutLeadReferences(blocks: Block[]): Block[] {
+  return blocks.filter((b) => b.k !== "refs");
+}
+
 function tocHeadings(doc: ArticleDocument): Heading[] {
-  return doc.sections.flatMap((s) => [
-    { id: s.id, text: s.title, level: 2 as const },
-    ...s.headings.filter((h) => h.level === 3),
-  ]);
+  return [
+    ...doc.sections.flatMap((s) => [
+      { id: s.id, text: s.title, level: 2 as const },
+      ...s.headings.filter((h) => h.level === 3),
+    ]),
+    { id: "recent-changes", text: "Recent changes", level: 2 },
+    { id: "rabbit-hole", text: "Rabbit hole", level: 2 },
+  ];
 }
 
 type Slot = { title: string; lang: string };
@@ -115,12 +127,19 @@ async function TocSlot({ title, lang }: Slot) {
 
 async function TocDropdownSlot({ title, lang }: Slot) {
   const doc = await attempt(() => loadArticle(title, lang));
-  return doc.ok ? <TocDropdown headings={tocHeadings(doc.value)} /> : null;
+  if (!doc.ok) return null;
+  const headings = tocHeadings(doc.value);
+  return (
+    <>
+      <TocDropdown headings={headings} />
+      <SectionBar headings={headings} />
+    </>
+  );
 }
 
 async function BodySlot({ title, lang }: Slot) {
   const doc = await attempt(() => loadArticle(title, lang));
-  if (doc.ok) return <ArticleSections doc={doc.value} />;
+  if (doc.ok) return <ArticleSections doc={doc.value} aiEnabled={isAiEnabled()} />;
   return (
     <StateMessage
       kind="error"
@@ -173,6 +192,14 @@ async function RelatedSlot({ title, lang }: Slot) {
   );
 }
 
+async function MetadataSlot({ title, lang, lastEdited }: Slot & { lastEdited?: string }) {
+  return <ArticleMetadata title={title} lang={lang} history={await loadHistory(title, lang)} lastEdited={lastEdited} />;
+}
+
+async function RecentChangesSlot({ title, lang }: Slot) {
+  return <RecentChanges title={title} lang={lang} data={await loadHistory(title, lang)} />;
+}
+
 function RelatedSkeleton() {
   return (
     <div aria-hidden="true" className={styles.relatedList}>
@@ -185,20 +212,6 @@ function RelatedSkeleton() {
       ))}
     </div>
   );
-}
-
-function articleTabs(title: string, lang: string) {
-  return {
-    left: [
-      { label: "Article", href: articlePath(title, undefined, lang), selected: true },
-      { label: "Rabbit hole", href: "#rabbit-hole", title: "Related articles and where they lead" },
-    ],
-    right: [
-      { label: "Read", href: articlePath(title, undefined, lang), selected: true },
-      { label: "View on Wikipedia", href: wikipediaUrl(title, lang), external: true, testId: "source-link" },
-      { label: "View history", href: wikipediaLinks(title, lang).history, external: true },
-    ],
-  };
 }
 
 function siteSub(lang: string): string {
@@ -283,10 +296,14 @@ export async function ArticleView({ slug, lang }: { slug: string[]; lang: string
         }
       >
         <SiteSub>{siteSub(lang)}</SiteSub>
+        <ArticleDescription description={meta.description} />
+        <Suspense fallback={<ArticleMetadata title={meta.title} lang={lang} history={null} lastEdited={meta.lastEdited} />}>
+          <MetadataSlot {...slot} lastEdited={meta.lastEdited} />
+        </Suspense>
         <TrailTracker title={meta.title} description={meta.description} lang={lang} />
         <div id="article-body" className={styles.prose} lang={locale} dir={language.dir}>
           <Infobox title={meta.title} rows={lead.infobox} image={image} description={meta.description} />
-          <Blocks blocks={proseFirst(withoutImage(lead.lead, image))} />
+          <Blocks blocks={proseFirst(withoutLeadReferences(withoutImage(lead.lead, image)))} />
           <Suspense fallback={<SectionsSkeleton />}>
             <BodySlot {...slot} />
           </Suspense>
@@ -295,7 +312,18 @@ export async function ArticleView({ slug, lang }: { slug: string[]; lang: string
           </Suspense>
         </div>
 
+        <ReadingLayer key={meta.title} title={meta.title} lang={lang} aiEnabled={isAiEnabled()} />
+
         {isAiEnabled() ? <InsightsPanel title={meta.title} lang={lang} /> : null}
+
+        <section id="recent-changes" className={styles.recentChanges} aria-labelledby="recent-changes-heading">
+          <h2 id="recent-changes-heading" className={styles.h2}>
+            Recent changes
+          </h2>
+          <Suspense fallback={<RecentChangesSkeleton />}>
+            <RecentChangesSlot {...slot} />
+          </Suspense>
+        </section>
 
         <section id="rabbit-hole" className={styles.rabbitHole} aria-labelledby="rabbit-hole-heading">
           <h2 id="rabbit-hole-heading" className={styles.h2}>
