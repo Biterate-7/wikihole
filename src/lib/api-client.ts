@@ -1,6 +1,8 @@
 import type { FeedResponse, RandomResponse } from "@/lib/discovery/engine";
 import type { FeedPreset } from "@/lib/discovery/types";
 import type { Insights } from "@/lib/ai/insights";
+import type { ExplainRequest, ExplainResponse } from "@/lib/ai/explain-types";
+import type { ReaderTerm } from "@/lib/content/terms";
 import { DEFAULT_LANGUAGE } from "@/lib/i18n/languages";
 import type { SearchSuggestion } from "@/lib/wikipedia/types";
 
@@ -75,4 +77,52 @@ export type InsightsResponse = { enabled: false } | { enabled: true; insights: I
 
 export function fetchInsights(title: string, lang: string = DEFAULT_LANGUAGE, signal?: AbortSignal): Promise<InsightsResponse> {
   return request<InsightsResponse>("/api/insights", { ...json({ title, lang }), signal, timeoutMs: 90000 });
+}
+
+export async function fetchTerms(title: string, lang: string = DEFAULT_LANGUAGE): Promise<ReaderTerm[]> {
+  const edition = lang === DEFAULT_LANGUAGE ? "" : `&lang=${encodeURIComponent(lang)}`;
+  const { terms } = await request<{ terms: ReaderTerm[] }>(`/api/terms?title=${encodeURIComponent(title)}${edition}`);
+  return terms;
+}
+
+const EXPLANATION_STORAGE_PREFIX = "wikihole:explain:";
+const explanations = new Map<string, Promise<ExplainResponse>>();
+
+function storedExplanation(key: string): ExplainResponse | null {
+  try {
+    const stored = window.sessionStorage.getItem(EXPLANATION_STORAGE_PREFIX + key);
+    return stored ? (JSON.parse(stored) as ExplainResponse) : null;
+  } catch {
+    return null;
+  }
+}
+
+function storeExplanation(key: string, response: ExplainResponse): void {
+  try {
+    window.sessionStorage.setItem(EXPLANATION_STORAGE_PREFIX + key, JSON.stringify(response));
+  } catch {
+    // Storage may be full or blocked; the in-memory copy still serves this page view.
+  }
+}
+
+/**
+ * Generated explanations, cached in memory across client navigations and in
+ * sessionStorage across reloads, so re-opening a popover never asks again.
+ * Requests are not cancelled when a popover closes: the result is paid for and
+ * is what the reader will want if they come back. Failures are not cached.
+ */
+export function fetchExplanation(body: ExplainRequest): Promise<ExplainResponse> {
+  const key = JSON.stringify(body);
+  const known = explanations.get(key);
+  if (known) return known;
+  const stored = storedExplanation(key);
+  const pending = stored
+    ? Promise.resolve(stored)
+    : request<ExplainResponse>("/api/explain", { ...json(body), timeoutMs: 90000 }).then((response) => {
+        if (response.enabled) storeExplanation(key, response);
+        return response;
+      });
+  explanations.set(key, pending);
+  pending.catch(() => explanations.delete(key));
+  return pending;
 }

@@ -1,0 +1,376 @@
+/*
+ * Revision history, after Wikipedia's history and diff pages: compact lines of
+ * small text, side-by-side revisions above a two-column diff. Additions are
+ * green and removals red, always with a +/− marker so colour is never the only cue.
+ */
+
+.facts {
+  margin: 4px 0 8px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-subtle);
+}
+
+.factsPlaceholder {
+  height: 1.5em;
+  margin: 4px 0 8px;
+}
+
+.muted {
+  color: var(--color-subtle);
+}
+
+.more {
+  margin-top: 8px;
+  font-size: 0.875rem;
+}
+
+/* ---------- Revision lines ---------- */
+
+.entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border-light);
+}
+
+.entry,
+.historyEntry {
+  display: grid;
+  grid-template-columns: 11.75rem minmax(7rem, 11rem) minmax(0, 1fr) 4.5rem 2.25rem;
+  gap: 2px 12px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.historyEntry {
+  grid-template-columns: 2.5rem 11.75rem minmax(7rem, 11rem) minmax(0, 1fr) 4.5rem 2.25rem;
+}
+
+.radios {
+  display: inline-flex;
+  gap: 4px;
+  align-self: center;
+}
+
+.radios input {
+  margin: 0;
+}
+
+.time,
+.time:visited {
+  color: var(--color-progressive);
+  white-space: nowrap;
+}
+
+.contributor {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.summary {
+  min-width: 0;
+  color: var(--color-base);
+  overflow-wrap: anywhere;
+}
+
+.section {
+  color: var(--color-subtle);
+}
+
+.flag {
+  margin-right: 5px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--color-subtle);
+  text-decoration: none;
+}
+
+.size {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sizeUp {
+  color: var(--color-success);
+}
+
+.sizeDown {
+  color: var(--color-destructive);
+}
+
+.diffLink {
+  text-align: right;
+}
+
+@media (max-width: 719px) {
+  .entry {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "time size diff"
+      "who who who"
+      "what what what";
+  }
+
+  .historyEntry {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "radios time size diff"
+      ". who who who"
+      ". what what what";
+  }
+
+  .entry > .time,
+  .historyEntry > .time {
+    grid-area: time;
+  }
+
+  .entry > .contributor,
+  .historyEntry > .contributor {
+    grid-area: who;
+  }
+
+  .entry > .summary,
+  .historyEntry > .summary {
+    grid-area: what;
+  }
+
+  .entry > .size,
+  .historyEntry > .size {
+    grid-area: size;
+  }
+
+  .entry > .diffLink,
+  .historyEntry > .diffLink {
+    grid-area: diff;
+  }
+
+  .radios {
+    grid-area: radios;
+  }
+}
+
+.listBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 6px 0 10px;
+  font-size: 0.8125rem;
+}
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 10px;
+  font-size: 0.875rem;
+}
+
+/* ---------- Comparison ---------- */
+
+.compare {
+  margin-bottom: 1.5em;
+}
+
+.compareHeading {
+  margin: 1em 0 0.25em;
+  padding-bottom: 0.17em;
+  border-bottom: 1px solid var(--border-base);
+  font-family: var(--serif);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.375;
+  color: var(--color-emphasized);
+}
+
+.provenanceNote {
+  margin: 6px 0 10px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-subtle);
+}
+
+.sides {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 10px 24px;
+  margin-bottom: 10px;
+}
+
+.side {
+  min-width: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.sideLabel {
+  color: var(--color-subtle);
+}
+
+.sideTime {
+  font-weight: 700;
+}
+
+.sideSummary {
+  margin-top: 2px;
+}
+
+.sideStep {
+  margin-top: 4px;
+}
+
+.diffStats {
+  margin-bottom: 8px;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.diffNote {
+  margin: 8px 0;
+  font-size: 0.875rem;
+  color: var(--color-subtle);
+}
+
+/* The diff itself. Long wikitext wraps; it never widens the page. */
+.diff {
+  --diff-added: #e8f5ee;
+  --diff-added-mark: #b4e2c8;
+  --diff-removed: #fdeeec;
+  --diff-removed-mark: #f8c6be;
+  border: 1px solid var(--border-muted);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-emphasized);
+}
+
+.diffColumns,
+.diffLines,
+.diffChange {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.diffColumns {
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border-muted);
+  background: var(--background-neutral-subtle);
+  font-family: var(--reading);
+  font-size: 0.75rem;
+  color: var(--color-subtle);
+}
+
+.diffLines {
+  padding: 3px 8px;
+  background: var(--background-neutral-subtle);
+  font-family: var(--reading);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-subtle);
+}
+
+.diffContext {
+  padding: 2px 8px 2px 24px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-subtle);
+}
+
+.diffRemoved,
+.diffAdded {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 8px 2px 6px;
+}
+
+.diffRemoved {
+  background: var(--diff-removed);
+}
+
+.diffAdded {
+  background: var(--diff-added);
+}
+
+.diffMarker {
+  flex: none;
+  width: 1ch;
+  user-select: none;
+  font-weight: 700;
+}
+
+.diffRemoved .diffMarker {
+  color: var(--color-destructive);
+}
+
+.diffAdded .diffMarker {
+  color: var(--color-success);
+}
+
+.diffText {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.diffText del {
+  background: var(--diff-removed-mark);
+  text-decoration: none;
+}
+
+.diffText ins {
+  background: var(--diff-added-mark);
+  text-decoration: none;
+}
+
+.diffBlank {
+  min-width: 0;
+}
+
+@media (max-width: 719px) {
+  .diffColumns {
+    display: none;
+  }
+
+  /* One column: each removal sits directly above its replacement. */
+  .diffChange {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .diffBlank {
+    display: none;
+  }
+
+  .diffContext {
+    padding-left: 22px;
+  }
+}
+
+/* ---------- Generated description of a change ---------- */
+
+.explainAsk {
+  margin: 0 0 10px;
+  font-size: 0.8125rem;
+}
+
+.aiExplain {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-left: 2px solid var(--border-base);
+  background: var(--background-neutral-subtle);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.aiExplainHead {
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+  color: var(--color-subtle);
+}

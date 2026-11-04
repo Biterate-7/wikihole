@@ -48,6 +48,10 @@ function Tabs({ tabs, label }: { tabs: PageTab[]; label: string }) {
               <a href={tab.href} target="_blank" rel="noopener noreferrer" title={tab.title} data-testid={tab.testId}>
                 {tab.label}
               </a>
+            ) : tab.href.startsWith("#") ? (
+              <a href={tab.href} title={tab.title} data-testid={tab.testId}>
+                {tab.label}
+              </a>
             ) : (
               <Link href={tab.href} aria-current={tab.selected ? "page" : undefined} title={tab.title} prefetch={false} data-testid={tab.testId}>
                 {tab.label}

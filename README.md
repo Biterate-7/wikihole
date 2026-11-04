@@ -11,6 +11,9 @@ Everything shown comes live from Wikipedia through the official MediaWiki APIs. 
 - **Languages**: 62 Wikipedia editions. The active edition drives search, the reader, related articles and saved/history entries, persists in a cookie between visits, and can be changed from the globe, the search field, the language menu or the header picker. English articles keep their `/wiki/<Title>` URLs; other editions live at `/<lang>/wiki/<Title>`.
 - **Discover feed** (`/discover`, formerly `/`; old `/?topic=…` links redirect): random samples from curated Wikipedia categories, passed through a quality gate, ranked by a transparent model, diversified, and de-duplicated across the session. Infinite scroll, ranking presets (Balanced, Deep, Obscure), topic filters, refresh, and loading, empty and error states. Each entry shows its score breakdown.
 - **Reader** (`/wiki/<Title>`): Wikipedia's parsed HTML transformed server-side into an allow-listed document model and rendered as a Wikipedia-style article: serif title and section headings, Article/Rabbit hole and Read/View on Wikipedia/View history tabs, a save star, a floated infobox, thumbnails, wikitables, references, a terminology and equations navbox and a categories box. It has a scroll-spied, collapsible contents sidebar, KaTeX math, tables, figures, galleries, references, infobox facts, key concepts, terminology quoted in context, an equations index, reading progress, and source and revision links. The lead streams first and the body after it.
+- **Reading aids**: text keeps to a comfortable measure; the contents stay in view and track the section being read (a slim sticky bar takes over on narrow screens); and section links scroll smoothly. Under the title, a quiet line reports the description, creation date, edit and contributor counts, last edit and recent activity, all from Wikimedia and left out when unavailable.
+- **Revision history** (`/history/<Title>`): a Recent changes section on every article, plus a full history page with real diffs from Wikimedia's compare API. Added text is green, removed text is red, and each revision links to its record on Wikipedia. Revisions can be stepped through or picked for comparison.
+- **Contextual explanations** (need an AI key): a few specialised terms get a dotted underline, chosen from the article's own links and definitions using Wikipedia's metadata. Hovering, tapping or tabbing to one opens a small popover with an explanation in context at Simple, Standard or Advanced level, a simpler restatement, a way to go deeper, and a link to the term's article. Selecting a passage offers Explain, Summarise, Simplify and Explore connections; long sections offer a summary beside their heading; a diff can be described in words. Generated text is always labelled, and explanations are cached on the server and in the browser. Without a key, popovers show Wikipedia's own description and selections offer the passage's links.
 - **Rabbit Hole**: related articles from See also, links in the introduction, links in the body, shared categories and CirrusSearch text similarity, each labelled with its source. A breadcrumb trail tracks depth, back navigation unwinds it, and articles already on your trail are left out.
 - **Topics** (`/topics`, `/topics/<slug>`): 7 groups and 40 collections, each defined by real Wikipedia categories (checked against the live API by a test).
 - **Search**: a debounced header and inline combobox (keyboard navigation, Enter to open, Escape to close, `/` or Ctrl/Cmd+K), plus a full results page with highlighted snippets, suggestions and pagination.
@@ -26,15 +29,17 @@ Everything shown comes live from Wikipedia through the official MediaWiki APIs. 
 
 ```
 src/lib/i18n/        languages.ts (edition registry, formatting, validation)
-src/lib/wikipedia/   http.ts (UA, timeouts, retries, Retry-After, concurrency, per-edition endpoints) · api.ts (typed endpoints, caching) · titles.ts
-src/lib/content/     parse.ts (HTML → allow-listed AST) · math.ts (KaTeX) · concepts.ts (key concepts, terms, equations)
+src/lib/wikipedia/   http.ts (UA, timeouts, retries, Retry-After, concurrency, per-edition endpoints) · api.ts (typed endpoints, caching) · revisions.ts (history, counts, compare) · diff.ts (compare HTML → diff model) · titles.ts
+src/lib/content/     parse.ts (HTML → allow-listed AST) · math.ts (KaTeX) · concepts.ts (key concepts, terms, equations) · terms.ts (which terms the reader marks)
 src/lib/discovery/   topics.ts (taxonomy) · score.ts (features + quality gate) · select.ts (diversity) · engine.ts (feed, random, related) · config.ts (weights)
-src/lib/ai/          config.ts · insights.ts (structured output + verification) · grounding.ts
+src/lib/ai/          config.ts · client.ts · insights.ts (structured output + verification) · explain.ts (terms, passages, sections, diffs; cached and verified) · grounding.ts
 src/lib/storage/     store.ts (validated, failure-tolerant storage) · collections.ts (saved, history, trails)
+src/components/article/ ReadingLayer (TermLayer, SelectionLayer) · SectionSummary · Toc (contents, section bar) · ArticleMetadata · RecentChanges
+src/components/history/ HistoryRoute · DiffView · DiffExplain
 src/components/layout/ PageShell (three-column frame, tabs) · SiteHeader · MainMenu · Portlet · pinning (hide/restore sidebars)
 src/components/home/ Portal (Main Page) · LanguageRing (globe + featured editions)
 src/components/i18n/ LanguageProvider · SearchLanguageSelect · LanguageMenu · EditionNotice
-src/app/api/         feed · random · search · insights · languages · health
+src/app/api/         feed · random · search · insights · explain · terms · languages · health
 ```
 
 ### Wikipedia integration
@@ -49,6 +54,10 @@ src/app/api/         feed · random · search · insights · languages · health
 | Similar articles | `list=search&srsearch=morelike:"Title"` |
 | Summaries (page metadata) | REST `GET /page/summary/{title}` |
 | Edition sizes (portal counts) | `action=query&meta=siteinfo&siprop=statistics`, per edition, cached 12 h |
+| Lifetime edit and contributor counts (Wikimedia stops counting at a limit, shown as `30,000+`) | core REST `GET /page/{title}/history/counts/{edits,editors}`, cached 1 h |
+| Recent edits, history pages | `action=query&prop=revisions&rvprop=ids\|timestamp\|user\|size\|comment\|flags\|tags`, cached 5 min |
+| Creation date | `action=query&prop=revisions&rvdir=newer&rvlimit=1`, cached 7 days |
+| Revision comparison | `action=compare&prop=diff\|rel\|ids\|title\|user\|comment\|size\|timestamp`, parsed into a structured model, cached 24 h |
 
 ### Languages
 
@@ -85,7 +94,7 @@ All variables are optional. See [`.env.example`](.env.example).
 | --- | --- |
 | `WIKIMEDIA_USER_AGENT` | **Strongly recommended.** Identifies your deployment to Wikimedia, e.g. `WikiHole/1.0 (https://your.site; you@example.org)`. Without contact information Wikimedia limits requests to 10 per minute. |
 | `WIKIPEDIA_API_URL`, `WIKIPEDIA_REST_URL` | Override the endpoints (another language edition, or a test double). |
-| `AI_API_KEY` (or `ANTHROPIC_API_KEY`) | Enables AI analysis. Server-side only. |
+| `AI_API_KEY` (or `ANTHROPIC_API_KEY`) | Enables AI analysis and contextual explanations. Server-side only. |
 | `AI_PROVIDER` | `anthropic` (the only supported provider). |
 | `AI_MODEL` | Claude model id. Default `claude-opus-5-5`. |
 | `DISCOVERY_WEIGHTS` | JSON object of relative weights, e.g. `{"obscurity":30}`. |
@@ -120,6 +129,13 @@ The test suites cover:
 - **Live:** taxonomy categories exist, feed text matches Wikipedia's own intros, search, parsing, random filtering.
 - **Languages:** registry, count formatting, paths, localised parsing, per-edition API endpoints and caches, `/api/languages`, the provider, globe, language menu and search box (unit + integration); the full portal → search → reader → related → trail journey in German, persistence, the menu and legacy redirects (end-to-end).
 - **End-to-end:** homepage portal, Discover feed, search, reading, Rabbit Hole, random, saved, failure handling, responsiveness at 1440, 1280, 1024, 768 and 390 px, console errors, keyboard focus.
+- **Reading experience:** metadata against Wikimedia's own numbers, revision comparison, section navigation, term marks, popovers and selection tools by mouse, keyboard and touch, and overflow at four widths across article types (`tests/e2e/reading.spec.ts`). The AI flows run against a local stand-in for the API, which exercises the interface and grounding checks but not the quality of a real model's writing:
+
+  ```bash
+  node tests/support/stub-anthropic.mjs 4599 &
+  ANTHROPIC_BASE_URL=http://localhost:4599 AI_API_KEY=stub npm run start -- --port 3101 &
+  E2E_AI=1 E2E_PORT=3101 npx playwright test tests/e2e/reading.spec.ts
+  ```
 
 ## Deploying to Vercel
 
@@ -136,6 +152,9 @@ Or from the CLI: `npm i -g vercel && vercel` (first deploy), then `vercel --prod
 - All server traffic shares one Wikimedia rate-limit identity (about 200 requests per minute with a compliant User-Agent). Very high traffic would need Wikimedia Enterprise or more caching.
 - Reading-time estimates in feeds come from search word counts or wikitext length, so they are approximate.
 - Saved articles and history live in the browser. There is no account sync.
+- Explanations are cached in memory per server instance, so a cold instance generates them again. Hovering a marked term for half a second counts as asking, which costs a model call the first time; `/api/explain` is limited to 30 requests a minute per client.
+- Wikipedia reports a revision's net size change only. Added and removed characters per edit appear on the comparison page, where they are counted from the diff, and are approximate for edits that move text.
+- Comparisons show wikitext, as Wikipedia's own diffs do. Rendered comparisons are not available.
 - Search, the reader, related articles and saved/history work in every supported edition. Discover, Topics and Random are built on English Wikipedia's category taxonomy and ranking vocabulary, so they always show English articles; with another edition active they say so and offer a switch back to English.
 - Interface text (labels, buttons) is English in every edition; article content and search are in the chosen language.
 - Localised appendix headings and namespaces are recognised for the ten featured editions. In other editions "See also" is not singled out, so related articles come from links, shared categories and text similarity.
