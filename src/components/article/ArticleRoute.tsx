@@ -7,6 +7,7 @@ import {
   Catlinks,
   Infobox,
   KeyConcepts,
+  Recommendation,
   SectionsSkeleton,
   StudyNavbox,
   wikipediaLinks,
@@ -22,6 +23,7 @@ import { PageShell, SiteSub } from "@/components/layout/PageShell";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { SaveButton } from "@/components/ui/SaveButton";
 import { isAiEnabled } from "@/lib/ai/config";
+import { getRecommendation } from "@/lib/curated/service";
 import { loadArticle, loadLead, loadMeta } from "@/lib/article";
 import type { ArticleDocument, Block, Heading, WikiImage } from "@/lib/content/types";
 import { classifyGroup, readingMinutes } from "@/lib/discovery/score";
@@ -136,7 +138,15 @@ async function BodySlot({ title, lang }: Slot) {
 
 async function ToolsSlot({ title, lang, meta }: Slot & { meta: PageMeta }) {
   const doc = await attempt(() => loadArticle(title, lang));
-  return <ArticleTools meta={meta} doc={doc.ok ? doc.value : null} concepts={doc.ok ? <KeyConcepts doc={doc.value} /> : null} />;
+  const recommendation = lang === DEFAULT_LANGUAGE ? getRecommendation(meta.pageId) : undefined;
+  return (
+    <ArticleTools
+      meta={meta}
+      doc={doc.ok ? doc.value : null}
+      concepts={doc.ok ? <KeyConcepts doc={doc.value} /> : null}
+      recommendation={recommendation ? <Recommendation article={recommendation} /> : null}
+    />
+  );
 }
 
 async function FooterSlot({ title, lang }: Slot) {

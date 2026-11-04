@@ -285,3 +285,17 @@
     align-items: flex-start;
   }
 }
+
+/* ---------- Explore: the catalogue filter ---------- */
+
+.exploreInput {
+  flex: 1 1 12em;
+  min-width: 0;
+  max-width: 32em;
+  padding: 3px 8px;
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius);
+  background: var(--background-base, #fff);
+  color: var(--color-base);
+  font: inherit;
+}

@@ -1,6 +1,9 @@
 import type { FeedResponse, RandomResponse } from "@/lib/discovery/engine";
 import type { FeedPreset } from "@/lib/discovery/types";
 import type { Insights } from "@/lib/ai/insights";
+import type { CollectionId } from "@/lib/curated/rank";
+import type { CuratedPage, ExploreRequest } from "@/lib/curated/service";
+import type { Discovery } from "@/lib/discovery/types";
 import { DEFAULT_LANGUAGE } from "@/lib/i18n/languages";
 import type { SearchSuggestion } from "@/lib/wikipedia/types";
 
@@ -75,4 +78,22 @@ export type InsightsResponse = { enabled: false } | { enabled: true; insights: I
 
 export function fetchInsights(title: string, lang: string = DEFAULT_LANGUAGE, signal?: AbortSignal): Promise<InsightsResponse> {
   return request<InsightsResponse>("/api/insights", { ...json({ title, lang }), signal, timeoutMs: 90000 });
+}
+
+export function fetchCollection(collection: CollectionId, offset: number, signal?: AbortSignal): Promise<CuratedPage> {
+  return request(`/api/curated?collection=${collection}&offset=${offset}`, { signal });
+}
+
+export function fetchExplore(body: Omit<ExploreRequest, "random">, signal?: AbortSignal): Promise<CuratedPage> {
+  return request("/api/curated", { ...json(body), signal });
+}
+
+export type CuratedSource = { url: string; at: number; community: string; decidedBy: string };
+
+export function fetchSources(pageId: number, signal?: AbortSignal): Promise<{ sources: CuratedSource[] }> {
+  return request(`/api/curated?sources=${pageId}`, { signal });
+}
+
+export function fetchContextual(body: { titles: string[]; exclude?: number[]; limit?: number }, signal?: AbortSignal): Promise<{ items: Discovery[] }> {
+  return request("/api/contextual", { ...json(body), signal });
 }

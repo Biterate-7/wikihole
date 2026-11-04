@@ -13,6 +13,7 @@ import { articlePath } from "@/lib/wikipedia/titles";
 import styles from "./article.module.css";
 
 const DEEPER = new Set(["see-also", "lead-link"]);
+const PEOPLE = new Set(["co-recommended", "reader-path"]);
 
 /** A related article, laid out like a Wikipedia search result: title, source of the link, description, intro. */
 function RelatedEntry({ item, visited }: { item: Discovery; visited: boolean }) {
@@ -27,6 +28,7 @@ function RelatedEntry({ item, visited }: { item: Discovery; visited: boolean }) 
       <div className={styles.relatedBody}>
         <p className={`label ${styles.relation}`} title={item.relation?.evidence}>
           {item.relation?.label ?? "Related"}
+          {item.recommended ? ` · Recommended ${item.recommended.qualifying} ${item.recommended.qualifying === 1 ? "time" : "times"} in discussions` : ""}
         </p>
         <h3 className={styles.relatedTitle}>
           <Link href={href}>{item.title}</Link>
@@ -75,7 +77,7 @@ export function RelatedList({
   const history = useStore(historyStore);
   const trail = useStore(currentTrailStore);
 
-  const { deeper, adjacent, visited } = useMemo(() => {
+  const { deeper, people, adjacent, visited } = useMemo(() => {
     const sameEdition = (entry: { lang?: string } | null | undefined) => (entry?.lang ?? DEFAULT_LANGUAGE) === lang;
     const visitedSet = new Set(hydrated ? history.filter(sameEdition).map((h) => h.title) : []);
     const onTrail = new Set(hydrated && sameEdition(trail) ? (trail?.steps ?? []) : []);
@@ -83,12 +85,13 @@ export function RelatedList({
     const ordered = [...candidates].sort((a, b) => Number(visitedSet.has(a.title)) - Number(visitedSet.has(b.title)));
     return {
       deeper: ordered.filter((i) => i.relation && DEEPER.has(i.relation.kind)),
-      adjacent: ordered.filter((i) => !i.relation || !DEEPER.has(i.relation.kind)),
+      people: ordered.filter((i) => i.relation && PEOPLE.has(i.relation.kind)),
+      adjacent: ordered.filter((i) => !i.relation || (!DEEPER.has(i.relation.kind) && !PEOPLE.has(i.relation.kind))),
       visited: visitedSet,
     };
   }, [items, currentTitle, history, trail, hydrated, lang]);
 
-  if (deeper.length + adjacent.length === 0) {
+  if (deeper.length + people.length + adjacent.length === 0) {
     return <p className={styles.muted}>No related articles passed the quality gate for this page.</p>;
   }
 
@@ -99,6 +102,16 @@ export function RelatedList({
           <h3 className={styles.h3}>Go deeper: linked from this article</h3>
           <ul className={styles.relatedList}>
             {deeper.map((item) => (
+              <RelatedEntry key={item.pageId} item={item} visited={visited.has(item.title)} />
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {people.length ? (
+        <div>
+          <h3 className={styles.h3}>Also read: what people and readers pair with this article</h3>
+          <ul className={styles.relatedList}>
+            {people.map((item) => (
               <RelatedEntry key={item.pageId} item={item} visited={visited.has(item.title)} />
             ))}
           </ul>

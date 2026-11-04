@@ -21,6 +21,13 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // The discovery snapshot is read from disk at runtime, so serverless bundles must include it.
+  outputFileTracingIncludes: {
+    "/discover/**": ["./data/snapshot/**"],
+    "/api/curated": ["./data/snapshot/**"],
+    "/api/contextual": ["./data/snapshot/**"],
+    "/wiki/**": ["./data/snapshot/**"],
+  },
   reactStrictMode: true,
   images: {
     remotePatterns: [

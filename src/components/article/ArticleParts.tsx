@@ -4,6 +4,7 @@ import { PrintLink } from "@/components/layout/PrintLink";
 import layout from "@/components/layout/layout.module.css";
 import { equations, keyConcepts, terminology } from "@/lib/content/concepts";
 import type { ArticleDocument, InfoboxRow, Section, WikiImage } from "@/lib/content/types";
+import type { RecommendedArticle } from "@/lib/curated/types";
 import { classifyGroup, readingMinutes, sourcedDate } from "@/lib/discovery/score";
 import { GROUPS } from "@/lib/discovery/topics";
 import { ASSESSMENT_LABELS, formatCount, formatDate } from "@/lib/format";
@@ -158,7 +159,17 @@ export function PageInformation({ meta }: { meta: PageMeta }) {
 }
 
 /** The article's tools column: Wikipedia's tools plus Wikihole's key concepts. */
-export function ArticleTools({ meta, doc, concepts }: { meta: PageMeta; doc: ArticleDocument | null; concepts: React.ReactNode }) {
+export function ArticleTools({
+  meta,
+  doc,
+  concepts,
+  recommendation,
+}: {
+  meta: PageMeta;
+  doc: ArticleDocument | null;
+  concepts: React.ReactNode;
+  recommendation?: React.ReactNode;
+}) {
   const links = wikipediaLinks(meta.title, meta.lang);
   return (
     <div className={layout.tools}>
@@ -174,6 +185,7 @@ export function ArticleTools({ meta, doc, concepts }: { meta: PageMeta; doc: Art
         ]}
       />
       <PageInformation meta={meta} />
+      {recommendation}
       {concepts}
       <Portlet id="tools-print" heading="Print/export">
         <ul className={layout.portletList}>
@@ -191,6 +203,29 @@ export function ArticleTools({ meta, doc, concepts }: { meta: PageMeta; doc: Art
         ]}
       />
     </div>
+  );
+}
+
+/** Why people recommend this article, shown only when the human dataset has evidence for it. */
+export function Recommendation({ article }: { article: RecommendedArticle }) {
+  const first = new Date(article.firstAt * 1000).getUTCFullYear();
+  const last = new Date(article.lastAt * 1000).getUTCFullYear();
+  return (
+    <Portlet
+      id="tools-recommendation"
+      heading="Recommended by people"
+      items={article.evidence.slice(0, 3).map((evidence) => ({
+        href: evidence.url,
+        label: `${evidence.community}, ${new Date(evidence.at * 1000).getUTCFullYear()}`,
+        external: true,
+        title: evidence.excerpt.replace(/\[\[|\]\]/g, ""),
+      }))}
+    >
+      <p className={layout.portletNote} data-testid="article-recommendation">
+        {article.qualifying} {article.qualifying === 1 ? "recommendation" : "recommendations"} in {article.discussions} {article.discussions === 1 ? "discussion" : "discussions"},{" "}
+        {first === last ? first : `${first}–${last}`}.
+      </p>
+    </Portlet>
   );
 }
 
