@@ -48,7 +48,6 @@ const n = (id: string, level: 0 | 1 | 2 | 3 | 4, parent: string | undefined, tit
   kind: level === 0 ? "submission" : "concept",
   role: level === 0 ? "submission" : level === 1 ? "direct" : "prerequisite",
   relevance: 0.6,
-  url: level ? `https://en.wikipedia.org/wiki/${title.replace(/ /g, "_")}` : undefined,
   extract: level ? `${title} is an important idea.` : undefined,
   ...(parent ? { parent } : {}),
   ...extra,
@@ -98,6 +97,28 @@ describe("SubmissionCard", () => {
     expect(within(card).getByRole("link", { name: "Leader election" }).getAttribute("href")).toBe("/wiki/Leader_election");
     expect(within(card).getByRole("link", { name: /Discussion on Hacker News/ }).getAttribute("href")).toBe("https://news.ycombinator.com/item?id=123");
     expect(within(card).getByRole("link", { name: /Original article on raft.github.io/ }).getAttribute("href")).toBe("https://raft.github.io/");
+  });
+});
+
+describe("submissions that link to Wikipedia", () => {
+  const wikipedia = submission({ id: 124, title: "Antikythera mechanism", url: "https://en.wikipedia.org/wiki/Antikythera_mechanism", domain: "en.wikipedia.org" });
+
+  it("open in the reader on the card, with no outbound Wikipedia link", () => {
+    const { container } = render(<SubmissionCard item={{ ...preview, submission: wikipedia }} rank={1} />);
+    expect(container.querySelectorAll('a[href*="wikipedia.org"]')).toHaveLength(0);
+    expect(screen.getByRole("link", { name: "Antikythera mechanism in WikiHole" }).getAttribute("href")).toBe("/wiki/Antikythera_mechanism");
+  });
+
+  it("have no outbound Wikipedia link in the exploration view or tools", () => {
+    const hole = { ...exploration, submission: wikipedia };
+    const { container } = render(
+      <>
+        <SubmissionExplorer exploration={hole} status="complete" />
+        <ExplorationTools exploration={hole} />
+      </>,
+    );
+    expect(container.querySelectorAll('a[href*="wikipedia.org"]')).toHaveLength(0);
+    expect(screen.getAllByRole("link", { name: "Antikythera mechanism in WikiHole" }).length).toBe(2);
   });
 });
 

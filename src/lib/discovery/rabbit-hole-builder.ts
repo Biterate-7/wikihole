@@ -6,7 +6,6 @@ import type { Submission } from "@/lib/hackernews/types";
 import { getLinksBetween, getMoreLike, getPagesMetaMap, type LinkPair } from "@/lib/wikipedia/api";
 import { entityKind, resolveEntities, unusablePage, type ResolvedEntity } from "@/lib/wikipedia/article-resolution";
 import { linkEvidence, type LinkEvidence } from "@/lib/wikipedia/extraction";
-import { wikipediaUrl } from "@/lib/wikipedia/titles";
 import type { PageMeta } from "@/lib/wikipedia/types";
 import { extractEntities } from "./entity-extraction";
 import type { EdgeEvidence, Exploration, ExplorationLevel, ExtractedEntity, HoleEdge, HoleNode, NodeKind, RelationKind } from "./hole-types";
@@ -51,13 +50,12 @@ const clamp = (n: number) => Math.min(1, Math.max(0, n));
 const nodeId = (pageId: number) => `p${pageId}`;
 const quote = (s: string) => `“${s}”`;
 
-function articleNode(meta: PageMeta, fields: Omit<HoleNode, "id" | "pageId" | "title" | "kind" | "url">): HoleNode {
+function articleNode(meta: PageMeta, fields: Omit<HoleNode, "id" | "pageId" | "title" | "kind">): HoleNode {
   return {
     id: nodeId(meta.pageId),
     pageId: meta.pageId,
     title: meta.title,
     kind: entityKind(meta) as NodeKind,
-    url: wikipediaUrl(meta.title),
     ...(meta.description ? { description: meta.description } : {}),
     ...(meta.extract ? { extract: meta.extract } : {}),
     ...(meta.thumbnail ? { thumbnail: meta.thumbnail } : {}),
@@ -168,7 +166,6 @@ export async function buildRabbitHole({ submission, comments = [], prescore }: B
     level: 0,
     kind: "submission",
     role: "submission",
-    url: submission.url ?? submission.hnUrl,
     relevance: 1,
   };
   const nodes: HoleNode[] = [root];

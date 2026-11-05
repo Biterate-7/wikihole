@@ -57,7 +57,6 @@ export interface HoleNode {
   /** Intro sentences from Wikipedia (TextExtracts), never generated. */
   extract?: string;
   thumbnail?: Thumbnail;
-  url?: string;
   readingMinutes?: number;
   assessment?: AssessmentClass;
   /** Relevance to the submission, 0..1. */

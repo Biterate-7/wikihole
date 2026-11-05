@@ -21,6 +21,7 @@ test.describe("Hacker News", () => {
     await expect(first.getByRole("link", { name: /Discussion on Hacker News/ })).toHaveAttribute("href", /^https:\/\/news\.ycombinator\.com\/item\?id=\d+$/);
     await expect(first).toContainText(/\d+ Wikipedia articles/);
     await expect(first.getByRole("link", { name: "Open rabbit hole" })).toHaveAttribute("href", /^\/hackernews\/\d+$/);
+    await expect(page.locator('a[href*="wikipedia.org"]')).toHaveCount(0);
     const ids = await items.evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.id));
     expect(new Set(ids).size).toBe(ids.length);
     await page.screenshot({ path: "test-results/hn-feed-desktop.png", fullPage: false });
@@ -63,9 +64,7 @@ test.describe("Hacker News", () => {
     await graph.getByTestId("graph-node").nth(2).dispatchEvent("click");
     await expect(page.getByTestId("graph-detail")).toBeVisible();
     await expect(page.getByTestId("hole-article").first()).toBeVisible();
-    for (const region of [primary, page.getByTestId("graph-detail"), page.getByTestId("hole-article")]) {
-      await expect(region.locator('a[href*="wikipedia.org"]')).toHaveCount(0);
-    }
+    await expect(page.locator('a[href*="wikipedia.org"]')).toHaveCount(0);
     await page.screenshot({ path: "test-results/hn-exploration-desktop.png", fullPage: true });
     await graph.screenshot({ path: "test-results/hn-graph-desktop.png" });
 

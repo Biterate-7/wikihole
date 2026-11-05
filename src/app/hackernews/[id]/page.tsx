@@ -9,6 +9,8 @@ import { SiteTools } from "@/components/layout/SiteTools";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { getExploration } from "@/lib/hackernews/service";
 import { hnItemUrl } from "@/lib/hackernews/normalization";
+import { sourceLink } from "@/lib/hackernews/source-link";
+import type { Submission } from "@/lib/hackernews/types";
 import { attempt, describeError } from "@/lib/server/http";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +48,8 @@ const REJECTED: Record<string, string> = {
   "low-information": "The submission does not name anything WikiHole can look up.",
 };
 
-function tabsFor(id: number, url?: string): { left: PageTab[]; right: PageTab[] } {
+function tabsFor(id: number, submission?: Pick<Submission, "url" | "domain"> | null): { left: PageTab[]; right: PageTab[] } {
+  const source = submission ? sourceLink(submission) : null;
   return {
     left: [
       { label: "Rabbit hole", href: `/hackernews/${id}`, selected: true },
@@ -54,7 +57,7 @@ function tabsFor(id: number, url?: string): { left: PageTab[]; right: PageTab[] 
     ],
     right: [
       { label: "Read", href: `/hackernews/${id}`, selected: true },
-      ...(url ? [{ label: "Original article", href: url, external: true }] : []),
+      ...(source ? [{ label: source.external ? "Original article" : "Article in WikiHole", href: source.href, external: source.external }] : []),
       { label: "All rabbit holes", href: "/hackernews" },
     ],
   };
@@ -90,7 +93,7 @@ export default async function ExplorationPage({ params }: { params: Promise<{ id
   if (value.status === "notfound") notFound();
   if (value.status === "rejected") {
     return (
-      <PageShell title={value.submission?.title ?? "Not a rabbit hole"} tabs={tabsFor(id, value.submission?.url)} tools={<SiteTools />}>
+      <PageShell title={value.submission?.title ?? "Not a rabbit hole"} tabs={tabsFor(id, value.submission)} tools={<SiteTools />}>
         <StateMessage kind="empty" title="Not a rabbit hole" action={back}>
           {REJECTED[value.reason] ?? "This submission is not suitable for a Wikipedia rabbit hole."}
         </StateMessage>
@@ -99,7 +102,7 @@ export default async function ExplorationPage({ params }: { params: Promise<{ id
   }
   if (value.status === "failed") {
     return (
-      <PageShell title={value.submission.title} tabs={tabsFor(id, value.submission.url)} tools={<SiteTools />}>
+      <PageShell title={value.submission.title} tabs={tabsFor(id, value.submission)} tools={<SiteTools />}>
         <StateMessage kind="error" title="The rabbit hole could not be built." action={back}>
           {value.error}. It will be retried automatically; try again in a few minutes.
         </StateMessage>
@@ -110,7 +113,7 @@ export default async function ExplorationPage({ params }: { params: Promise<{ id
   return (
     <PageShell
       title={exploration.submission.title}
-      tabs={tabsFor(id, exploration.submission.url)}
+      tabs={tabsFor(id, exploration.submission)}
       tools={
         <SiteTools>
           <ExplorationTools exploration={exploration} />

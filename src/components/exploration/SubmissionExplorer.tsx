@@ -7,6 +7,7 @@ import { SaveButton } from "@/components/ui/SaveButton";
 import { ThumbImage } from "@/components/ui/ThumbImage";
 import { LEVEL_LABELS, type Exploration, type ExplorationLevel, type HoleEdge, type HoleNode } from "@/lib/discovery/hole-types";
 import { formatCount, formatRelative, leadSentences } from "@/lib/format";
+import { sourceLink } from "@/lib/hackernews/source-link";
 import { articlePath } from "@/lib/wikipedia/titles";
 import { ArticleCollection } from "./ArticleCollection";
 import { KnowledgeGraph } from "./KnowledgeGraph";
@@ -67,6 +68,7 @@ function Outline({ nodes, depth }: { nodes: HoleNode[]; depth: number }) {
 export function SubmissionExplorer({ exploration, status }: { exploration: Exploration; status: "complete" | "insufficient" }) {
   const { submission, summary, nodes, edges, quality } = exploration;
   const primary = nodes.find((n) => n.role === "primary");
+  const source = sourceLink(submission);
   const [depth, setDepth] = useState<ExplorationLevel>(2);
   // Nothing is focused at first, so the whole graph is visible; the detail panel starts on the main article.
   const [selected, setSelected] = useState<string | null>(null);
@@ -104,11 +106,17 @@ export function SubmissionExplorer({ exploration, status }: { exploration: Explo
           <span className="dot">{articleCount} Wikipedia articles</span>
         </div>
         <div className={styles.sourceLinks}>
-          {submission.url ? (
+          {source ? (
             <>
-              <a className="action" href={submission.url} target="_blank" rel="noopener noreferrer">
-                Original article{submission.domain ? ` (${submission.domain})` : ""}
-              </a>
+              {source.external ? (
+                <a className="action" href={source.href} target="_blank" rel="noopener noreferrer">
+                  Original article ({source.label})
+                </a>
+              ) : (
+                <Link className="action" href={source.href}>
+                  {source.label}
+                </Link>
+              )}
               <span className="dot" aria-hidden="true" />
             </>
           ) : null}

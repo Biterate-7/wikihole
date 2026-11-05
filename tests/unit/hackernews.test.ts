@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { extractEntities } from "@/lib/discovery/entity-extraction";
 import { classifyDisciplines } from "@/lib/discovery/topic-classification";
 import { categoryOf, domainOf, htmlToText, normalizeItem, rejectRawItem, subjectOf } from "@/lib/hackernews/normalization";
+import { sourceLink } from "@/lib/hackernews/source-link";
 import { DEFAULT_HN_WEIGHTS, engagementScore, finalScore, hnWeights, prescore } from "@/lib/hackernews/ranking";
 import { HN_COMPONENTS, type HoleQuality } from "@/lib/discovery/hole-types";
 import type { Submission } from "@/lib/hackernews/types";
@@ -78,6 +79,27 @@ describe("normalisation", () => {
     expect(categoryOf({ type: "story", title: "Ordinary story" })).toBe("story");
     expect(subjectOf("The Mathematics of Juggling [pdf] (1987)")).toEqual({ subject: "The Mathematics of Juggling", year: 1987 });
     expect(subjectOf("Ask HN: What is a monad?")).toEqual({ subject: "What is a monad?" });
+  });
+});
+
+describe("source links", () => {
+  const link = (url: string) => sourceLink({ url, domain: domainOf(url) });
+
+  it("keeps ordinary sites as external links", () => {
+    expect(link("https://www.example.org/post")).toEqual({ href: "https://www.example.org/post", label: "example.org", external: true });
+    expect(sourceLink({})).toBeNull();
+  });
+
+  it("opens Wikipedia articles in the reader instead", () => {
+    expect(link("https://en.wikipedia.org/wiki/Raft_(algorithm)")).toEqual({ href: "/wiki/Raft_(algorithm)", label: "Raft (algorithm) in WikiHole", external: false });
+    expect(link("https://en.m.wikipedia.org/wiki/Enigma_machine#History")?.href).toBe("/wiki/Enigma_machine");
+    expect(link("https://de.wikipedia.org/wiki/Turingmaschine")?.href).toBe("/de/wiki/Turingmaschine");
+  });
+
+  it("never links out to Wikipedia pages the reader cannot open", () => {
+    expect(link("https://en.wikipedia.org/w/index.php?title=Raft&oldid=1")).toBeNull();
+    expect(link("https://www.wikipedia.org/")).toBeNull();
+    expect(link("https://xx-unknown.wikipedia.org/wiki/Thing")).toBeNull();
   });
 });
 

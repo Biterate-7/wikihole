@@ -100,7 +100,7 @@ describe("rabbit-hole builder", () => {
       expect(intro, `${node.title} has an introducing edge`).toBeDefined();
       expect(ids.has(intro!.source)).toBe(true);
       expect(intro!.explanation.length).toBeGreaterThan(20);
-      expect(node.url).toMatch(/^https:\/\/en\.wikipedia\.org\/wiki\//);
+      expect(node).not.toHaveProperty("url");
       expect(universe.has(node.title)).toBe(true);
     }
     const levels = new Set(hole.nodes.map((n) => n.level));

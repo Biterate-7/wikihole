@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ExplorationPreview } from "@/lib/discovery/hole-types";
 import { formatCount, formatRelative, leadSentences } from "@/lib/format";
+import { sourceLink } from "@/lib/hackernews/source-link";
 import type { SubmissionCategory } from "@/lib/hackernews/types";
 import { articlePath } from "@/lib/wikipedia/titles";
 import styles from "./hackernews.module.css";
@@ -26,6 +27,7 @@ export function explorationPath(id: number): string {
  */
 export function SubmissionCard({ item, rank }: { item: ExplorationPreview; rank: number }) {
   const { submission, primary } = item;
+  const source = sourceLink(submission);
   const kicker = [CATEGORY_LABELS[submission.category], ...item.disciplines.map((d) => d.label)].join(" · ");
   return (
     <article className={styles.card} data-testid="hn-item" data-id={submission.id} data-rank={rank}>
@@ -72,12 +74,18 @@ export function SubmissionCard({ item, rank }: { item: ExplorationPreview; rank:
           <Link href={explorationPath(submission.id)} className="action">
             Open rabbit hole
           </Link>
-          {submission.url && submission.domain ? (
+          {source ? (
             <>
               <span className="dot" aria-hidden="true" />
-              <a className="action" href={submission.url} target="_blank" rel="noopener noreferrer" aria-label={`Original article on ${submission.domain} (opens in new tab)`}>
-                {submission.domain}
-              </a>
+              {source.external ? (
+                <a className="action" href={source.href} target="_blank" rel="noopener noreferrer" aria-label={`Original article on ${source.label} (opens in new tab)`}>
+                  {source.label}
+                </a>
+              ) : (
+                <Link className="action" href={source.href}>
+                  {source.label}
+                </Link>
+              )}
             </>
           ) : null}
           <span className="dot" aria-hidden="true" />

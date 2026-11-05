@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Portlet } from "@/components/layout/Portlet";
 import { QUALITY_COMPONENTS, type Exploration } from "@/lib/discovery/hole-types";
+import { sourceLink } from "@/lib/hackernews/source-link";
 import { articlePath } from "@/lib/wikipedia/titles";
 import styles from "./exploration.module.css";
 
@@ -26,6 +27,7 @@ const REASON_LABELS: Record<string, string> = {
  */
 export function ExplorationTools({ exploration }: { exploration: Exploration }) {
   const { entities, quality, submission } = exploration;
+  const source = sourceLink(submission);
   return (
     <>
       <Portlet id="tools-extracted" heading="What was extracted" headingTag="h2">
@@ -69,7 +71,7 @@ export function ExplorationTools({ exploration }: { exploration: Exploration }) 
         heading="Sources"
         items={[
           { href: submission.hnUrl, label: "Submission on Hacker News", external: true },
-          ...(submission.url ? [{ href: submission.url, label: submission.domain ?? "Original article", external: true }] : []),
+          ...(source ? [source] : []),
           { href: "https://github.com/HackerNews/API", label: "Hacker News API", external: true },
           { href: "https://creativecommons.org/licenses/by-sa/4.0/", label: "Wikipedia text: CC BY-SA 4.0", external: true },
         ]}
