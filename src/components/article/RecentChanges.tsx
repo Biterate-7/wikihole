@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ContributorName, countLabel, revisionUrl, SizeDelta, SummaryText } from "@/components/history/RevisionParts";
+import { ContributorName, countLabel, SizeDelta, SummaryText } from "@/components/history/RevisionParts";
 import history from "@/components/history/history.module.css";
 import { formatDateTime, formatDelta } from "@/lib/format";
 import { historyPath } from "@/lib/wikipedia/titles";
@@ -31,10 +31,10 @@ export function RecentChanges({ title, lang, data }: { title: string; lang: stri
         <ol className={history.entries} data-testid="recent-changes">
           {recent.slice(0, SHOWN).map((revision) => (
             <li key={revision.id} className={history.entry}>
-              <a className={history.time} href={revisionUrl(lang, revision.id)} target="_blank" rel="noopener noreferrer" title="This revision on Wikipedia">
+              <span className={`${history.time} ${history.plainTime}`}>
                 <time dateTime={revision.timestamp}>{formatDateTime(revision.timestamp)}</time>
-              </a>
-              <ContributorName contributor={revision.contributor} lang={lang} />
+              </span>
+              <ContributorName contributor={revision.contributor} lang={lang} linked={false} />
               <span className={history.summary}>
                 {revision.minor ? (
                   <abbr className={history.flag} title="Minor edit">

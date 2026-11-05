@@ -66,6 +66,11 @@
   white-space: nowrap;
 }
 
+/* The time of an edit where it is not a link (the article's Recent changes). */
+.time.plainTime {
+  color: inherit;
+}
+
 .contributor {
   min-width: 0;
   overflow-wrap: anywhere;

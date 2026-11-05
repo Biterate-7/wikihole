@@ -17,9 +17,20 @@ export function countLabel(count: HistoryCount): string {
   return `${count.count.toLocaleString("en-US")}${count.capped ? "+" : ""}`;
 }
 
-export function ContributorName({ contributor, lang }: { contributor: Contributor; lang: string }) {
+/**
+ * A contributor's name. It links to their Wikipedia user page as attribution on
+ * the history page; the article itself passes `linked={false}` and keeps readers here.
+ */
+export function ContributorName({ contributor, lang, linked = true }: { contributor: Contributor; lang: string; linked?: boolean }) {
   switch (contributor.kind) {
     case "registered":
+      if (!linked) {
+        return (
+          <span className={styles.contributor} dir="auto">
+            {contributor.name}
+          </span>
+        );
+      }
       return (
         <a
           className={styles.contributor}
