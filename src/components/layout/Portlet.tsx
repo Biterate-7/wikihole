@@ -41,6 +41,10 @@ export function Portlet({
                 <a href={item.href} target="_blank" rel="noopener noreferrer" title={item.title} lang={item.lang}>
                   {item.label}
                 </a>
+              ) : item.href.startsWith("#") ? (
+                <a href={item.href} title={item.title} lang={item.lang}>
+                  {item.label}
+                </a>
               ) : (
                 <Link href={item.href} aria-current={item.current ? "page" : undefined} title={item.title} lang={item.lang} prefetch={false}>
                   {item.label}

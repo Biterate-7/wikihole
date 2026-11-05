@@ -48,3 +48,10 @@ next-env.d.ts
 
 # server-side data (Hacker News rabbit holes)
 /.data/
+
+# visual regression recordings
+/tests/visual/.recording/
+/tests/visual/out/
+
+# pipeline working state (rebuildable; the published snapshot lives in data/snapshot)
+/data/work/

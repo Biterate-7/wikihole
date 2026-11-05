@@ -12,9 +12,8 @@ test.describe("A: discover feed", () => {
     const titles = await items.evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.title ?? ""));
     expect(new Set(titles).size).toBe(titles.length);
 
-    // Every item links to its Wikipedia source.
-    const sources = await page.locator('[data-testid=feed-item] a[href^="https://en.wikipedia.org/wiki/"]').count();
-    expect(sources).toBe(titles.length);
+    // No item sends the reader out to Wikipedia; each stays inside WikiHole.
+    await expect(page.locator('[data-testid=feed-item] a[href*="wikipedia.org"]')).toHaveCount(0);
 
     // Descriptions are Wikipedia's own intro text (TextExtracts), not generated copy.
     for (const index of [0, 1, 2]) {
@@ -130,10 +129,9 @@ test.describe("C: article reading", () => {
     await expect(page.getByRole("heading", { level: 2, name: "History" })).toBeVisible();
     expect(await page.locator(".katex").count()).toBeGreaterThan(3);
 
-    const source = page.getByTestId("source-link");
-    await expect(source).toHaveAttribute("href", "https://en.wikipedia.org/wiki/Halting_problem");
-    const response = await page.request.head("https://en.wikipedia.org/wiki/Halting_problem");
-    expect(response.ok()).toBe(true);
+    // The reader offers no way out to Wikipedia.
+    await expect(page.getByText("View on Wikipedia")).toHaveCount(0);
+    await expect(page.locator('a[href*="wikipedia.org"]')).toHaveCount(0);
 
     await expect(page.getByRole("navigation", { name: "Article contents" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Key concepts" })).toBeVisible();

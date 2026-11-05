@@ -1,0 +1,283 @@
+/*
+ * The contextual reading tools: term popovers, the selection toolbar and
+ * section summaries. White, a thin neutral border, a minimal shadow, compact
+ * type. Generated text always sits under an "AI-generated" tag, and Wikipedia's
+ * own words sit apart from it.
+ */
+
+/* ---------- Popover ---------- */
+
+.popover {
+  z-index: 80;
+  width: min(23rem, calc(100vw - 24px));
+  max-height: min(70vh, 30rem);
+  overflow-y: auto;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  background: var(--background-base);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  font-family: var(--reading);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-base);
+  overflow-wrap: break-word;
+}
+
+.popoverHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.popoverTerm {
+  min-width: 0;
+  font-weight: 700;
+  color: var(--color-emphasized);
+}
+
+.close {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: -4px -6px -4px 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  font-size: 1.125rem;
+  line-height: 1;
+  color: var(--color-subtle);
+}
+
+.close:hover {
+  background: var(--background-neutral);
+  color: var(--color-base);
+}
+
+.levels {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.level {
+  margin-bottom: -1px;
+  padding: 0 0 3px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  font-size: 0.8125rem;
+  color: var(--color-subtle);
+}
+
+.level:hover {
+  color: var(--color-base);
+}
+
+.level[aria-pressed="true"] {
+  border-bottom-color: var(--color-emphasized);
+  color: var(--color-emphasized);
+}
+
+.aiText {
+  margin-bottom: 6px;
+}
+
+.simpler {
+  margin-bottom: 6px;
+  color: var(--color-base);
+}
+
+.simplerLabel {
+  color: var(--color-subtle);
+}
+
+.deeper {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-light);
+}
+
+.points {
+  margin: 0 0 6px 1.2em;
+  padding: 0;
+}
+
+.points li {
+  margin-bottom: 3px;
+}
+
+.connections {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.connections li {
+  margin-bottom: 5px;
+}
+
+.reason {
+  color: var(--color-subtle);
+}
+
+.passage {
+  display: -webkit-box;
+  margin-bottom: 8px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border-muted);
+  overflow: hidden;
+  font-size: 0.8125rem;
+  color: var(--color-subtle);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.provenance {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-subtle);
+}
+
+.aiTag {
+  font-weight: 700;
+  color: var(--color-subtle);
+}
+
+.source {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-light);
+}
+
+.sourceText {
+  margin-bottom: 4px;
+  font-size: 0.8125rem;
+}
+
+.sourceLabel {
+  font-size: 0.8125rem;
+  color: var(--color-subtle);
+}
+
+.sourceLink {
+  font-size: 0.8125rem;
+}
+
+.linkButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: inherit;
+  color: var(--color-progressive);
+}
+
+.linkButton:hover {
+  text-decoration: underline;
+}
+
+.loading {
+  padding: 3px 0 7px;
+}
+
+.failure {
+  margin-bottom: 4px;
+  color: var(--color-base);
+}
+
+/* ---------- Selection toolbar ---------- */
+
+.toolbar {
+  display: flex;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  background: var(--background-base);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  font-family: var(--reading);
+}
+
+/* Touch screens: clear of the system selection menu, within reach of a thumb. */
+.toolbarDocked {
+  position: fixed;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  left: 12px;
+  z-index: 80;
+}
+
+.toolbarButton {
+  flex: 1 1 auto;
+  padding: 5px 10px;
+  border: 0;
+  border-left: 1px solid var(--border-light);
+  background: none;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--color-base);
+  white-space: nowrap;
+}
+
+.toolbarButton:first-child {
+  border-left: 0;
+}
+
+.toolbarButton:hover {
+  background: var(--background-neutral-subtle);
+}
+
+.toolbarDocked .toolbarButton {
+  padding: 10px 4px;
+  white-space: normal;
+}
+
+/* ---------- Section summaries ---------- */
+
+/* Where Wikipedia puts [edit]: at the heading's right, in small body text. */
+.sectionTool {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  /* Clears the heading rule, which sits above the h2 margin at the bottom of this row. */
+  margin-bottom: 0.85em;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--reading);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--color-progressive);
+}
+
+.sectionTool:hover {
+  text-decoration: underline;
+}
+
+.aiBox {
+  grid-column: 1 / -1;
+  margin: 0.5em 0 1em;
+  padding: 8px 12px;
+  border-left: 2px solid var(--border-base);
+  background: var(--background-neutral-subtle);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.aiBoxHead {
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+  color: var(--color-subtle);
+}
+
+@media print {
+  .popover,
+  .toolbar,
+  .sectionTool,
+  .aiBox {
+    display: none !important;
+  }
+}

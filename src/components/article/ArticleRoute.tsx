@@ -3,26 +3,31 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { Suspense } from "react";
 import {
   ArticleSections,
+  articleTabs,
   ArticleTools,
   Catlinks,
   Infobox,
   KeyConcepts,
+  Recommendation,
   SectionsSkeleton,
   StudyNavbox,
-  wikipediaLinks,
 } from "@/components/article/ArticleParts";
+import { ArticleMetadata } from "@/components/article/ArticleMetadata";
 import { Blocks } from "@/components/article/Blocks";
 import { InsightsPanel } from "@/components/article/InsightsPanel";
+import { ReadingLayer } from "@/components/article/ReadingLayer";
 import { ReadingProgress } from "@/components/article/ReadingProgress";
+import { RecentChanges, RecentChangesSkeleton } from "@/components/article/RecentChanges";
 import { RelatedList } from "@/components/article/RelatedList";
-import { Toc, TocDropdown } from "@/components/article/Toc";
+import { SectionBar, Toc, TocDropdown } from "@/components/article/Toc";
 import { TrailTracker } from "@/components/article/TrailTracker";
 import styles from "@/components/article/article.module.css";
 import { PageShell, SiteSub } from "@/components/layout/PageShell";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { SaveButton } from "@/components/ui/SaveButton";
 import { isAiEnabled } from "@/lib/ai/config";
-import { loadArticle, loadLead, loadMeta } from "@/lib/article";
+import { getRecommendation } from "@/lib/curated/service";
+import { loadArticle, loadHistory, loadLead, loadMeta } from "@/lib/article";
 import type { ArticleDocument, Block, Heading, WikiImage } from "@/lib/content/types";
 import { classifyGroup, readingMinutes } from "@/lib/discovery/score";
 import { getRelated } from "@/lib/discovery/engine";
@@ -31,7 +36,7 @@ import { leadSentences } from "@/lib/format";
 import { DEFAULT_LANGUAGE, getLanguage, languageLocale } from "@/lib/i18n/languages";
 import { attempt, describeError } from "@/lib/server/http";
 import { WikipediaError } from "@/lib/wikipedia/http";
-import { articlePath, titleFromSlug, wikipediaUrl } from "@/lib/wikipedia/titles";
+import { articlePath, titleFromSlug } from "@/lib/wikipedia/titles";
 import type { PageMeta } from "@/lib/wikipedia/types";
 
 /**
@@ -97,11 +102,20 @@ function withoutImage(blocks: Block[], image: WikiImage | undefined): Block[] {
   return blocks.filter((b) => !(b.k === "figure" && fileName(b.img.src) === name));
 }
 
+/** Parsed alone, the lead comes with its own copy of the references it cites; the References section is the real list. */
+function withoutLeadReferences(blocks: Block[]): Block[] {
+  return blocks.filter((b) => b.k !== "refs");
+}
+
 function tocHeadings(doc: ArticleDocument): Heading[] {
-  return doc.sections.flatMap((s) => [
-    { id: s.id, text: s.title, level: 2 as const },
-    ...s.headings.filter((h) => h.level === 3),
-  ]);
+  return [
+    ...doc.sections.flatMap((s) => [
+      { id: s.id, text: s.title, level: 2 as const },
+      ...s.headings.filter((h) => h.level === 3),
+    ]),
+    { id: "recent-changes", text: "Recent changes", level: 2 },
+    { id: "rabbit-hole", text: "Rabbit hole", level: 2 },
+  ];
 }
 
 type Slot = { title: string; lang: string };
@@ -113,19 +127,26 @@ async function TocSlot({ title, lang }: Slot) {
 
 async function TocDropdownSlot({ title, lang }: Slot) {
   const doc = await attempt(() => loadArticle(title, lang));
-  return doc.ok ? <TocDropdown headings={tocHeadings(doc.value)} /> : null;
+  if (!doc.ok) return null;
+  const headings = tocHeadings(doc.value);
+  return (
+    <>
+      <TocDropdown headings={headings} />
+      <SectionBar headings={headings} />
+    </>
+  );
 }
 
 async function BodySlot({ title, lang }: Slot) {
   const doc = await attempt(() => loadArticle(title, lang));
-  if (doc.ok) return <ArticleSections doc={doc.value} />;
+  if (doc.ok) return <ArticleSections doc={doc.value} aiEnabled={isAiEnabled()} />;
   return (
     <StateMessage
       kind="error"
       title="The rest of this article could not be loaded."
       action={
-        <a className="btn" href={wikipediaUrl(title, lang)} target="_blank" rel="noopener noreferrer">
-          Read it on Wikipedia
+        <a className="btn" href={articlePath(title, undefined, lang)}>
+          Try again
         </a>
       }
     >
@@ -134,9 +155,25 @@ async function BodySlot({ title, lang }: Slot) {
   );
 }
 
+function HistoryFacts({ title, lang, meta }: Slot & { meta: PageMeta }) {
+  return (
+    <Suspense fallback={<ArticleMetadata title={meta.title} lang={lang} history={null} lastEdited={meta.lastEdited} />}>
+      <MetadataSlot title={title} lang={lang} lastEdited={meta.lastEdited} />
+    </Suspense>
+  );
+}
+
 async function ToolsSlot({ title, lang, meta }: Slot & { meta: PageMeta }) {
   const doc = await attempt(() => loadArticle(title, lang));
-  return <ArticleTools meta={meta} doc={doc.ok ? doc.value : null} concepts={doc.ok ? <KeyConcepts doc={doc.value} /> : null} />;
+  const recommendation = lang === DEFAULT_LANGUAGE ? getRecommendation(meta.pageId) : undefined;
+  return (
+    <ArticleTools
+      meta={meta}
+      concepts={doc.ok ? <KeyConcepts doc={doc.value} /> : null}
+      recommendation={recommendation ? <Recommendation article={recommendation} /> : null}
+      history={<HistoryFacts title={title} lang={lang} meta={meta} />}
+    />
+  );
 }
 
 async function FooterSlot({ title, lang }: Slot) {
@@ -163,6 +200,14 @@ async function RelatedSlot({ title, lang }: Slot) {
   );
 }
 
+async function MetadataSlot({ title, lang, lastEdited }: Slot & { lastEdited?: string }) {
+  return <ArticleMetadata title={title} lang={lang} history={await loadHistory(title, lang)} lastEdited={lastEdited} />;
+}
+
+async function RecentChangesSlot({ title, lang }: Slot) {
+  return <RecentChanges title={title} lang={lang} data={await loadHistory(title, lang)} />;
+}
+
 function RelatedSkeleton() {
   return (
     <div aria-hidden="true" className={styles.relatedList}>
@@ -175,20 +220,6 @@ function RelatedSkeleton() {
       ))}
     </div>
   );
-}
-
-function articleTabs(title: string, lang: string) {
-  return {
-    left: [
-      { label: "Article", href: articlePath(title, undefined, lang), selected: true },
-      { label: "Rabbit hole", href: "#rabbit-hole", title: "Related articles and where they lead" },
-    ],
-    right: [
-      { label: "Read", href: articlePath(title, undefined, lang), selected: true },
-      { label: "View on Wikipedia", href: wikipediaUrl(title, lang), external: true, testId: "source-link" },
-      { label: "View history", href: wikipediaLinks(title, lang).history, external: true },
-    ],
-  };
 }
 
 function siteSub(lang: string): string {
@@ -210,14 +241,9 @@ export async function ArticleView({ slug, lang }: { slug: string[]; lang: string
           kind="error"
           title={`“${title}” could not be loaded.`}
           action={
-            <>
-              <a className="btn" href={articlePath(title, undefined, lang)}>
-                Try again
-              </a>
-              <a className="btn" href={wikipediaUrl(title, lang)} target="_blank" rel="noopener noreferrer">
-                Open on Wikipedia
-              </a>
-            </>
+            <a className="btn" href={articlePath(title, undefined, lang)}>
+              Try again
+            </a>
           }
         >
           {describeError(loaded.error).message}
@@ -267,7 +293,7 @@ export async function ArticleView({ slug, lang }: { slug: string[]; lang: string
           />
         }
         tools={
-          <Suspense fallback={<ArticleTools meta={meta} doc={null} concepts={null} />}>
+          <Suspense fallback={<ArticleTools meta={meta} concepts={null} history={<HistoryFacts {...slot} meta={meta} />} />}>
             <ToolsSlot {...slot} meta={meta} />
           </Suspense>
         }
@@ -276,7 +302,7 @@ export async function ArticleView({ slug, lang }: { slug: string[]; lang: string
         <TrailTracker title={meta.title} description={meta.description} lang={lang} />
         <div id="article-body" className={styles.prose} lang={locale} dir={language.dir}>
           <Infobox title={meta.title} rows={lead.infobox} image={image} description={meta.description} />
-          <Blocks blocks={proseFirst(withoutImage(lead.lead, image))} />
+          <Blocks blocks={proseFirst(withoutLeadReferences(withoutImage(lead.lead, image)))} />
           <Suspense fallback={<SectionsSkeleton />}>
             <BodySlot {...slot} />
           </Suspense>
@@ -285,7 +311,18 @@ export async function ArticleView({ slug, lang }: { slug: string[]; lang: string
           </Suspense>
         </div>
 
+        <ReadingLayer key={meta.title} title={meta.title} lang={lang} aiEnabled={isAiEnabled()} />
+
         {isAiEnabled() ? <InsightsPanel title={meta.title} lang={lang} /> : null}
+
+        <section id="recent-changes" className={styles.recentChanges} aria-labelledby="recent-changes-heading">
+          <h2 id="recent-changes-heading" className={styles.h2}>
+            Recent changes
+          </h2>
+          <Suspense fallback={<RecentChangesSkeleton />}>
+            <RecentChangesSlot {...slot} />
+          </Suspense>
+        </section>
 
         <section id="rabbit-hole" className={styles.rabbitHole} aria-labelledby="rabbit-hole-heading">
           <h2 id="rabbit-hole-heading" className={styles.h2}>

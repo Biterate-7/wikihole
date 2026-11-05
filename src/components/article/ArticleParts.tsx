@@ -3,31 +3,43 @@ import { Portlet } from "@/components/layout/Portlet";
 import { PrintLink } from "@/components/layout/PrintLink";
 import layout from "@/components/layout/layout.module.css";
 import { equations, keyConcepts, terminology } from "@/lib/content/concepts";
-import type { ArticleDocument, InfoboxRow, Section, WikiImage } from "@/lib/content/types";
+import { inlineText } from "@/lib/content/parse";
+import type { ArticleDocument, Block, InfoboxRow, Section, WikiImage } from "@/lib/content/types";
+import type { RecommendedArticle } from "@/lib/curated/types";
 import { classifyGroup, readingMinutes, sourcedDate } from "@/lib/discovery/score";
 import { GROUPS } from "@/lib/discovery/topics";
-import { ASSESSMENT_LABELS, formatCount, formatDate } from "@/lib/format";
+import { ASSESSMENT_LABELS, formatCount } from "@/lib/format";
 import { DEFAULT_LANGUAGE, wikipediaDomain } from "@/lib/i18n/languages";
-import { articlePath } from "@/lib/wikipedia/titles";
+import { articlePath, historyPath } from "@/lib/wikipedia/titles";
 import { PAGEVIEW_DAYS, type PageMeta } from "@/lib/wikipedia/types";
 import { Blocks } from "./Blocks";
 import { InlineContent, MathView } from "./Inline";
+import { SectionSummary } from "./SectionSummary";
 import styles from "./article.module.css";
 
-const wikiPage = (domain: string, title: string) => `https://${domain}/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
-const wikiAction = (domain: string, title: string, action: string) =>
-  `https://${domain}/w/index.php?title=${encodeURIComponent(title.replace(/ /g, "_"))}&action=${action}`;
-
-/** Links for the article's view tabs and tools, on its own Wikipedia edition. */
+/**
+ * The article's original history on its own Wikipedia edition. Linked only from the
+ * history page, as the attribution for the revisions it shows.
+ */
 export function wikipediaLinks(title: string, lang = DEFAULT_LANGUAGE) {
   const domain = wikipediaDomain(lang);
   return {
-    history: wikiAction(domain, title, "history"),
-    info: wikiAction(domain, title, "info"),
-    whatLinksHere: wikiPage(domain, `Special:WhatLinksHere/${title}`),
-    category: (name: string) => wikiPage(domain, `Category:${name}`),
-    revision: (revId: number) => `https://${domain}/w/index.php?oldid=${revId}`,
+    history: `https://${domain}/w/index.php?title=${encodeURIComponent(title.replace(/ /g, "_"))}&action=history`,
     domain,
+  };
+}
+
+/** The article's namespace and view tabs. The history page shares them, so it marks a different tab as current. */
+export function articleTabs(title: string, lang: string, view: "read" | "history" = "read") {
+  return {
+    left: [
+      { label: "Article", href: articlePath(title, undefined, lang), selected: view === "read" },
+      { label: "Rabbit hole", href: `${view === "read" ? "" : articlePath(title, undefined, lang)}#rabbit-hole`, title: "Related articles and where they lead" },
+    ],
+    right: [
+      { label: "Read", href: articlePath(title, undefined, lang), selected: view === "read" },
+      { label: "View history", href: historyPath(title, lang), selected: view === "history", testId: "history-link" },
+    ],
   };
 }
 
@@ -79,37 +91,54 @@ export function Infobox({
   );
 }
 
-function SectionView({ section }: { section: Section }) {
+/** Text this short summarises itself. */
+const MIN_SECTION_WORDS_FOR_SUMMARY = 120;
+
+function sectionWords(blocks: Block[]): number {
+  let words = 0;
+  for (const block of blocks) {
+    if (block.k === "p") words += inlineText(block.c).split(/\s+/).length;
+    else if (block.k === "list") words += block.items.reduce((n, item) => n + inlineText(item.c).split(/\s+/).length, 0);
+  }
+  return words;
+}
+
+function SectionView({ section, summary }: { section: Section; summary?: { title: string; lang: string } }) {
+  const offerSummary = summary && section.kind === "content" && sectionWords(section.blocks) >= MIN_SECTION_WORDS_FOR_SUMMARY;
   return (
     <section
       id={section.id}
       aria-labelledby={`${section.id}-h`}
       className={`${styles.section} ${section.kind !== "content" ? styles.appendix : ""}`}
       data-testid="article-section"
+      data-no-terms={section.kind !== "content" ? "" : undefined}
     >
-      <h2 id={`${section.id}-h`} className={styles.h2}>
-        {section.title}
-      </h2>
+      <div className={styles.sectionHead}>
+        <h2 id={`${section.id}-h`} className={`${styles.h2} ${offerSummary ? styles.h2WithTool : ""}`}>
+          {section.title}
+        </h2>
+        {offerSummary ? <SectionSummary title={summary.title} lang={summary.lang} sectionId={section.id} sectionTitle={section.title} /> : null}
+      </div>
       <Blocks blocks={section.blocks} />
     </section>
   );
 }
 
-export function ArticleSections({ doc }: { doc: ArticleDocument }) {
+export function ArticleSections({ doc, aiEnabled }: { doc: ArticleDocument; aiEnabled: boolean }) {
+  const summary = aiEnabled ? { title: doc.title, lang: doc.lang ?? DEFAULT_LANGUAGE } : undefined;
   return (
     <>
       {doc.sections.map((s) => (
-        <SectionView key={s.id} section={s} />
+        <SectionView key={s.id} section={s} summary={summary} />
       ))}
     </>
   );
 }
 
 /** "Page information" for the tools column: Wikipedia metadata about this article. */
-export function PageInformation({ meta }: { meta: PageMeta }) {
+export function PageInformation({ meta, history }: { meta: PageMeta; history?: React.ReactNode }) {
   const group = GROUPS.find((g) => g.id === classifyGroup(meta));
   const date = sourcedDate(meta.categories);
-  const edited = formatDate(meta.lastEdited);
   const quality = meta.assessment ? ASSESSMENT_LABELS[meta.assessment] : undefined;
   return (
     <Portlet id="tools-page-info" heading="This article">
@@ -146,34 +175,38 @@ export function PageInformation({ meta }: { meta: PageMeta }) {
             </dd>
           </div>
         ) : null}
-        {edited ? (
-          <div>
-            <dt>Last edited</dt>
-            <dd>{edited}</dd>
-          </div>
-        ) : null}
       </dl>
+      {history}
     </Portlet>
   );
 }
 
-/** The article's tools column: Wikipedia's tools plus Wikihole's key concepts. */
-export function ArticleTools({ meta, doc, concepts }: { meta: PageMeta; doc: ArticleDocument | null; concepts: React.ReactNode }) {
-  const links = wikipediaLinks(meta.title, meta.lang);
+/** The article's tools column: Wikihole's own tools plus its key concepts. */
+export function ArticleTools({
+  meta,
+  concepts,
+  recommendation,
+  history,
+}: {
+  meta: PageMeta;
+  concepts: React.ReactNode;
+  recommendation?: React.ReactNode;
+  /** The history facts, which stream in separately. */
+  history: React.ReactNode;
+}) {
   return (
     <div className={layout.tools}>
       <Portlet
         id="tools-general"
         heading="General"
         items={[
-          { href: links.whatLinksHere, label: "What links here", external: true },
-          { href: links.info, label: "Page information", external: true },
-          ...(doc ? [{ href: links.revision(doc.revId), label: "Permanent link", external: true, title: `Revision ${doc.revId}` }] : []),
+          { href: "#recent-changes", label: "Recent changes" },
           { href: "#rabbit-hole", label: "Related articles" },
           { href: "/random", label: "Random discovery" },
         ]}
       />
-      <PageInformation meta={meta} />
+      <PageInformation meta={meta} history={history} />
+      {recommendation}
       {concepts}
       <Portlet id="tools-print" heading="Print/export">
         <ul className={layout.portletList}>
@@ -182,15 +215,37 @@ export function ArticleTools({ meta, doc, concepts }: { meta: PageMeta; doc: Art
           </li>
         </ul>
       </Portlet>
-      <Portlet
-        id="tools-projects"
-        heading="In other projects"
-        items={[
-          { href: `https://${links.domain}/`, label: "Wikipedia", external: true },
-          ...(meta.wikidataId ? [{ href: `https://www.wikidata.org/wiki/${meta.wikidataId}`, label: "Wikidata item", external: true }] : []),
-        ]}
-      />
+      {meta.wikidataId ? (
+        <Portlet
+          id="tools-projects"
+          heading="In other projects"
+          items={[{ href: `https://www.wikidata.org/wiki/${meta.wikidataId}`, label: "Wikidata item", external: true }]}
+        />
+      ) : null}
     </div>
+  );
+}
+
+/** Why people recommend this article, shown only when the human dataset has evidence for it. */
+export function Recommendation({ article }: { article: RecommendedArticle }) {
+  const first = new Date(article.firstAt * 1000).getUTCFullYear();
+  const last = new Date(article.lastAt * 1000).getUTCFullYear();
+  return (
+    <Portlet
+      id="tools-recommendation"
+      heading="Recommended by people"
+      items={article.evidence.slice(0, 3).map((evidence) => ({
+        href: evidence.url,
+        label: `${evidence.community}, ${new Date(evidence.at * 1000).getUTCFullYear()}`,
+        external: true,
+        title: evidence.excerpt.replace(/\[\[|\]\]/g, ""),
+      }))}
+    >
+      <p className={layout.portletNote} data-testid="article-recommendation">
+        {article.qualifying} {article.qualifying === 1 ? "recommendation" : "recommendations"} in {article.discussions} {article.discussions === 1 ? "discussion" : "discussions"},{" "}
+        {first === last ? first : `${first}–${last}`}.
+      </p>
+    </Portlet>
   );
 }
 
@@ -226,7 +281,7 @@ export function StudyNavbox({ doc }: { doc: ArticleDocument }) {
   const eqs = equations(doc, 6);
   if (terms.length === 0 && eqs.length === 0) return null;
   return (
-    <details className={styles.navbox} open>
+    <details className={styles.navbox} open data-no-terms>
       <summary className={styles.navboxTitle}>
         <span className={styles.navboxToggle} aria-hidden="true" />
         <span>Study aids for {doc.title}</span>
@@ -283,28 +338,16 @@ export function StudyNavbox({ doc }: { doc: ArticleDocument }) {
 /** The categories box at the foot of every Wikipedia article. */
 export function Catlinks({ doc }: { doc: ArticleDocument }) {
   if (doc.categories.length === 0) return null;
-  const links = wikipediaLinks(doc.title, doc.lang);
   return (
     <div className={styles.catlinks}>
-      <a href={`https://${links.domain}/wiki/Help:Category`} target="_blank" rel="noopener noreferrer">
-        Categories
-      </a>
-      :{" "}
+      Categories:{" "}
       <ul>
         {doc.categories.map((c) => (
-          <li key={c}>
-            <a href={links.category(c)} target="_blank" rel="noopener noreferrer">
-              {c}
-            </a>
-          </li>
+          <li key={c}>{c}</li>
         ))}
       </ul>
       <p className={styles.catlinksSource}>
-        {doc.stats.words.toLocaleString("en-US")} words · {doc.stats.references} references · revision{" "}
-        <a href={links.revision(doc.revId)} target="_blank" rel="noopener noreferrer">
-          {doc.revId}
-        </a>{" "}
-        ·{" "}
+        {doc.stats.words.toLocaleString("en-US")} words · {doc.stats.references} references · revision {doc.revId} ·{" "}
         <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="license noopener noreferrer">
           CC BY-SA 4.0
         </a>

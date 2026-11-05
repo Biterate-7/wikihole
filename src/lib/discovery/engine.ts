@@ -1,6 +1,7 @@
 import "server-only";
 import { TtlCache } from "@/lib/cache";
 import { rankLinks } from "@/lib/content/concepts";
+import { getRecommended, getRelatedLinks } from "@/lib/curated/store";
 import type { ArticleDocument } from "@/lib/content/types";
 import { DEFAULT_LANGUAGE } from "@/lib/i18n/languages";
 import { getMoreLike, getPagesMeta, getPagesMetaMap, getRandomTitles, searchCandidates } from "@/lib/wikipedia/api";
@@ -10,6 +11,7 @@ import { DATE_TITLE, LIST_TITLE, NUMBER_TITLE } from "./lexicon";
 import { extractFeatures, rejectReason, topCategories, type Candidate } from "./score";
 import { selectDiverse, type Scored } from "./select";
 import { GROUPS, allSubtopics, resolveTopic, type Subtopic } from "./topics";
+import type { RelatedLink } from "@/lib/curated/types";
 import type { Discovery, FeedPreset, PoolStats, RejectReason, RelationSource } from "./types";
 
 /* ------------------------------------------------------------------------ */
@@ -278,6 +280,30 @@ interface RelatedSeed {
   strength: number;
 }
 
+function curatedSeed(link: RelatedLink): RelatedSeed {
+  return link.kind === "co-recommended"
+    ? {
+        title: link.title,
+        strength: Math.min(0.95, 0.75 + 0.05 * link.weight),
+        relation: { kind: "co-recommended", label: "Recommended in the same discussions" },
+      }
+    : { title: link.title, strength: 0.7, relation: { kind: "reader-path", label: "Where Wikipedia readers go next" } };
+}
+
+/** People's recommendations lift a candidate within the existing model. */
+function liftedStrength(meta: PageMeta, strength: number): number {
+  const article = meta.lang ? undefined : getRecommended().byId.get(meta.pageId);
+  return article ? Math.min(1, strength + 0.05 + 0.02 * Math.min(5, article.discussions)) : strength;
+}
+
+function attachRecommendations(items: Discovery[]): Discovery[] {
+  const { byId } = getRecommended();
+  return items.map((item) => {
+    const article = item.lang ? undefined : byId.get(item.pageId);
+    return article ? { ...item, recommended: { qualifying: article.qualifying, discussions: article.discussions } } : item;
+  });
+}
+
 export async function getRelated(doc: ArticleDocument, limit = 14): Promise<Discovery[]> {
   const lang = doc.lang ?? DEFAULT_LANGUAGE;
   return relatedCache.getOrLoad(`${lang}|${doc.pageId}|${doc.revId}|${limit}`, async () => {
@@ -287,6 +313,10 @@ export async function getRelated(doc: ArticleDocument, limit = 14): Promise<Disc
       if (!existing || existing.strength < seed.strength) seeds.set(seed.title, seed);
     };
 
+    // Offline evidence about this article joins the seeds; it costs no request here.
+    if (lang === DEFAULT_LANGUAGE) {
+      for (const link of getRelatedLinks()(doc.pageId)) add(curatedSeed(link));
+    }
     doc.seeAlso.slice(0, 15).forEach((title) =>
       add({ title, strength: 1, relation: { kind: "see-also", label: "Listed under See also" } }),
     );
@@ -341,11 +371,65 @@ export async function getRelated(doc: ArticleDocument, limit = 14): Promise<Disc
           relation = { kind: "shared-category", label: `Shares category “${shared}”`, evidence: shared };
         }
       }
-      const candidate: Candidate = { meta, relation, exploration: strength };
+      const lifted = liftedStrength(meta, strength);
+      const candidate: Candidate = { meta, relation, exploration: lifted };
       const existing = scored.get(meta.pageId);
-      if (!existing || existing.candidate.exploration < strength) scored.set(meta.pageId, { candidate, features });
+      if (!existing || existing.candidate.exploration < lifted) scored.set(meta.pageId, { candidate, features });
     }
-    return selectDiverse([...scored.values()], RELATED_WEIGHTS, { limit, noise: 0, maxPerCluster: 5 });
+    return attachRecommendations(selectDiverse([...scored.values()], RELATED_WEIGHTS, { limit, noise: 0, maxPerCluster: 5 }));
   });
+}
+
+/* ------------------------------------------------------------------------ */
+/* Contextual: suggestions from the reader's own history                     */
+/* ------------------------------------------------------------------------ */
+
+/**
+ * The Rabbit Hole's model applied to several articles at once: what people
+ * recommended alongside them and where readers go next, or Wikipedia's own
+ * text similarity for articles the human dataset does not know.
+ */
+export async function getContextual(titles: string[], exclude: number[] = [], limit = 12): Promise<Discovery[]> {
+  const excluded = new Set(exclude);
+  const read = new Set(titles);
+  const { byTitle } = getRecommended();
+  const links = getRelatedLinks();
+  const seeds = new Map<string, RelatedSeed & { because: string }>();
+  const add = (seed: RelatedSeed, because: string) => {
+    if (read.has(seed.title)) return;
+    const existing = seeds.get(seed.title);
+    if (!existing || existing.strength < seed.strength) seeds.set(seed.title, { ...seed, because });
+  };
+  await Promise.all(
+    titles.map(async (title) => {
+      const known = byTitle.get(title);
+      const related = known ? links(known.id) : [];
+      if (related.length) {
+        for (const link of related) add(curatedSeed(link), title);
+        return;
+      }
+      const similar = await getMoreLike(title, 6).catch(() => []);
+      similar.forEach((hit, rank) => add({ title: hit.title, strength: 0.7 - rank * 0.03, relation: { kind: "similar-text", label: "Textually similar" } }, title));
+    }),
+  );
+  const chosen = [...seeds.keys()].slice(0, 60);
+  const metas = await getPagesMetaMap(chosen);
+  const scored = new Map<number, Scored>();
+  for (const title of chosen) {
+    const meta = metas.get(title);
+    const seed = seeds.get(title);
+    if (!meta || !seed || excluded.has(meta.pageId)) continue;
+    const features = extractFeatures(meta);
+    if (rejectReason(meta, features, { strict: false })) continue;
+    const strength = liftedStrength(meta, seed.strength);
+    const candidate: Candidate = {
+      meta,
+      relation: { kind: "from-history", label: `Because you read ${seed.because}`, evidence: seed.relation.label },
+      exploration: strength,
+    };
+    const existing = scored.get(meta.pageId);
+    if (!existing || existing.candidate.exploration < strength) scored.set(meta.pageId, { candidate, features });
+  }
+  return attachRecommendations(selectDiverse([...scored.values()], RELATED_WEIGHTS, { limit, noise: 0, maxPerCluster: 4 }));
 }
 

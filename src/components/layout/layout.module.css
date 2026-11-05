@@ -24,13 +24,12 @@
   display: flex;
   flex: none;
   align-items: center;
-  margin-right: 12px;
+  margin-right: 24px;
 }
 
 @media (min-width: 1120px) {
   .headerStart {
     min-width: var(--column);
-    margin-right: 0;
   }
 }
 
@@ -675,4 +674,11 @@
   .toolbar {
     display: none !important;
   }
+}
+
+.portletNote {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-subtle);
 }

@@ -26,6 +26,15 @@ export function MathView({ html, tex, display }: { html?: string; tex: string; d
   );
 }
 
+function pointsToWikipedia(href: string): boolean {
+  try {
+    const host = new URL(href).hostname.toLowerCase();
+    return host === "wikipedia.org" || host.endsWith(".wikipedia.org");
+  } catch {
+    return false;
+  }
+}
+
 function renderInline(node: Inline, key: number): React.ReactNode {
   switch (node.k) {
     case "text":
@@ -76,7 +85,7 @@ function renderInline(node: Inline, key: number): React.ReactNode {
       );
     case "link":
       return (
-        <Link key={key} href={articlePath(node.to, node.fragment, node.lang)} prefetch={false} className={styles.wikiLink} data-wiki-link>
+        <Link key={key} href={articlePath(node.to, node.fragment, node.lang)} prefetch={false} className={styles.wikiLink} data-wiki-link data-title={node.to}>
           <InlineContent nodes={node.c} />
         </Link>
       );
@@ -87,6 +96,8 @@ function renderInline(node: Inline, key: number): React.ReactNode {
         </a>
       );
     case "ext":
+      // Links out to Wikipedia itself (non-article namespaces, external-links sections) stay as plain text.
+      if (pointsToWikipedia(node.href)) return <InlineContent key={key} nodes={node.c} />;
       return (
         <a key={key} href={node.href} target="_blank" rel="noopener noreferrer nofollow" className={styles.extLink}>
           <InlineContent nodes={node.c} />
@@ -96,7 +107,7 @@ function renderInline(node: Inline, key: number): React.ReactNode {
       return <MathView key={key} html={node.html} tex={node.tex} display={false} />;
     case "cite":
       return (
-        <sup key={key} className={styles.cite}>
+        <sup key={key} className={styles.cite} data-cite>
           <a href={`#${node.target}`} aria-label={`Reference ${node.label}`}>
             {node.label}
           </a>
