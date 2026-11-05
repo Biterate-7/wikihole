@@ -26,7 +26,7 @@ test.describe("Hacker News", () => {
     await page.screenshot({ path: "test-results/hn-feed-desktop.png", fullPage: false });
   });
 
-  test("a submission opens its rabbit hole with a working graph and Wikipedia links", async ({ page }) => {
+  test("a submission opens its rabbit hole with a working graph and reader links", async ({ page }) => {
     await page.goto("/hackernews");
     await waitForHoles(page);
     const first = page.getByTestId("hn-item").first();
@@ -38,10 +38,10 @@ test.describe("Hacker News", () => {
     await expect(page.getByTestId("hn-source").getByRole("link", { name: /Discussion on Hacker News/ })).toHaveAttribute("href", /news\.ycombinator\.com\/item\?id=\d+/);
     const primary = page.getByTestId("primary-article");
     await expect(primary).toBeVisible();
-    const wiki = primary.getByRole("link", { name: /^Wikipedia/ });
-    await expect(wiki).toHaveAttribute("href", /^https:\/\/en\.wikipedia\.org\/wiki\/.+/);
-    // The linked article really exists on Wikipedia.
-    const href = (await wiki.getAttribute("href"))!;
+    const read = primary.getByRole("link", { name: "Read in WikiHole" });
+    await expect(read).toHaveAttribute("href", /^\/wiki\/.+/);
+    // The primary article really exists on Wikipedia, and nothing here links out to it.
+    const href = (await read.getAttribute("href"))!;
     const ua = process.env.WIKIMEDIA_USER_AGENT || "WikiHole-e2e/1.0 (test suite)";
     const summary = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${href.split("/wiki/")[1]}`, {
       headers: { "User-Agent": ua, "Api-User-Agent": ua },
@@ -63,6 +63,9 @@ test.describe("Hacker News", () => {
     await graph.getByTestId("graph-node").nth(2).dispatchEvent("click");
     await expect(page.getByTestId("graph-detail")).toBeVisible();
     await expect(page.getByTestId("hole-article").first()).toBeVisible();
+    for (const region of [primary, page.getByTestId("graph-detail"), page.getByTestId("hole-article")]) {
+      await expect(region.locator('a[href*="wikipedia.org"]')).toHaveCount(0);
+    }
     await page.screenshot({ path: "test-results/hn-exploration-desktop.png", fullPage: true });
     await graph.screenshot({ path: "test-results/hn-graph-desktop.png" });
 

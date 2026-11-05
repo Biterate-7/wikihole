@@ -35,14 +35,6 @@ export function ArticleNode({ node, edge, selected, onSelect }: { node: HoleNode
             readingMinutes: node.readingMinutes,
           }}
         />
-        {node.url ? (
-          <>
-            <span className="dot" aria-hidden="true" />
-            <a className="action" href={node.url} target="_blank" rel="noopener noreferrer" aria-label={`${node.title} on Wikipedia (opens in new tab)`}>
-              Wikipedia
-            </a>
-          </>
-        ) : null}
         {onSelect ? (
           <>
             <span className="dot" aria-hidden="true" />

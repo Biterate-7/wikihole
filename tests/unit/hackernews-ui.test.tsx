@@ -159,7 +159,6 @@ describe("SubmissionExplorer", () => {
     expect(within(source).getByRole("link", { name: /Discussion on Hacker News/ }).getAttribute("href")).toBe("https://news.ycombinator.com/item?id=123");
     expect(within(source).getByRole("link", { name: /Original article/ }).getAttribute("href")).toBe("https://raft.github.io/");
     const primary = screen.getByTestId("primary-article");
-    expect(within(primary).getByRole("link", { name: /^Wikipedia/ }).getAttribute("href")).toBe("https://en.wikipedia.org/wiki/Raft_(algorithm)");
     expect(within(primary).getByRole("link", { name: /Read in WikiHole/ }).getAttribute("href")).toBe("/wiki/Raft_(algorithm)");
     expect(screen.getByTestId("hole-summary").textContent).toContain("The submission is mainly about Raft (algorithm), consensus algorithm.");
 
@@ -182,6 +181,14 @@ describe("SubmissionExplorer", () => {
     expect(entities.textContent).toContain("no matching article");
     expect(screen.getByRole("heading", { name: /Rabbit hole quality: 82/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Submission on Hacker News" }).getAttribute("href")).toBe("https://news.ycombinator.com/item?id=123");
+  });
+
+  it("links articles into the reader, never out to Wikipedia, and keeps the attribution", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<SubmissionExplorer exploration={exploration} status="complete" />);
+    await user.click(within(screen.getByRole("group", { name: "Exploration depth" })).getByRole("button", { name: "4" }));
+    expect(container.querySelectorAll('a[href*="wikipedia.org"]')).toHaveLength(0);
+    expect(screen.getByText("From Wikipedia: Raft (algorithm)")).toBeTruthy();
   });
 
   it("labels insufficient holes", () => {

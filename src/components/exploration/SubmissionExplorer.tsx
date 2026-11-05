@@ -205,11 +205,6 @@ export function SubmissionExplorer({ exploration, status }: { exploration: Explo
               <Link className="btn btn-primary" href={articlePath(primary.title)}>
                 Read in WikiHole
               </Link>
-              {primary.url ? (
-                <a className="btn" href={primary.url} target="_blank" rel="noopener noreferrer">
-                  Wikipedia
-                </a>
-              ) : null}
               <SaveButton
                 variant="button"
                 article={{
@@ -278,14 +273,6 @@ export function SubmissionExplorer({ exploration, status }: { exploration: Explo
                   <Link className="action" href={articlePath(selectedNode.title)}>
                     Read
                   </Link>
-                  {selectedNode.url ? (
-                    <>
-                      <span className="dot" aria-hidden="true" />
-                      <a className="action" href={selectedNode.url} target="_blank" rel="noopener noreferrer">
-                        Wikipedia
-                      </a>
-                    </>
-                  ) : null}
                 </div>
               </>
             )}
