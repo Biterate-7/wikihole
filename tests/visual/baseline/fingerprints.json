@@ -1,0 +1,1068 @@
+{
+ "home-desktop": {
+  "header": {
+   "box": [
+    0,
+    0,
+    1440
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    263,
+    65.5,
+    1
+   ],
+   "font": "sans-serif|32px|700|52px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Main menu']": {
+   "box": [
+    60,
+    111.8,
+    180
+   ],
+   "font": "sans-serif|14px|400|22.75px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    264,
+    66,
+    152.2
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    980.8,
+    66,
+    195.2
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    1200,
+    110.8,
+    196
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    240,
+    17,
+    406.3
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "discover-desktop": {
+  "header": {
+   "box": [
+    0,
+    0,
+    1440
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    264,
+    66,
+    912
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Main menu']": {
+   "box": [
+    60,
+    111.8,
+    180
+   ],
+   "font": "sans-serif|14px|400|22.75px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    264,
+    107.6,
+    121.8
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    1017.9,
+    107.6,
+    158.1
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    1200,
+    110.8,
+    196
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    240,
+    17,
+    406.3
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "topics-desktop": {
+  "header": {
+   "box": [
+    0,
+    0,
+    1440
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    264,
+    66,
+    912
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Main menu']": {
+   "box": [
+    60,
+    111.8,
+    180
+   ],
+   "font": "sans-serif|14px|400|22.75px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    264,
+    107.6,
+    39.7
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    1072.1,
+    107.6,
+    103.9
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    1200,
+    110.8,
+    196
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    240,
+    17,
+    406.3
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "topic-group-desktop": {
+  "header": {
+   "box": [
+    0,
+    0,
+    1440
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    264,
+    66,
+    912
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Main menu']": {
+   "box": [
+    60,
+    111.8,
+    180
+   ],
+   "font": "sans-serif|14px|400|22.75px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    264,
+    107.6,
+    104.7
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    1072.1,
+    107.6,
+    103.9
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    1200,
+    110.8,
+    196
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    240,
+    17,
+    406.3
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "search-desktop": {
+  "header": {
+   "box": [
+    0,
+    0,
+    1440
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    264,
+    66,
+    912
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Main menu']": {
+   "box": [
+    60,
+    111.8,
+    180
+   ],
+   "font": "sans-serif|14px|400|22.75px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    264,
+    107.6,
+    81
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    1200,
+    110.8,
+    196
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    240,
+    17,
+    406.3
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "saved-desktop": {
+  "header": {
+   "box": [
+    0,
+    0,
+    1440
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    264,
+    66,
+    912
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Main menu']": {
+   "box": [
+    60,
+    111.8,
+    180
+   ],
+   "font": "sans-serif|14px|400|22.75px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    264,
+    107.6,
+    42.8
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    1072.1,
+    107.6,
+    103.9
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    1200,
+    110.8,
+    196
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    240,
+    17,
+    406.3
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "article-desktop": {
+  "header": {
+   "box": [
+    0,
+    0,
+    1440
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    264,
+    66,
+    912
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    264,
+    107.6,
+    125.7
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    885.2,
+    107.6,
+    254.8
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    1200,
+    110.8,
+    196
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    251.2,
+    17,
+    406.3
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "article-de-desktop": {
+  "header": {
+   "box": [
+    0,
+    0,
+    1440
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    264,
+    66,
+    912
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    264,
+    107.6,
+    125.7
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    885.2,
+    107.6,
+    254.8
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    1200,
+    110.8,
+    196
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    251.2,
+    17,
+    406.3
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "home-mobile": {
+  "header": {
+   "box": [
+    0,
+    0,
+    390
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    15,
+    53.5,
+    1
+   ],
+   "font": "sans-serif|32px|700|52px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Main menu']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|22.75px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    16,
+    54,
+    152.2
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "discover-mobile": {
+  "header": {
+   "box": [
+    0,
+    0,
+    390
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    16,
+    54,
+    358
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Main menu']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|22.75px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    16,
+    95.6,
+    121.8
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "topics-mobile": {
+  "header": {
+   "box": [
+    0,
+    0,
+    390
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    16,
+    54,
+    358
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Main menu']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|22.75px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    16,
+    95.6,
+    39.7
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "topic-group-mobile": {
+  "header": {
+   "box": [
+    0,
+    0,
+    390
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    16,
+    54,
+    358
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Main menu']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|22.75px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    16,
+    95.6,
+    104.7
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "search-mobile": {
+  "header": {
+   "box": [
+    0,
+    0,
+    390
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    16,
+    54,
+    358
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Main menu']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|22.75px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    16,
+    95.6,
+    81
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "saved-mobile": {
+  "header": {
+   "box": [
+    0,
+    0,
+    390
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    16,
+    54,
+    358
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Main menu']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|22.75px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    16,
+    95.6,
+    42.8
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "article-mobile": {
+  "header": {
+   "box": [
+    0,
+    0,
+    390
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    50,
+    54,
+    324
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    16,
+    95.6,
+    125.7
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ },
+ "article-de-mobile": {
+  "header": {
+   "box": [
+    0,
+    0,
+    390
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "h1": {
+   "box": [
+    50,
+    54,
+    324
+   ],
+   "font": "\"Linux Libertine\", Georgia, Times, \"Source Serif 4\", serif|28.8px|400|39.6px",
+   "color": "rgb(16, 20, 24)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Namespaces']": {
+   "box": [
+    16,
+    95.6,
+    125.7
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "nav[aria-label='Views']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "#page-tools": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|16px|400|26px",
+   "color": "rgb(32, 33, 34)|rgba(0, 0, 0, 0)"
+  },
+  "input[type='search']": {
+   "box": [
+    0,
+    0,
+    0
+   ],
+   "font": "sans-serif|14px|400|21.9996px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)"
+  },
+  "body": {
+   "font": "sans-serif|16px",
+   "color": "rgb(32, 33, 34)|rgb(255, 255, 255)",
+   "overflow": 0
+  }
+ }
+}

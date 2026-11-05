@@ -11,6 +11,7 @@ import { attempt, describeError } from "@/lib/server/http";
 import { EditionNotice } from "@/components/i18n/EditionNotice";
 import { LanguageProvider } from "@/components/i18n/LanguageProvider";
 import { requestLanguage } from "@/lib/i18n/server";
+import { discoverTabs } from "./tabs";
 import styles from "../pages.module.css";
 
 export const dynamic = "force-dynamic";
@@ -39,17 +40,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
     <LanguageProvider initialLang={await requestLanguage()}>
       <PageShell
         title="Discover"
-        tabs={{
-          left: [
-            { label: "Discover", href: "/discover", selected: true },
-            { label: "Ranking", href: "#ranking", title: "How this feed is ranked" },
-          ],
-          right: [
-            { label: "Read", href: "/discover", selected: true },
-            { label: "Topics", href: "/topics" },
-            { label: "Random", href: "/random" },
-          ],
-        }}
+        tabs={discoverTabs("discover")}
         tools={
           <SiteTools>
             <ContinuePanel />

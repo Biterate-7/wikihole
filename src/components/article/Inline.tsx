@@ -85,7 +85,7 @@ function renderInline(node: Inline, key: number): React.ReactNode {
       );
     case "link":
       return (
-        <Link key={key} href={articlePath(node.to, node.fragment, node.lang)} prefetch={false} className={styles.wikiLink} data-wiki-link>
+        <Link key={key} href={articlePath(node.to, node.fragment, node.lang)} prefetch={false} className={styles.wikiLink} data-wiki-link data-title={node.to}>
           <InlineContent nodes={node.c} />
         </Link>
       );
@@ -107,7 +107,7 @@ function renderInline(node: Inline, key: number): React.ReactNode {
       return <MathView key={key} html={node.html} tex={node.tex} display={false} />;
     case "cite":
       return (
-        <sup key={key} className={styles.cite}>
+        <sup key={key} className={styles.cite} data-cite>
           <a href={`#${node.target}`} aria-label={`Reference ${node.label}`}>
             {node.label}
           </a>

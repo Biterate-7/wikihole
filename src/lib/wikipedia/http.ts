@@ -53,6 +53,11 @@ export function restUrlFor(lang: string = DEFAULT_LANGUAGE): string {
   return `https://${wikipediaDomain(lang)}/api/rest_v1`;
 }
 
+/** MediaWiki core REST API (history counts), which sits beside the Action API on every edition. */
+export function coreRestUrlFor(lang: string = DEFAULT_LANGUAGE): string {
+  return apiUrlFor(lang).replace(/api\.php$/, "rest.php/v1");
+}
+
 const DEFAULT_USER_AGENT = "WikiHole/1.0 (Wikipedia discovery client; set WIKIMEDIA_USER_AGENT to add operator contact)";
 
 export function userAgent(): string {

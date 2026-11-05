@@ -110,8 +110,15 @@
   word-break: break-word;
 }
 
-.tocActive > .tocLink,
-.tocLink[aria-current="location"] {
+/* At the top of the page nothing is being read yet, so (Top) stays an ordinary link. */
+.tocTop[aria-current="location"],
+.tocTop[aria-current="location"]:visited {
+  font-weight: 400;
+  color: var(--color-progressive);
+}
+
+.tocActive > .tocLink:not(.tocTop),
+.tocLink:not(.tocTop)[aria-current="location"] {
   color: var(--color-base);
   font-weight: 700;
 }
@@ -217,6 +224,66 @@
   padding-left: 24px;
 }
 
+/* ---------- Section bar: contents once the title has scrolled away ---------- */
+
+.sectionBar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 60;
+  border-bottom: 1px solid var(--border-muted);
+  background: var(--background-base);
+  font-family: var(--reading);
+  font-size: 0.875rem;
+}
+
+.sectionBar[hidden] {
+  display: none;
+}
+
+.sectionBarButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 var(--page-pad);
+  border: 0;
+  background: none;
+  text-align: left;
+  color: var(--color-base);
+}
+
+.sectionBarTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sectionBarList {
+  max-height: min(65vh, 32rem);
+  margin: 0;
+  padding: 4px var(--page-pad) 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: 1px solid var(--border-light);
+  list-style: none;
+}
+
+.sectionBarCurrent,
+.sectionBarCurrent:visited {
+  font-weight: 700;
+  color: var(--color-base);
+}
+
+@media (min-width: 1120px) {
+  :global(html:not([data-hide-toc])) .sectionBar {
+    display: none;
+  }
+}
+
 @media (min-width: 1120px) {
   :global(html:not([data-hide-toc])) .tocDropdown {
     display: none;
@@ -232,6 +299,23 @@
   color: var(--color-base);
 }
 
+/* Terms the reader can explain: quiet enough to read past. */
+.prose [data-term] {
+  text-decoration: underline dotted var(--border-base);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  cursor: help;
+}
+
+.prose a[data-term] {
+  cursor: pointer;
+}
+
+.prose [data-term]:hover,
+.prose [data-term][aria-expanded="true"] {
+  text-decoration-color: currentColor;
+}
+
 .prose::after {
   content: "";
   display: block;
@@ -245,6 +329,42 @@
 .section {
   content-visibility: auto;
   contain-intrinsic-size: auto 900px;
+}
+
+/* Real heights while a section link scrolls the page; see scrollToSection. */
+:global(html[data-section-nav]) .section {
+  content-visibility: visible;
+  contain: layout style paint;
+}
+
+/* Clears the section bar when navigating on narrow screens. */
+.section,
+.recentChanges,
+.rabbitHole,
+.h3,
+.h4,
+.h5 {
+  scroll-margin-top: 52px;
+}
+
+/* The heading's tool shares its row, and anything the tool opens goes in the row below. */
+.sectionHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.sectionHead > .h2 {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.h2WithTool {
+  padding-right: 6.5em;
+}
+
+.h2:focus,
+.h3:focus {
+  outline: none;
 }
 
 .h2 {
@@ -501,6 +621,7 @@
   clear: right;
   display: table;
   width: min-content;
+  max-width: 100%;
   margin: 0.5em 0 1.3em 1.4em;
   border: 1px solid var(--border-subtle);
   background: var(--background-neutral-subtle);
@@ -988,6 +1109,18 @@
 .rabbitHole {
   clear: both;
   margin-top: 1em;
+}
+
+.recentChanges {
+  clear: both;
+  margin-top: 1em;
+}
+
+@media print {
+  .sectionBar,
+  .recentChanges {
+    display: none !important;
+  }
 }
 
 .relatedGroups {

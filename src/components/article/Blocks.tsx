@@ -23,10 +23,12 @@ function Img({ img, sizes }: { img: WikiImage; sizes?: string }) {
 
 function Figure({ img, caption }: { img: WikiImage; caption: Inline[] }) {
   const portrait = img.height > img.width * 1.15;
+  // Match the displayed width, so a lazy image takes the same space before and after it loads.
+  const displayed = Math.min(img.width, portrait ? 200 : 260);
   return (
     <figure className={`${styles.figure} ${portrait ? styles.portrait : ""}`}>
       <div className={styles.figureFrame}>
-        <Img img={img} sizes="(max-width: 720px) 100vw, 680px" />
+        <Img img={img} sizes={portrait ? `${displayed}px` : `(max-width: 719px) 100vw, ${displayed}px`} />
       </div>
       {caption.length ? (
         <figcaption className={styles.caption}>
@@ -59,7 +61,7 @@ function renderBlock(block: Block, key: number): React.ReactNode {
     }
     case "note":
       return (
-        <p key={key} className={styles.note}>
+        <p key={key} className={styles.note} data-no-terms>
           <InlineContent nodes={block.c} />
         </p>
       );

@@ -54,6 +54,7 @@
   --sans: sans-serif;
   --serif: "Linux Libertine", Georgia, Times, "Source Serif 4", serif;
   --mono: monospace, monospace;
+  --reading: var(--sans);
 
   /* Layout (Vector 2022) */
   --page-max: 99.75rem;

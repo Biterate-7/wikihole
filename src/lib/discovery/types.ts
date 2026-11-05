@@ -28,7 +28,7 @@ export interface SourcedDate {
 }
 
 export interface RelationSource {
-  kind: "see-also" | "lead-link" | "body-link" | "shared-category" | "similar-text";
+  kind: "see-also" | "lead-link" | "body-link" | "shared-category" | "similar-text" | "co-recommended" | "reader-path" | "from-history";
   /** Human-readable explanation, e.g. "Linked from the introduction". */
   label: string;
   /** Shared category name or section title backing the relation. */
@@ -61,6 +61,8 @@ export interface Discovery {
     signals: string[];
   };
   relation?: RelationSource;
+  /** Human recommendation evidence, when the article has any. */
+  recommended?: { qualifying: number; discussions: number };
 }
 
 export interface PoolStats {
