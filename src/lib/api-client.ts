@@ -1,6 +1,7 @@
 import type { FeedResponse, RandomResponse } from "@/lib/discovery/engine";
 import type { FeedPreset } from "@/lib/discovery/types";
 import type { Insights } from "@/lib/ai/insights";
+import type { FeedCategory, HackerNewsFeed } from "@/lib/hackernews/service";
 import type { CollectionId } from "@/lib/curated/rank";
 import type { CuratedPage, ExploreRequest } from "@/lib/curated/service";
 import type { Discovery } from "@/lib/discovery/types";
@@ -74,6 +75,14 @@ export type LanguageStatsResponse = { languages: Array<{ code: string; articles:
 export function fetchLanguageStats(codes?: string[], signal?: AbortSignal): Promise<LanguageStatsResponse> {
   const query = codes?.length ? `?codes=${encodeURIComponent(codes.join(","))}` : "";
   return request<LanguageStatsResponse>(`/api/languages${query}`, { signal, timeoutMs: 30000 });
+}
+
+export function fetchHackerNews(
+  params: { category: FeedCategory; offset?: number; limit?: number },
+  signal?: AbortSignal,
+): Promise<HackerNewsFeed> {
+  const qs = new URLSearchParams({ category: params.category, offset: String(params.offset ?? 0), limit: String(params.limit ?? 15) });
+  return request<HackerNewsFeed>(`/api/hackernews?${qs}`, { signal, timeoutMs: 45000 });
 }
 
 export type InsightsResponse = { enabled: false } | { enabled: true; insights: Insights };

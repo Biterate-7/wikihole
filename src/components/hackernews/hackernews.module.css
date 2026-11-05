@@ -1,0 +1,232 @@
+/*
+ * The Hacker News feed, in the same encyclopedia skin as the Discover feed:
+ * a grey options box, then results laid out like Special:Search (blue
+ * title, green kicker, intro text and a muted data line).
+ */
+
+.feed {
+  margin-top: 8px;
+}
+
+/* ---------- Options box ---------- */
+
+.controls {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  background: var(--background-neutral-subtle);
+  font-size: 0.875rem;
+}
+
+.controlRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.controlLabel {
+  font-weight: 700;
+  color: var(--color-base);
+}
+
+.toggleList {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toggleList li:not(:last-child)::after {
+  content: "\00b7";
+  margin: 0 0.45em;
+  font-weight: 700;
+}
+
+.toggle {
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  font-size: inherit;
+  line-height: 1.6;
+  color: var(--color-progressive);
+}
+
+.toggle:hover {
+  text-decoration: underline;
+}
+
+.toggle[aria-pressed="true"] {
+  font-weight: 700;
+  color: var(--color-base);
+  text-decoration: none;
+  cursor: default;
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 16px;
+  color: var(--color-subtle);
+}
+
+.statusLive {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-progressive);
+  animation: blink 1.6s ease-in-out infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.processing {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  color: var(--color-subtle);
+}
+
+.processing li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.processing li::before {
+  content: "Analysing: ";
+}
+
+.list {
+  margin: 0;
+  min-height: 40vh;
+}
+
+/* ---------- Results ---------- */
+
+.card {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.body {
+  min-width: 0;
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 400;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.titleLink {
+  color: var(--color-progressive);
+}
+
+.kicker {
+  font-size: 0.8125rem;
+  color: var(--color-success);
+  overflow-wrap: anywhere;
+}
+
+.context {
+  margin-top: 2px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-base);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tagsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  margin-top: 2px;
+  font-size: 0.8125rem;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tags li:not(:last-child)::after {
+  content: "\00b7";
+  margin: 0 0.45em;
+  font-weight: 700;
+  color: var(--color-subtle);
+}
+
+.tagsLabel {
+  margin-right: 0.4em;
+  color: var(--color-subtle);
+}
+
+.meta,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-subtle);
+}
+
+.meta :global(.dot)::before,
+.actions :global(.dot)::before {
+  color: var(--color-subtle);
+}
+
+.actions :global(.action) {
+  font-size: 0.8125rem;
+}
+
+.strong {
+  font-weight: 700;
+  color: var(--color-base);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 8px;
+}
+
+/* ---------- Tools column ---------- */
+
+.pipeline {
+  margin: 4px 0 8px;
+  padding-left: 1.4em;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.pipeline li + li {
+  margin-top: 4px;
+}

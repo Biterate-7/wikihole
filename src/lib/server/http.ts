@@ -1,5 +1,6 @@
 import "server-only";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
+import { HackerNewsError } from "@/lib/hackernews/client";
 import { WikipediaError } from "@/lib/wikipedia/http";
 
 /** Shared helpers for route handlers: rate limiting and error responses. */
@@ -52,6 +53,11 @@ export function describeError(error: unknown): { message: string; status: number
         return { message: "Wikipedia is unavailable right now. Try again shortly.", status: 502 };
     }
   }
+  if (error instanceof HackerNewsError) {
+    return error.kind === "timeout"
+      ? { message: "Hacker News took too long to respond. Try again.", status: 504 }
+      : { message: "Hacker News is unavailable right now. Try again shortly.", status: 502 };
+  }
   console.error("[wikihole] unexpected error", error);
   return { message: "Something went wrong on our side.", status: 500 };
 }
@@ -69,5 +75,18 @@ export async function attempt<T>(run: () => Promise<T>): Promise<Attempt<T>> {
     return { ok: true, value: await run() };
   } catch (error) {
     return { ok: false, error };
+  }
+}
+
+/**
+ * Runs work after the response is sent (Next.js `after`, which also keeps
+ * serverless functions alive for it). Outside a request scope, e.g. when a
+ * handler is invoked directly, the task simply runs in the background.
+ */
+export function runAfter(task: () => Promise<unknown>): void {
+  try {
+    after(task);
+  } catch {
+    void task().catch(() => {});
   }
 }

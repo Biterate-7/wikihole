@@ -19,6 +19,7 @@ Everything shown comes live from Wikipedia through the official MediaWiki APIs. 
 - **Rabbit Hole**: related articles from See also, links in the introduction, links in the body, shared categories and CirrusSearch text similarity, each labelled with its source. A breadcrumb trail tracks depth, back navigation unwinds it, and articles already on your trail are left out.
 - **Topics** (`/topics`, `/topics/<slug>`): 7 groups and 40 collections, each defined by real Wikipedia categories (checked against the live API by a test).
 - **Search**: a debounced header and inline combobox (keyboard navigation, Enter to open, Escape to close, `/` or Ctrl/Cmd+K), plus a full results page with highlighted snippets, suggestions and pagination.
+- **Hacker News** (`/hackernews`, `/hackernews/<id>`): technical and intellectually interesting Hacker News submissions, each turned into a rabbit hole of Wikipedia articles. Hacker News finds the topics; Wikipedia explains them. Each submission gets a short grounded explanation, its primary article, related articles grouped by relation (core concepts, prerequisites, history, descendants, adjacent), an interactive knowledge graph with four exploration depths, and a transparent list of what was extracted and how it matched. The original submission and its discussion stay one click away. See [Hacker News discovery](#hacker-news-discovery).
 - **Random** (`/random`): a uniformly random Wikipedia sample combined with random topical samples, run through the same gate and ranking. It shows how many candidates were rejected and why. "Another discovery" is instant because a few are queued in advance; press `N`.
 - **Saved & history** (`/saved`): saved articles, reading history and exploration trails, stored in `localStorage` with schema validation. It survives corrupted data and storage failures.
 - **Optional AI analysis**: on demand in the reader. Every claim must include a verbatim quote that the server finds in the article, and suggested reading must be an article the source actually links to. Anything else is discarded. The analysis is clearly labelled as AI-generated. Without a key the feature is hidden and everything else still works.
@@ -36,14 +37,18 @@ src/lib/content/     parse.ts (HTML → allow-listed AST) · math.ts (KaTeX) · 
 src/lib/discovery/   topics.ts (taxonomy) · score.ts (features + quality gate) · select.ts (diversity) · engine.ts (feed, random, related) · config.ts (weights)
 src/lib/ai/          config.ts · client.ts · insights.ts (structured output + verification) · explain.ts (terms, passages, sections, diffs; cached and verified) · grounding.ts
 src/lib/storage/     store.ts (validated, failure-tolerant storage) · collections.ts (saved, history, trails)
-src/components/article/ ReadingLayer (TermLayer, SelectionLayer) · SectionSummary · Toc (contents, section bar) · ArticleMetadata · RecentChanges
-src/components/history/ HistoryRoute · DiffView · DiffExplain
+src/lib/hackernews/  client.ts (Firebase API) · normalization.ts · ingestion.ts · ranking.ts · service.ts (queue, persistence, queries)
+src/lib/discovery/   entity-extraction.ts · topic-classification.ts · relationship-engine.ts · rabbit-hole-builder.ts · quality-scoring.ts · graph-layout.ts
+src/lib/wikipedia/   article-resolution.ts (entity → validated article) · extraction.ts (where an article links: definition, infobox, sections)
+src/lib/server/      http.ts (rate limiting, errors) · persistence.ts (durable JSON documents)
 src/components/layout/ PageShell (three-column frame, tabs) · SiteHeader · MainMenu · Portlet · pinning (hide/restore sidebars)
 src/components/home/ Portal (Main Page) · LanguageRing (globe + featured editions)
 src/components/i18n/ LanguageProvider · SearchLanguageSelect · LanguageMenu · EditionNotice
+src/components/article/ ReadingLayer (TermLayer, SelectionLayer) · SectionSummary · Toc (contents, section bar) · ArticleMetadata · RecentChanges
+src/components/history/ HistoryRoute · DiffView · DiffExplain
 src/lib/curated/     links.ts (URL canonicalisation) · rank.ts (recommendation model, collections) · interest.ts · store.ts (snapshot reader) · service.ts (joins snapshot and live metadata)
 src/components/curated/ RecommendedFeed · ExploreFeed · CuratedItem · CuratedTools
-src/app/api/         feed · random · search · insights · explain · terms · languages · health · curated · contextual
+src/app/api/         feed · random · search · insights · explain · terms · languages · health · curated · contextual · hackernews · hackernews/[id]
 pipeline/            offline ingestion, classification, catalogue, statistics and export (never runs during a page load)
 data/snapshot/       the published discovery datasets; data/labels/ reviewed classifier labels
 ```
@@ -92,6 +97,21 @@ Article HTML never reaches the browser. The parser keeps only known structures (
 
 The hard gate rejects disambiguation pages, lists, date and number pages, stubs, biographies, entertainment, sports, places, organisations and non-technical pages. Successive batches exclude everything seen this session, and a small amount of ranking noise keeps refreshes from repeating.
 
+## Hacker News discovery
+
+Hacker News is a discovery source; Wikipedia remains the knowledge source. Nothing is hardcoded: submissions come from the official [Hacker News API](https://github.com/HackerNews/API), articles and links from Wikipedia.
+
+1. **Ingestion.** The Top, Best, Show HN, Ask HN and New lists are read from `hacker-news.firebaseio.com/v0` and de-duplicated across lists (a story keeps every list it appears in). Each item is fetched once (cached, 12 concurrent requests, timeouts, exponential backoff) and normalised: plain-text title and body, category (story, Ask/Show/Tell/Launch HN), domain, trailing year, and the discussion URL kept for attribution. Deleted, dead, job and poll items are dropped.
+2. **Pre-ranking.** A cheap score from the title, body and domain decides what is worth processing. Career advice, hiring, promotion and general news are penalised or filtered; research and source-code domains, older material and cues such as papers, internals and explanations are rewarded. Popularity is a minor, log-scaled, capped signal.
+3. **Entity extraction.** Deterministic and source-grounded: every candidate is a phrase that appears in the title, the post, or (only when raised by two commenters) the first comments. A small phrase grammar accepts names (acronyms, internal capitals, alphanumeric names), names with a head noun ("Linux kernel"), and technical noun phrases ("write-ahead logging"); verbs, adverbs, URLs and fragments of names are excluded. Common abbreviations expand to search queries ("CRDT"), and contained terms are kept as fallbacks ("memory safety" inside "memory safety guarantees").
+4. **Article resolution.** Exact titles are looked up in one batched metadata query (redirects are how Wikipedia records alternative names); unresolved entities are searched, one CirrusSearch query at a time. Every candidate article is validated rather than taking the first hit: title agreement (exact, inflection, redirect, acronym), qualifier fit ("Rust (programming language)" vs "Rust (band)"), context similarity, agreement between the submission's and the article's disciplines (judged without the entity's own name, so the iron-oxide "Rust" cannot claim to be about programming), and article quality. A common word whose exact article lies outside the submission's main discipline also gets a qualified search ("Transformer" → "Transformer (deep learning)"). Disambiguation pages, lists, dates and generic link targets are never destinations. Matches collapse by page, and resolutions (including failures) are cached.
+5. **Rabbit hole.** The primary article and the next two are parsed, and where they link becomes typed, explained relations: the defining sentence (prerequisite), the introduction (core concept), infobox rows such as "Influenced by" or "Paradigms", History and Legacy sections (historical, descendant), Applications, and See also. Levels: **1** articles named in the submission, **2** prerequisites and core concepts, **3** deeper technical and historical connections, **4** See also entries outside the submission's discipline and CirrusSearch-similar articles, the latter kept only if a real link ties them to the graph. Finally one `prop=links&pltitles=` query returns which graph articles link to which, so every cross-edge is a real Wikipedia link. Every edge's explanation names the place in Wikipedia it comes from.
+6. **Quality and final ranking.** A rabbit hole is complete only if its primary article matched with confidence of at least 0.65 and it reaches at least 6 articles with a quality score of at least 45 (coverage, match confidence, depth, interlinking, article quality, technicality). Weaker holes are kept out of the feed (still viewable directly, clearly labelled) and retried later. The final score is `22% technical depth + 16% novelty + 12% topic relevance + 12% entity richness + 14% Wikipedia coverage + 14% connections + 10% engagement`, configurable with `HN_RANKING_WEIGHTS`.
+
+**Processing and limits.** Submissions are processed once per builder version; later ingestions only refresh points and comments. Builds run in a bounded queue: two at a time for a first visit (which waits up to about 12 s, then the page refreshes itself as more holes are ready), one at a time in the background after responses (Next.js `after`) and at least 30 s apart, at most 8 builds per 10 minutes (each costs roughly 15–25 Wikipedia requests, almost all cached afterwards). Background work pauses while the Wikipedia client is cooling down after a rate limit, so it never starves search or the reader; builds interrupted that way are requeued without using a retry. Failed builds retry with exponential backoff. Any Hacker News story id can be opened at `/hackernews/<id>`; it is built on demand.
+
+**Persistence.** Processed submissions and rabbit holes are stored as one validated JSON document (`hackernews.json`), written atomically and debounced, in `WIKIHOLE_DATA_DIR` (default `.data/`, gitignored). On a read-only filesystem it falls back to the OS temp directory, then to memory; storage failures never break a request.
+
 ## Environment variables
 
 All variables are optional. See [`.env.example`](.env.example).
@@ -104,6 +124,9 @@ All variables are optional. See [`.env.example`](.env.example).
 | `AI_PROVIDER` | `anthropic` (the only supported provider). |
 | `AI_MODEL` | Claude model id. Default `claude-opus-5-5`. |
 | `DISCOVERY_WEIGHTS` | JSON object of relative weights, e.g. `{"obscurity":30}`. |
+| `HN_RANKING_WEIGHTS` | JSON object of relative Hacker News ranking weights (`technical`, `novelty`, `relevance`, `entities`, `coverage`, `connections`, `engagement`). |
+| `WIKIHOLE_DATA_DIR` | Directory for server-side data (processed Hacker News rabbit holes). Default `.data/`; `:memory:` disables disk storage. |
+| `HACKER_NEWS_API_URL` | Override the Hacker News API base URL (default `https://hacker-news.firebaseio.com/v0`). |
 | `WIKIHOLE_SNAPSHOT_DIR` | Where the app reads the discovery snapshot. Defaults to `data/snapshot`. |
 | `WIKIHOLE_PIPELINE_USER_AGENT` | How the offline pipeline identifies itself to sources. |
 | `AI_CLASSIFIER_MODEL` | Model for `npm run pipeline -- classify:ai`. Default `claude-opus-5-5`. |
@@ -135,11 +158,11 @@ npm run pipeline -- report  # what the discovery pipeline read, decided and fail
 
 The test suites cover:
 
-- **Unit:** parser (real fixtures), math, concepts, ranking, persistence, search component, AI grounding.
-- **Integration:** HTTP client behaviour, API layer, engine, route handlers.
-- **Live:** taxonomy categories exist, feed text matches Wikipedia's own intros, search, parsing, random filtering.
+- **Unit:** parser (real fixtures), math, concepts, ranking, persistence, search component, AI grounding; Hacker News normalisation and ranking, entity extraction, topic classification, link evidence, relationship typing, rabbit-hole quality, graph layout, and the Hacker News UI (feed states, cards, graph interaction, exploration view).
+- **Integration:** HTTP client behaviour, API layer, engine, route handlers; the Hacker News client (lists, items, deleted and missing items, retries, failures), ingestion, entity resolution (exact, redirect, disambiguation, unrelated exact titles, nonexistent, de-duplication, list pages, caching), the rabbit-hole builder on a real parsed article, the service (filtering, no reprocessing, metadata refresh, failed and rate-limited builds, on-demand builds), routes and durable storage.
+- **Live:** taxonomy categories exist, feed text matches Wikipedia's own intros, search, parsing, random filtering; Hacker News lists and items, well-known entity resolutions, and a complete rabbit hole built from live data.
 - **Languages:** registry, count formatting, paths, localised parsing, per-edition API endpoints and caches, `/api/languages`, the provider, globe, language menu and search box (unit + integration); the full portal → search → reader → related → trail journey in German, persistence, the menu and legacy redirects (end-to-end).
-- **End-to-end:** homepage portal, Discover feed, search, reading, Rabbit Hole, random, saved, failure handling, responsiveness at 1440, 1280, 1024, 768 and 390 px, console errors, keyboard focus.
+- **End-to-end:** homepage portal, Discover feed, search, reading, Rabbit Hole, random, saved, failure handling, responsiveness at 1440, 1280, 1024, 768 and 390 px, console errors, keyboard focus; the Hacker News feed, opening a rabbit hole, reader links (the primary article checked against Wikipedia), no outbound Wikipedia links, the graph and depth control, unknown items, and mobile layout.
 - **Reading experience:** metadata against Wikimedia's own numbers, revision comparison, section navigation, term marks, popovers and selection tools by mouse, keyboard and touch, and overflow at four widths across article types (`tests/e2e/reading.spec.ts`). The AI flows run against a local stand-in for the API, which exercises the interface and grounding checks but not the quality of a real model's writing:
 
   ```bash
@@ -163,6 +186,9 @@ Or from the CLI: `npm i -g vercel && vercel` (first deploy), then `vercel --prod
 - All server traffic shares one Wikimedia rate-limit identity (about 200 requests per minute with a compliant User-Agent). Very high traffic would need Wikimedia Enterprise or more caching.
 - Reading-time estimates in feeds come from search word counts or wikitext length, so they are approximate.
 - Saved articles and history live in the browser. There is no account sync. From your reading sends up to eight recently read titles to the server to build its answer; they are not stored or logged.
+- Hacker News entity extraction is deterministic. It reads the title, post and first comments, not the linked page, so a terse title that names nothing ("I quit") produces no rabbit hole by design. It reads English only, and rabbit holes are built from English Wikipedia whatever edition is selected.
+- Link evidence comes from the three main articles; links made through redirects are not seen by the link-matrix query, so a few real connections can be missing (never invented).
+- The Hacker News store is a single JSON document per server instance. On serverless platforms without a writable disk it lives in the temp directory or memory, so cold instances rebuild; a shared database would be the next step at scale.
 - The discovery snapshot is as fresh as the last pipeline run. Reddit and Lobsters are not among its sources, and Explore's text filter covers only the published part of the catalogue; the search box covers all of Wikipedia. [docs/discovery-pipeline.md](docs/discovery-pipeline.md) has the details.
 - Explanations are cached in memory per server instance, so a cold instance generates them again. Hovering a marked term for half a second counts as asking, which costs a model call the first time; `/api/explain` is limited to 30 requests a minute per client.
 - Wikipedia reports a revision's net size change only. Added and removed characters per edit appear on the comparison page, where they are counted from the diff, and are approximate for edits that move text.

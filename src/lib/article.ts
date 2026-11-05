@@ -3,6 +3,7 @@ import { cache } from "react";
 import { TtlCache } from "@/lib/cache";
 import { parseArticle } from "@/lib/content/parse";
 import type { ArticleDocument } from "@/lib/content/types";
+import { DEFAULT_LANGUAGE } from "@/lib/i18n/languages";
 import { getPageMeta, getParsedHtml, getSummary } from "@/lib/wikipedia/api";
 import { getArticleHistory } from "@/lib/wikipedia/revisions";
 import type { ArticleHistory, PageMeta, PageSummary } from "@/lib/wikipedia/types";
@@ -35,6 +36,14 @@ async function buildDocument(title: string, lang: string, section?: number): Pro
 
 /** Full parsed article. */
 export const loadArticle = cache((title: string, lang: string) => buildDocument(title, lang));
+
+/**
+ * Full parsed article outside a React render (background jobs such as rabbit-hole building).
+ * Hacker News rabbit holes are built from English Wikipedia, hence the default edition.
+ */
+export function fetchArticleDocument(title: string, lang: string = DEFAULT_LANGUAGE): Promise<ArticleDocument> {
+  return buildDocument(title, lang);
+}
 
 /** Only the lead section: small and fast, so the reader can stream it first. */
 export const loadLead = cache((title: string, lang: string) => buildDocument(title, lang, 0));
