@@ -11,7 +11,6 @@ const GENERAL: MenuItem[] = [
 ];
 
 const PROJECTS: MenuItem[] = [
-  { href: "https://www.wikipedia.org/", label: "Wikipedia", external: true },
   { href: "https://www.wikidata.org/", label: "Wikidata", external: true },
   { href: "https://commons.wikimedia.org/", label: "Wikimedia Commons", external: true },
 ];

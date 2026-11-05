@@ -95,11 +95,7 @@ export default async function TopicPage({ params }: Props) {
           Sampled from Wikipedia categories:{" "}
           <ul>
             {categories.map((c) => (
-              <li key={c}>
-                <a href={`https://en.wikipedia.org/wiki/Category:${encodeURIComponent(c.replace(/ /g, "_"))}`} target="_blank" rel="noopener noreferrer">
-                  {c}
-                </a>
-              </li>
+              <li key={c}>{c}</li>
             ))}
           </ul>
         </div>

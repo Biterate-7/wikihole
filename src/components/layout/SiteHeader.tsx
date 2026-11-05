@@ -64,11 +64,7 @@ export function SiteFooter() {
     <footer className={styles.footer}>
       <ul className={styles.footerInfo}>
         <li>
-          Article text and media come live from{" "}
-          <a href="https://www.wikipedia.org/" rel="noopener noreferrer" target="_blank">
-            Wikipedia
-          </a>{" "}
-          via the official MediaWiki API and are available under the{" "}
+          Article text and media come live from Wikipedia via the official MediaWiki API and are available under the{" "}
           <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license noopener noreferrer" target="_blank">
             Creative Commons Attribution-ShareAlike 4.0 License
           </a>

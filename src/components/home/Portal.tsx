@@ -63,10 +63,7 @@ async function WelcomeCount({ lang }: { lang: string }) {
       {stats ? (
         <>
           {" "}
-          · {stats.articles.toLocaleString("en-US")} articles in{" "}
-          <a href={`https://${lang}.wikipedia.org/`} target="_blank" rel="noopener noreferrer">
-            {language.englishName}
-          </a>
+          · {stats.articles.toLocaleString("en-US")} articles in {language.englishName}
         </>
       ) : null}
     </>
@@ -218,7 +215,7 @@ const OTHER_AREAS = [
 ];
 
 const SOURCES = [
-  { href: "https://www.wikipedia.org/", title: "Wikipedia", text: "Article text, images and links" },
+  { title: "Wikipedia", text: "Article text, images and links" },
   { href: "https://www.wikidata.org/", title: "Wikidata", text: "Item identifiers" },
   { href: "https://commons.wikimedia.org/", title: "Wikimedia Commons", text: "Media files" },
   { href: "https://www.mediawiki.org/wiki/API:Main_page", title: "MediaWiki API", text: "Search, metadata and parsing" },
@@ -333,10 +330,14 @@ export function Portal({ lang }: { lang: string }) {
       </p>
       <ul className={styles.sources}>
         {SOURCES.map((s) => (
-          <li key={s.href}>
-            <a href={s.href} target="_blank" rel="noopener noreferrer">
+          <li key={s.title}>
+            {s.href ? (
+              <a href={s.href} target="_blank" rel="noopener noreferrer">
+                <b>{s.title}</b>
+              </a>
+            ) : (
               <b>{s.title}</b>
-            </a>
+            )}
             <span>{s.text}</span>
           </li>
         ))}
