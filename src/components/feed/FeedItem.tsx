@@ -12,7 +12,7 @@ import { ScoreBreakdown } from "./ScoreBreakdown";
 import styles from "./feed.module.css";
 
 /** One discovery, laid out as a Wikipedia search result: thumbnail, title, description, intro, data line. */
-export function FeedItem({ item, rank, visited }: { item: Discovery; rank: number; visited?: boolean }) {
+export function FeedItem({ item, rank, visited, showRelation }: { item: Discovery; rank: number; visited?: boolean; showRelation?: boolean }) {
   const [open, setOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const badge = assessmentBadge(item.assessment);
@@ -35,7 +35,13 @@ export function FeedItem({ item, rank, visited }: { item: Discovery; rank: numbe
           </Link>
           {visited ? <span className={styles.visited}>(read)</span> : null}
         </h2>
-        {kicker ? <p className={`label ${styles.kicker}`}>{kicker}</p> : null}
+        {showRelation && item.relation ? (
+          <p className={`label ${styles.kicker}`} title={item.relation.evidence}>
+            {item.relation.label}
+          </p>
+        ) : kicker ? (
+          <p className={`label ${styles.kicker}`}>{kicker}</p>
+        ) : null}
         {item.description ? <p className={styles.description}>{item.description}</p> : null}
         <p className={styles.extract}>{leadSentences(item.extract, 300)}</p>
 

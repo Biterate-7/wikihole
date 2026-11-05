@@ -4,7 +4,8 @@ import { TtlCache } from "@/lib/cache";
 import { parseArticle } from "@/lib/content/parse";
 import type { ArticleDocument } from "@/lib/content/types";
 import { getPageMeta, getParsedHtml, getSummary } from "@/lib/wikipedia/api";
-import type { PageMeta, PageSummary } from "@/lib/wikipedia/types";
+import { getArticleHistory } from "@/lib/wikipedia/revisions";
+import type { ArticleHistory, PageMeta, PageSummary } from "@/lib/wikipedia/types";
 
 /**
  * Article loading for the reader. React `cache` de-duplicates calls within a
@@ -39,6 +40,9 @@ export const loadArticle = cache((title: string, lang: string) => buildDocument(
 export const loadLead = cache((title: string, lang: string) => buildDocument(title, lang, 0));
 
 export const loadMeta = cache((title: string, lang: string): Promise<PageMeta | null> => getPageMeta(title, lang));
+
+/** Never rejects: a part Wikimedia cannot supply is null, and the page goes without it. */
+export const loadHistory = cache((title: string, lang: string): Promise<ArticleHistory> => getArticleHistory(title, lang));
 
 export const loadSummary = cache(
   (title: string, lang: string): Promise<PageSummary | null> => getSummary(title, lang).catch(() => null),

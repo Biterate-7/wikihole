@@ -1,0 +1,181 @@
+{
+  "generatedAt": "2026-11-04T18:17:04.000Z",
+  "sources": [
+    {
+      "id": "essays",
+      "name": "Essays and lists",
+      "status": "partial",
+      "detail": "A short, reviewed list of pages written to recommend Wikipedia articles, not a survey of the web.",
+      "mentions": 97,
+      "qualifying": 97,
+      "undecided": 0,
+      "oldest": "2010-09-28",
+      "newest": "2016-11-11"
+    },
+    {
+      "id": "hackernews",
+      "name": "Hacker News",
+      "status": "complete",
+      "detail": "Every comment and submission the official Algolia API returns for wikipedia.org, walked to the start of the site.",
+      "mentions": 701012,
+      "qualifying": 6410,
+      "undecided": 25,
+      "oldest": "2007-02-21",
+      "newest": "2026-11-04"
+    },
+    {
+      "id": "lemmy",
+      "name": "Lemmy (!wikipedia@lemmy.world)",
+      "status": "complete",
+      "detail": "Posts in a community for sharing interesting Wikipedia articles, at its requested crawl delay. Comments are not read.",
+      "mentions": 5448,
+      "qualifying": 4811,
+      "undecided": 28,
+      "oldest": "2023-06-09",
+      "newest": "2026-11-04"
+    },
+    {
+      "id": "tildes",
+      "name": "Tildes",
+      "status": "partial",
+      "detail": "Public topics its search returns for 'wikipedia'. Comments on other topics are not covered.",
+      "mentions": 469,
+      "qualifying": 68,
+      "undecided": 0,
+      "oldest": "2018-05-04",
+      "newest": "2026-10-23"
+    },
+    {
+      "id": "reddit",
+      "name": "Reddit",
+      "status": "not-available",
+      "detail": "Blocked: public endpoints return 403, robots.txt disallows all crawlers, and API access needs Reddit's approval.",
+      "mentions": 0,
+      "qualifying": 0,
+      "undecided": 0
+    },
+    {
+      "id": "lobsters",
+      "name": "Lobsters",
+      "status": "not-available",
+      "detail": "Not read: its robots.txt disallows general crawlers and asks not to be used as AI input.",
+      "mentions": 0,
+      "qualifying": 0,
+      "undecided": 0
+    }
+  ],
+  "classification": {
+    "labels": {
+      "casual": 375923,
+      "citation": 279237,
+      "criticism": 488,
+      "interesting": 39823,
+      "needs-review": 53,
+      "recommendation": 11386,
+      "spam": 116
+    },
+    "deciders": {
+      "claude-opus-5-5": 1390,
+      "heuristic-v7": 9740,
+      "review": 256
+    },
+    "evaluation": {
+      "labeller": "claude-opus-5-5",
+      "labelled": 350,
+      "strata": [
+        {
+          "stratum": "comment:casual",
+          "population": 339758,
+          "labelled": 60,
+          "recommendations": 0
+        },
+        {
+          "stratum": "comment:citation",
+          "population": 278717,
+          "labelled": 60,
+          "recommendations": 0
+        },
+        {
+          "stratum": "comment:interesting",
+          "population": 25087,
+          "labelled": 80,
+          "recommendations": 1
+        },
+        {
+          "stratum": "comment:recommendation",
+          "population": 1567,
+          "labelled": 80,
+          "recommendations": 55
+        },
+        {
+          "stratum": "essay:recommendation",
+          "population": 97,
+          "labelled": 15,
+          "recommendations": 15
+        },
+        {
+          "stratum": "submission:interesting",
+          "population": 14819,
+          "labelled": 15,
+          "recommendations": 0
+        },
+        {
+          "stratum": "submission:recommendation",
+          "population": 10189,
+          "labelled": 40,
+          "recommendations": 40
+        }
+      ],
+      "comments": {
+        "rulePrecision": {
+          "value": 0.6875,
+          "low": 0.5793201821792608,
+          "high": 0.7784974167215235,
+          "n": 80
+        },
+        "estimatedRuleRecall": 0.7745434610683729,
+        "estimatedTrueRecommendations": 1391
+      },
+      "submissions": {
+        "rulePrecision": {
+          "value": 1,
+          "low": 0.9123754607496077,
+          "high": 1,
+          "n": 40
+        },
+        "estimatedRuleRecall": 1
+      },
+      "decided": {
+        "acceptedPrecision": {
+          "value": 0.9838709677419355,
+          "low": 0.914130769926111,
+          "high": 0.9971472063077598,
+          "n": 62
+        }
+      }
+    }
+  },
+  "resolution": {
+    "disambiguation": 2136,
+    "missing": 2527,
+    "not-article": 70,
+    "ok": 168261,
+    "redirected": 28416
+  },
+  "totals": {
+    "mentions": 707026,
+    "articles": 9137,
+    "published": 9137,
+    "qualifying": 11386,
+    "inWords": 1332,
+    "discussions": 11137,
+    "nonEnglishMentions": 5995
+  },
+  "collections": {
+    "most": 413,
+    "hidden": 956,
+    "recent": 860,
+    "evergreen": 78,
+    "rising": 55
+  }
+}

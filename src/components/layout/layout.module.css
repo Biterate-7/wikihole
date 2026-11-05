@@ -675,3 +675,10 @@
     display: none !important;
   }
 }
+
+.portletNote {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-subtle);
+}

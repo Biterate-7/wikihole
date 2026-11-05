@@ -97,6 +97,17 @@ export function articlePath(title: string, fragment?: string, lang: string = DEF
   return fragment ? `${base}#${encodeURIComponent(fragment)}` : base;
 }
 
+/** Path to an article's revision history, optionally with revisions to compare or a page of older edits. */
+export function historyPath(title: string, lang: string = DEFAULT_LANGUAGE, query?: { from?: number; to?: number; older?: number }): string {
+  const prefix = lang === DEFAULT_LANGUAGE ? "" : `/${lang}`;
+  const params = new URLSearchParams();
+  if (query?.from !== undefined) params.set("from", String(query.from));
+  if (query?.to !== undefined) params.set("to", String(query.to));
+  if (query?.older !== undefined) params.set("older", String(query.older));
+  const search = params.toString();
+  return `${prefix}/history/${slugFromTitle(title)}${search ? `?${search}` : ""}`;
+}
+
 /** Full results page for a query in a language edition (English keeps the original URL shape). */
 export function searchPath(query: string, lang: string = DEFAULT_LANGUAGE): string {
   const edition = lang === DEFAULT_LANGUAGE ? "" : `&lang=${encodeURIComponent(lang)}`;

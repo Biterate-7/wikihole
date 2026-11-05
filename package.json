@@ -13,7 +13,9 @@
     "test:live": "cross-env LIVE_WIKIPEDIA=1 vitest run tests/live",
     "test:e2e": "next build && playwright test",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build",
-    "test:all": "npm run typecheck && npm run lint && npm run test && npm run test:live && npm run test:e2e"
+    "test:all": "npm run typecheck && npm run lint && npm run test && npm run test:live && npm run test:e2e",
+    "pipeline": "node --disable-warning=ExperimentalWarning --import tsx pipeline/cli.ts",
+    "test:visual": "node tests/visual/capture.mjs tests/visual/out/current && node tests/visual/compare.mjs tests/visual/baseline tests/visual/out/current tests/visual/out/diff"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
@@ -38,6 +40,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "jsdom": "^30.1.3",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.5"
   },
