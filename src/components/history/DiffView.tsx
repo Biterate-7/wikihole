@@ -3,7 +3,7 @@ import { DiffExplain } from "@/components/history/DiffExplain";
 import { formatDateTime, formatDelta } from "@/lib/format";
 import { historyPath } from "@/lib/wikipedia/titles";
 import type { DiffRow, DiffRun, RevisionComparison, RevisionSide } from "@/lib/wikipedia/types";
-import { compareUrl, ContributorName, revisionUrl, SummaryText } from "./RevisionParts";
+import { ContributorName, SummaryText } from "./RevisionParts";
 import styles from "./history.module.css";
 
 function Line({ runs, Mark }: { runs: DiffRun[]; Mark: "ins" | "del" }) {
@@ -61,24 +61,20 @@ function Row({ row }: { row: DiffRow }) {
 function SideHeading({
   side,
   label,
-  lang,
   step,
 }: {
   side: RevisionSide;
   label: string;
-  lang: string;
   step?: React.ReactNode;
 }) {
   return (
     <div className={styles.side}>
       <p className={styles.sideLabel}>{label}</p>
       <p className={styles.sideTime}>
-        <a href={revisionUrl(lang, side.id)} target="_blank" rel="noopener noreferrer">
-          <time dateTime={side.timestamp}>{formatDateTime(side.timestamp) ?? `Revision ${side.id}`}</time>
-        </a>
+        <time dateTime={side.timestamp}>{formatDateTime(side.timestamp) ?? `Revision ${side.id}`}</time>
       </p>
       <p>
-        <ContributorName contributor={side.contributor} lang={lang} />
+        <ContributorName contributor={side.contributor} />
         {side.size !== undefined ? <span className={styles.muted}> · {side.size.toLocaleString("en-US")} bytes</span> : null}
       </p>
       <p className={styles.sideSummary}>
@@ -105,16 +101,7 @@ export function DiffView({ comparison, lang, aiEnabled }: { comparison: Revision
         {from ? "Difference between revisions" : "First revision of this article"}
       </h2>
       <p className={styles.provenanceNote} data-testid="diff-provenance">
-        Actual wikitext changes, as reported by Wikimedia&rsquo;s compare API.{" "}
-        {from ? (
-          <a href={compareUrl(lang, from.id, to.id)} target="_blank" rel="noopener noreferrer">
-            See this diff on Wikipedia
-          </a>
-        ) : (
-          <a href={revisionUrl(lang, to.id)} target="_blank" rel="noopener noreferrer">
-            See this revision on Wikipedia
-          </a>
-        )}
+        Actual wikitext changes, as reported by Wikimedia&rsquo;s compare API.
       </p>
 
       <div className={styles.sides}>
@@ -122,7 +109,6 @@ export function DiffView({ comparison, lang, aiEnabled }: { comparison: Revision
           <SideHeading
             side={from}
             label="Older revision"
-            lang={lang}
             step={
               olderId !== undefined ? (
                 <Link href={historyPath(title, lang, { from: olderId, to: from.id })} prefetch={false} data-testid="older-edit">
@@ -137,7 +123,6 @@ export function DiffView({ comparison, lang, aiEnabled }: { comparison: Revision
         <SideHeading
           side={to}
           label={from ? "Newer revision" : "Revision"}
-          lang={lang}
           step={
             newerId !== undefined ? (
               <Link href={historyPath(title, lang, { from: to.id, to: newerId })} prefetch={false} data-testid="newer-edit">
@@ -175,13 +160,7 @@ export function DiffView({ comparison, lang, aiEnabled }: { comparison: Revision
         <p className={styles.diffNote}>These two revisions have the same text.</p>
       )}
       {truncated ? (
-        <p className={styles.diffNote}>
-          This diff is very long, so only the start is shown.{" "}
-          <a href={compareUrl(lang, from?.id ?? to.id, to.id)} target="_blank" rel="noopener noreferrer">
-            See all of it on Wikipedia
-          </a>
-          .
-        </p>
+        <p className={styles.diffNote}>This diff is very long, so only the start is shown.</p>
       ) : null}
     </section>
   );

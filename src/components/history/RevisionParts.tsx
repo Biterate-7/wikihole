@@ -1,46 +1,21 @@
 import { formatDelta } from "@/lib/format";
-import { wikipediaDomain } from "@/lib/i18n/languages";
 import type { Contributor, EditSummary, HistoryCount } from "@/lib/wikipedia/types";
 import styles from "./history.module.css";
 
 /** Small pieces shared by the article's Recent changes and the history page. */
 
-export function revisionUrl(lang: string, id: number): string {
-  return `https://${wikipediaDomain(lang)}/w/index.php?oldid=${id}`;
-}
-
-export function compareUrl(lang: string, from: number, to: number): string {
-  return `https://${wikipediaDomain(lang)}/w/index.php?oldid=${from}&diff=${to}`;
-}
-
 export function countLabel(count: HistoryCount): string {
   return `${count.count.toLocaleString("en-US")}${count.capped ? "+" : ""}`;
 }
 
-/**
- * A contributor's name. It links to their Wikipedia user page as attribution on
- * the history page; the article itself passes `linked={false}` and keeps readers here.
- */
-export function ContributorName({ contributor, lang, linked = true }: { contributor: Contributor; lang: string; linked?: boolean }) {
+/** A contributor's name, credited as plain text: readers stay in WikiHole. */
+export function ContributorName({ contributor }: { contributor: Contributor }) {
   switch (contributor.kind) {
     case "registered":
-      if (!linked) {
-        return (
-          <span className={styles.contributor} dir="auto">
-            {contributor.name}
-          </span>
-        );
-      }
       return (
-        <a
-          className={styles.contributor}
-          href={`https://${wikipediaDomain(lang)}/wiki/${encodeURIComponent(`User:${contributor.name}`.replace(/ /g, "_"))}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          dir="auto"
-        >
+        <span className={styles.contributor} dir="auto">
           {contributor.name}
-        </a>
+        </span>
       );
     case "temporary":
       return <span className={styles.contributor}>Temporary account</span>;

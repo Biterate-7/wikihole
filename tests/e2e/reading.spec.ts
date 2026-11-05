@@ -76,13 +76,16 @@ test.describe("recent changes and revision comparison", () => {
     await expect(entries.first()).toBeVisible();
     expect(await entries.count()).toBeGreaterThanOrEqual(3);
 
+    await expect(page.locator('a[href*="wikipedia.org"]')).toHaveCount(0);
     await entries.first().getByRole("link", { name: /What changed/ }).click();
     await expect(page).toHaveURL(new RegExp(`/history/Enigma_machine\\?to=${latest}$`));
     const compare = page.getByTestId("revision-compare");
     await expect(compare).toBeVisible();
     await expect(page.getByTestId("diff-provenance")).toContainText("Wikimedia");
-    await expect(compare.getByRole("link", { name: "See this diff on Wikipedia" })).toHaveAttribute("href", new RegExp(`diff=${latest}`));
-    await expect(compare.getByRole("link", { name: /UTC/ }).last()).toHaveAttribute("href", new RegExp(`oldid=${latest}`));
+    await expect(page.getByText("From Wikipedia’s revision records")).toBeVisible();
+    // Revisions and contributors are credited as text: nothing on the page links out to Wikipedia.
+    await expect(compare.getByText(/UTC/).first()).toBeVisible();
+    await expect(page.locator('a[href*="wikipedia.org"]')).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 
