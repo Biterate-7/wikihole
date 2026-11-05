@@ -9,7 +9,7 @@ import { PageShell, SiteSub } from "@/components/layout/PageShell";
 import { SiteTools } from "@/components/layout/SiteTools";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { EXPLORE_AREAS, EXPLORE_SORTS, exploreCatalogue, type ExploreArea, type ExploreSort } from "@/lib/curated/service";
-import { getCatalogue, getMeta } from "@/lib/curated/store";
+import { getCatalogue, getCatalogueMeta } from "@/lib/curated/store";
 import { requestLanguage } from "@/lib/i18n/server";
 import { attempt } from "@/lib/server/http";
 import { discoverTabs } from "../tabs";
@@ -42,7 +42,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
   const unrecommended = params.new === "1";
   return (
     <LanguageProvider initialLang={await requestLanguage()}>
-      <PageShell title="Explore Wikipedia" tabs={discoverTabs("explore")} tools={<SiteTools><ExploreMethod meta={getMeta()} /></SiteTools>}>
+      <PageShell title="Explore Wikipedia" tabs={discoverTabs("explore")} tools={<SiteTools><ExploreMethod meta={getCatalogueMeta()} /></SiteTools>}>
         <SiteSub>Beyond what anyone has recommended</SiteSub>
         <p className={styles.intro}>
           Wikipedia is far larger than what people talk about. Browse a structured catalogue of its articles by subject, quality and how much they are read.

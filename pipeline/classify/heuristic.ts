@@ -9,7 +9,7 @@
 export const LABELS = ["recommendation", "interesting", "citation", "casual", "criticism", "spam"] as const;
 export type Label = (typeof LABELS)[number];
 
-export const HEURISTIC_VERSION = "heuristic-v5";
+export const HEURISTIC_VERSION = "heuristic-v7";
 
 export interface MentionInput {
   kind: "comment" | "submission" | "essay";
@@ -88,6 +88,14 @@ export function nearLink(context: string, reach = 130): string {
 
 const SUBMISSION_POINTS = 10;
 
+const words = (text: string) => new Set(text.toLowerCase().normalize("NFKD").replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter((word) => word.length > 2));
+
+export function titlesOverlap(article: string, headline: string): boolean {
+  const known = words(headline);
+  for (const word of words(article)) if (known.has(word)) return true;
+  return false;
+}
+
 export function classifyHeuristically(input: MentionInput): Verdict {
   if (SPAM.test(input.context)) return { label: "spam", confidence: 0.8, reason: "commercial spam pattern" };
 
@@ -99,7 +107,10 @@ export function classifyHeuristically(input: MentionInput): Verdict {
     if (CRITICISM.test(title)) return { label: "criticism", confidence: 0.6, reason: "the title disputes the article" };
     const points = input.points ?? 0;
     if (points >= SUBMISSION_POINTS) {
-      return { label: "recommendation", confidence: Math.min(0.9, 0.6 + Math.log10(points) / 8), reason: `submitted for its own sake; ${points} points from readers` };
+      // Upvotes for a headline that has nothing to do with the page are not upvotes for the page.
+      if (!titlesOverlap(input.title, title)) return { label: "recommendation", confidence: 0.4, reason: "submitted under a title unrelated to the article" };
+      // The reason is a calibration bucket, so it must not contain the exact score.
+      return { label: "recommendation", confidence: Math.min(0.9, 0.6 + Math.log10(points) / 8), reason: points >= 50 ? "submitted; 50 or more points from readers" : "submitted; 10 to 49 points from readers" };
     }
     // Tildes shows no score to anonymous readers, so a submission there stays a reference.
     if (points >= 3 || input.points === null) return { label: "interesting", confidence: 0.5, reason: "submitted, without enough votes to count as endorsed" };

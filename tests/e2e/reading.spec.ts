@@ -34,11 +34,11 @@ async function firstTerm(page: Page) {
 }
 
 test.describe("metadata", () => {
-  test("shows Wikimedia's own numbers under the title", async ({ page }) => {
+  test("shows Wikimedia's own numbers in the tools column, leaving the article where it was", async ({ page }) => {
     const errors = watchErrors(page);
     await page.goto(ARTICLE);
     const line = page.getByTestId("article-metadata");
-    await expect(line).toContainText("Created 14 Nov 2001");
+    await expect(line).toContainText(/Created\s*14 Nov 2001/);
     await expect(line).toContainText("Last edited");
     await expect(line).toContainText(/in the last 30 days/);
 
@@ -261,13 +261,17 @@ test.describe("responsive reading", () => {
     expect(await page.locator("#article-body ol li[id]").count()).toBeGreaterThan(20);
   });
 
-  test("the running text keeps to a comfortable measure, while tables use the full column", async ({ page }) => {
+  test("running text keeps the original full-column layout and typography", async ({ page }) => {
     await page.goto("/wiki/Periodic_table");
     const paragraph = page.locator("[data-testid=article-section] > p").first();
     await expect(paragraph).toBeVisible();
     const width = (await paragraph.boundingBox())?.width ?? 0;
-    expect(width).toBeLessThanOrEqual(704 + 1);
-    expect(width).toBeGreaterThan(400);
+    expect(width).toBeGreaterThan(704);
+    const type = await paragraph.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return { size: style.fontSize, line: style.lineHeight };
+    });
+    expect(type).toEqual({ size: "16px", line: "26px" });
   });
 
   test("a citation still jumps to its reference", async ({ page }) => {

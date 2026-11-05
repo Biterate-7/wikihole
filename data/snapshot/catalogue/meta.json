@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-11-04T17:57:30.000Z",
+  "scan": {
+    "status": "complete",
+    "articles": 7249474,
+    "rowsRead": 66384916,
+    "pagesDumpDate": "2026-10-08",
+    "withWikidata": 7243673,
+    "withDescription": 6815872,
+    "disambiguation": 380672,
+    "clickstreamMonth": "2026-10",
+    "clickstreamRows": 32180666,
+    "withClickData": 4840195
+  },
+  "enrichment": {
+    "selected": 104500,
+    "enriched": 104455,
+    "noDocument": 45,
+    "pending": 0,
+    "withTopics": 103521,
+    "withAssessment": 103850,
+    "withInstanceOf": 6950,
+    "featured": 7037,
+    "good": 45311,
+    "unusual": 7179,
+    "sampled": 40000,
+    "requestedByOtherDatasets": 9206
+  },
+  "published": 103383,
+  "notScanned": [
+    "The full internal link graph (pagelinks, 7 GB)",
+    "The full category graph (categorylinks, 2.5 GB)",
+    "Wikidata beyond the item id, except 'instance of' for requested pages"
+  ]
+}

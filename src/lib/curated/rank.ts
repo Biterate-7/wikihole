@@ -11,6 +11,8 @@ export interface QualifyingMention {
   authorHash: string | null;
   /** Unix seconds. */
   at: number;
+  /** Saying why it is worth reading counts fully; sharing it and being upvoted counts for less. */
+  inWords?: boolean;
 }
 
 export interface EvidenceCounts {
@@ -25,12 +27,17 @@ export interface EvidenceCounts {
   recent12m: number;
   /** Independent weight after the caps below. */
   effective: number;
+  /** Qualifying mentions where someone said so in words. */
+  inWords: number;
 }
 
 const YEAR_SECONDS = 365.25 * 24 * 3600;
 
 /** One thread cannot count for more than this, however many people pile in. */
 export const DISCUSSION_CAP = 2;
+
+/** A shared, upvoted link is a weaker signal than someone saying the article is worth reading. */
+export const SHARED_WEIGHT = 0.5;
 
 /**
  * Each person's k-th recommendation of an article counts 1/k, so one enthusiast
@@ -41,11 +48,11 @@ export function effectiveWeight(mentions: QualifyingMention[]): number {
   const byAuthor = new Map<string, number>();
   const byDiscussion = new Map<string, number>();
   for (const mention of [...mentions].sort((a, b) => a.at - b.at)) {
-    let weight = 1;
+    let weight = mention.inWords === false ? SHARED_WEIGHT : 1;
     if (mention.authorHash) {
       const seen = (byAuthor.get(mention.authorHash) ?? 0) + 1;
       byAuthor.set(mention.authorHash, seen);
-      weight = 1 / seen;
+      weight /= seen;
     }
     byDiscussion.set(mention.discussionId, (byDiscussion.get(mention.discussionId) ?? 0) + weight);
   }
@@ -74,15 +81,29 @@ export function countEvidence(mentions: QualifyingMention[], now: number): Evide
     lastAt: Math.max(...times),
     recent12m: times.filter((t) => now - t <= YEAR_SECONDS).length,
     effective: effectiveWeight(mentions),
+    inWords: mentions.filter((m) => m.inWords !== false).length,
   };
 }
 
 const saturate = (value: number, scale: number) => 1 - Math.exp(-value / scale);
 
-/** 0 to 100. Independent people first, then persistence across months, years and communities. */
-export function recommendationScore(counts: EvidenceCounts): number {
+/** Below this share of recommendations among all mentions, an article is mostly cited, not recommended. */
+export const FOCUS_SHARE = 0.15;
+
+/**
+ * 1 for an article people mostly bring up to recommend, falling to 0.6 for one
+ * they mostly cite. This is what separates recommended from merely well known.
+ */
+export function focus(qualifying: number, otherMentions: number): number {
+  const share = qualifying / Math.max(1, qualifying + otherMentions);
+  return 0.6 + 0.4 * Math.min(1, share / FOCUS_SHARE);
+}
+
+/** 0 to 100. Independent people first, then persistence across months, years and communities, discounted when mostly cited. */
+export function recommendationScore(counts: EvidenceCounts, otherMentions = 0): number {
   return (
     100 *
+    focus(counts.qualifying, otherMentions) *
     (0.5 * saturate(counts.effective, 10) +
       0.25 * saturate(counts.months, 8) +
       0.15 * saturate(counts.years, 4) +
@@ -97,6 +118,8 @@ export const HIDDEN_GEM_MAX_MONTHLY = 15000;
 export const RECENT_DAYS = 180;
 
 export interface CollectionInput extends EvidenceCounts {
+  /** Mentions that did not qualify: citations, asides, criticism. */
+  mentionsOther: number;
   /** Arrivals per month from the clickstream dump; null when below its reporting floor. */
   monthlyClicks: number | null;
   /** Whether the catalogue knows this page, so a null above really means low traffic. */
@@ -106,7 +129,7 @@ export interface CollectionInput extends EvidenceCounts {
 
 /** Evidence a collection demands, and the order within it. Null means the article does not belong. */
 export function collectionRank(id: CollectionId, a: CollectionInput, now: number): number | null {
-  const score = recommendationScore(a);
+  const score = recommendationScore(a, a.mentionsOther);
   switch (id) {
     case "most":
       return a.discussions >= 3 && a.recommenders >= 3 && a.months >= 3 ? score : null;

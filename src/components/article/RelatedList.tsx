@@ -28,7 +28,7 @@ function RelatedEntry({ item, visited }: { item: Discovery; visited: boolean }) 
       <div className={styles.relatedBody}>
         <p className={`label ${styles.relation}`} title={item.relation?.evidence}>
           {item.relation?.label ?? "Related"}
-          {item.recommended ? ` · Recommended ${item.recommended.qualifying} ${item.recommended.qualifying === 1 ? "time" : "times"} in discussions` : ""}
+          {item.recommended ? ` · Recommended ${item.recommended.qualifying} ${item.recommended.qualifying === 1 ? "time" : "times"}` : ""}
         </p>
         <h3 className={styles.relatedTitle}>
           <Link href={href}>{item.title}</Link>

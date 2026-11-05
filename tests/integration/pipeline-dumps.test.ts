@@ -2,9 +2,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import zlib from "node:zlib";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadClickstream, loadPages, loadProps } from "../../pipeline/catalogue/dumps";
-import { openDb, type Db } from "../../pipeline/db";
+import { enrichWikidata } from "../../pipeline/catalogue/enrich";
+import { getState, openCatalogue, type Db } from "../../pipeline/db";
 
 /** Dump parsing, against rows copied from the real files' format. */
 
@@ -13,7 +14,7 @@ let db: Db;
 
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "wikihole-dumps-"));
-  db = openDb(path.join(dir, "test.db"));
+  db = openCatalogue(path.join(dir, "test.db"));
 });
 
 afterEach(() => {
@@ -51,7 +52,8 @@ describe("Wikimedia dumps", () => {
 
   it("also reads the older many-rows-per-INSERT format", async () => {
     const line = `INSERT INTO \`page\` VALUES ${pageRow(1, "Alpha")}${pageRow(2, "Beta")}`;
-    expect(await loadPages(db, log, dump("page.sql.gz", [line]))).toBe(2);
+    expect(await loadPages(db, log, dump("page.sql.gz", [line]), "2026-10-08")).toBe(2);
+    expect(getState(db, "catalogue:pages-dump")).toBe("2026-10-08");
   });
 
   it("adds Wikidata items, descriptions and disambiguation flags, ignoring other properties", async () => {
@@ -70,9 +72,7 @@ describe("Wikimedia dumps", () => {
 
   it("aggregates the clickstream and keeps edges only around recommended articles", async () => {
     await loadPages(db, log, dump("page.sql.gz", ["INSERT INTO `page` VALUES", pageRow(1, "Great_Stink"), pageRow(2, "Sewage"), pageRow(3, "Other")]));
-    db.prepare(
-      "INSERT INTO article_stats (lang, page_id, title, qualifying, discussions, recommenders, months, years, communities, first_at, last_at, recent_12m, mentions_other, criticism, updated_at) VALUES ('en', 1, 'Great Stink', 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0)",
-    ).run();
+    db.prepare("INSERT INTO targets (page_id) VALUES (1)").run();
     const file = dump("click.tsv.gz", [
       "other-search\tGreat_Stink\texternal\t800",
       "other-internal\tGreat_Stink\texternal\t100",
@@ -87,5 +87,30 @@ describe("Wikimedia dumps", () => {
       { from_page: 1, to_page: 2, clicks: 50 },
       { from_page: 2, to_page: 1, clicks: 100 },
     ]);
+  });
+});
+
+describe("enrichWikidata", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("reads instance-of labels, whatever type other properties hold", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "wikihole-wikidata-"));
+    const db = openCatalogue(path.join(dir, "catalogue.db"));
+    db.prepare("INSERT INTO catalogue (page_id, title, bytes, qid, sources) VALUES (1, 'Curta', 100, 'Q1', 'target people')").run();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL) => {
+        const url = new URL(String(input));
+        const entities =
+          url.searchParams.get("props") === "claims"
+            ? { Q1: { claims: { P646: [{ mainsnak: { datavalue: { value: "/m/0abc" } } }], P31: [{ mainsnak: { datavalue: { value: { id: "Q2" } } } }] } } }
+            : { Q2: { labels: { en: { value: "calculator" } } } };
+        return new Response(JSON.stringify({ entities }), { status: 200 });
+      }),
+    );
+    expect(await enrichWikidata(db, { log: () => {} })).toBe(1);
+    expect(db.prepare("SELECT instance_of FROM catalogue WHERE page_id = 1").get()).toEqual({ instance_of: '["calculator"]' });
+    db.close();
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });

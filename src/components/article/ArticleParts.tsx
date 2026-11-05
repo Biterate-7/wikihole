@@ -8,7 +8,7 @@ import type { ArticleDocument, Block, InfoboxRow, Section, WikiImage } from "@/l
 import type { RecommendedArticle } from "@/lib/curated/types";
 import { classifyGroup, readingMinutes, sourcedDate } from "@/lib/discovery/score";
 import { GROUPS } from "@/lib/discovery/topics";
-import { ASSESSMENT_LABELS, formatCount, formatDate } from "@/lib/format";
+import { ASSESSMENT_LABELS, formatCount } from "@/lib/format";
 import { DEFAULT_LANGUAGE, wikipediaDomain } from "@/lib/i18n/languages";
 import { articlePath, historyPath, wikipediaUrl } from "@/lib/wikipedia/titles";
 import { PAGEVIEW_DAYS, type PageMeta } from "@/lib/wikipedia/types";
@@ -142,10 +142,9 @@ export function ArticleSections({ doc, aiEnabled }: { doc: ArticleDocument; aiEn
 }
 
 /** "Page information" for the tools column: Wikipedia metadata about this article. */
-export function PageInformation({ meta }: { meta: PageMeta }) {
+export function PageInformation({ meta, history }: { meta: PageMeta; history?: React.ReactNode }) {
   const group = GROUPS.find((g) => g.id === classifyGroup(meta));
   const date = sourcedDate(meta.categories);
-  const edited = formatDate(meta.lastEdited);
   const quality = meta.assessment ? ASSESSMENT_LABELS[meta.assessment] : undefined;
   return (
     <Portlet id="tools-page-info" heading="This article">
@@ -182,13 +181,8 @@ export function PageInformation({ meta }: { meta: PageMeta }) {
             </dd>
           </div>
         ) : null}
-        {edited ? (
-          <div>
-            <dt>Last edited</dt>
-            <dd>{edited}</dd>
-          </div>
-        ) : null}
       </dl>
+      {history}
     </Portlet>
   );
 }
@@ -199,11 +193,14 @@ export function ArticleTools({
   doc,
   concepts,
   recommendation,
+  history,
 }: {
   meta: PageMeta;
   doc: ArticleDocument | null;
   concepts: React.ReactNode;
   recommendation?: React.ReactNode;
+  /** The history facts, which stream in separately. */
+  history: React.ReactNode;
 }) {
   const links = wikipediaLinks(meta.title, meta.lang);
   return (
@@ -220,7 +217,7 @@ export function ArticleTools({
           { href: "/random", label: "Random discovery" },
         ]}
       />
-      <PageInformation meta={meta} />
+      <PageInformation meta={meta} history={history} />
       {recommendation}
       {concepts}
       <Portlet id="tools-print" heading="Print/export">

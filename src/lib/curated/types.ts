@@ -27,6 +27,8 @@ export interface RecommendedArticle {
   id: number;
   title: string;
   qualifying: number;
+  /** Of those, how many say so in words rather than sharing the link. */
+  inWords: number;
   discussions: number;
   recommenders: number;
   months: number;
@@ -78,41 +80,81 @@ export interface RelatedLink {
 export interface SourceCoverage {
   id: string;
   name: string;
-  status: "ingested" | "partial" | "not-available";
+  /** complete: everything the source offers was read. partial: known gaps. not-available: nothing could be read. */
+  status: "complete" | "partial" | "not-available";
   detail: string;
   mentions: number;
   qualifying: number;
+  /** Awaiting review: neither counted nor discarded. */
+  undecided: number;
   oldest?: string;
   newest?: string;
 }
 
-export interface SnapshotMeta {
+export interface Rate {
+  value: number | null;
+  low: number | null;
+  high: number | null;
+  n: number;
+}
+
+export interface ClassifierEvaluation {
+  labeller: string;
+  labelled: number;
+  strata: Array<{ stratum: string; population: number; labelled: number; recommendations: number }>;
+  comments: { rulePrecision: Rate; estimatedRuleRecall: number | null; estimatedTrueRecommendations: number | null };
+  submissions: { rulePrecision: Rate; estimatedRuleRecall: number | null };
+  decided: { acceptedPrecision: Rate };
+}
+
+/** Quality of the human dataset. Knows nothing about the catalogue except page ids. */
+export interface HumanMeta {
   generatedAt: string;
   sources: SourceCoverage[];
   classification: {
-    /** Decided mentions per decider, so a reader can see what was and was not done by a model. */
-    deciders: Record<string, number>;
     labels: Record<string, number>;
-    /** A reviewed random sample: how often the deciders were right, measured rather than assumed. */
-    reviewed: {
-      sample: number;
-      comments: { checked: number; confirmed: number };
-      submissions: { checked: number; confirmed: number };
-      rejectedComments: { checked: number; missed: number };
-    };
+    /** Which stage decided each counted recommendation. */
+    deciders: Record<string, number>;
+    evaluation: ClassifierEvaluation;
   };
-  human: { articles: number; qualifying: number; discussions: number };
-  catalogue: {
-    /** Full scan: every main-namespace, non-redirect page in the dump. */
-    articlesScanned: number;
-    pagesDumpDate: string | null;
-    clickstreamMonth: string | null;
-    withClickData: number;
-    /** Deep metadata from the API, which covers only part of the catalogue. */
-    enriched: number;
-    published: number;
-  };
+  resolution: Record<string, number>;
+  totals: { mentions: number; articles: number; published: number; qualifying: number; inWords: number; discussions: number; nonEnglishMentions: number };
   collections: Record<CollectionId, number>;
+}
+
+/** Quality of the knowledge dataset. Knows nothing about recommendations. */
+export interface CatalogueMeta {
+  generatedAt: string;
+  scan: {
+    status: "complete" | "not-run";
+    /** Every main-namespace, non-redirect page in the dump. */
+    articles: number;
+    rowsRead: number;
+    pagesDumpDate: string | null;
+    withWikidata: number;
+    withDescription: number;
+    disambiguation: number;
+    clickstreamMonth: string | null;
+    clickstreamRows: number;
+    withClickData: number;
+  };
+  /** Deep metadata from the API, which covers only part of the catalogue. */
+  enrichment: {
+    selected: number;
+    enriched: number;
+    noDocument: number;
+    pending: number;
+    withTopics: number;
+    withAssessment: number;
+    withInstanceOf: number;
+    featured: number;
+    good: number;
+    unusual: number;
+    sampled: number;
+    requestedByOtherDatasets: number;
+  };
+  published: number;
+  notScanned: string[];
 }
 
 export interface RecommendedSnapshot {

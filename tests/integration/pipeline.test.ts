@@ -2,11 +2,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { applyReviews, classifyPending } from "../../pipeline/classify/run";
-import { openDb, type Db } from "../../pipeline/db";
+import { applyLabels, classifyPending, decideAll, measureCalibration } from "../../pipeline/classify/run";
+import type { Calibration } from "../../pipeline/classify/decide";
+import { openHuman, type Db } from "../../pipeline/db";
 import { resolveTitles } from "../../pipeline/resolve";
 import { ingestHackerNews } from "../../pipeline/sources/hackernews";
-import { updateStats } from "../../pipeline/stats";
+import { onePerItem, updateStats } from "../../pipeline/stats";
 
 /** The pipeline against a scratch store and mocked sources: nothing touches the network. */
 
@@ -15,7 +16,7 @@ let db: Db;
 
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "wikihole-pipeline-"));
-  db = openDb(path.join(dir, "test.db"));
+  db = openHuman(path.join(dir, "test.db"));
 });
 
 afterEach(() => {
@@ -45,6 +46,13 @@ function fakeAlgolia(hits: Array<{ created_at_i: number }>) {
     return new Response(JSON.stringify({ hits: matching.slice(0, Number(url.searchParams.get("hitsPerPage"))) }));
   });
 }
+
+/** A rule measured as reliable, so its verdicts count without waiting for review. */
+const TRUSTED: Calibration = { "comment|says it is worth reading": { checked: 50, confirmed: 49, precision: 0.96 } };
+const classify = () => {
+  classifyPending(db);
+  decideAll(db, TRUSTED);
+};
 
 const mentionCount = () => (db.prepare("SELECT count(*) AS n FROM mentions").get() as { n: number }).n;
 
@@ -120,13 +128,22 @@ describe("resolution, classification and statistics", () => {
       })),
     );
     expect(await resolveTitles(db)).toBe(3);
-    classifyPending(db);
+    classify();
     expect(updateStats(db)).toBe(1);
     const stats = db.prepare("SELECT * FROM article_stats").all() as Array<Record<string, unknown>>;
     expect(stats).toHaveLength(1);
     expect(stats[0]).toMatchObject({ page_id: 42, title: "Canonical", qualifying: 2, discussions: 2, recommenders: 2 });
     const gone = db.prepare("SELECT status, page_id FROM titles WHERE raw_title = 'Gone'").get() as Record<string, unknown>;
     expect(gone).toEqual({ status: "missing", page_id: null });
+  });
+
+  it("counts one post linking an article and its redirect once", () => {
+    const rows = [
+      { item_url: "https://example.test/1", title: "Canonical" },
+      { item_url: "https://example.test/1", title: "Alias" },
+      { item_url: "https://example.test/2", title: "Canonical" },
+    ];
+    expect(onePerItem(rows).map((row) => row.title)).toEqual(["Canonical", "Canonical"]);
   });
 
   it("recomputes only articles whose mentions changed", async () => {
@@ -136,12 +153,12 @@ describe("resolution, classification and statistics", () => {
       wikipedia((titles) => ({ query: { pages: titles.map((title, i) => ({ pageid: 100 + i, ns: 0, title })) } })),
     );
     await resolveTitles(db);
-    classifyPending(db);
+    classify();
     expect(updateStats(db)).toBe(2);
     expect(updateStats(db)).toBe(0);
 
     await seed([comment(1, 1000, "Alpha"), comment(2, 2000, "Beta"), comment(3, 3000, "Beta")]);
-    classifyPending(db);
+    classify();
     expect(updateStats(db)).toBe(1);
     const beta = db.prepare("SELECT qualifying FROM article_stats WHERE title = 'Beta'").get() as { qualifying: number };
     expect(beta.qualifying).toBe(2);
@@ -151,25 +168,57 @@ describe("resolution, classification and statistics", () => {
     await seed([comment(1, 1000, "Alpha", "According to")]);
     vi.stubGlobal("fetch", wikipedia((titles) => ({ query: { pages: titles.map((title) => ({ pageid: 7, ns: 0, title })) } })));
     await resolveTitles(db);
-    classifyPending(db);
+    classify();
     updateStats(db);
     expect(db.prepare("SELECT count(*) AS n FROM article_stats").get()).toEqual({ n: 0 });
     expect(db.prepare("SELECT label FROM mentions").get()).toEqual({ label: "citation" });
+  });
+
+  it("does not count a rule with no measured precision until something reviews it", async () => {
+    await seed([comment(1, 1000, "Alpha")]);
+    vi.stubGlobal("fetch", wikipedia((titles) => ({ query: { pages: titles.map((title) => ({ pageid: 7, ns: 0, title })) } })));
+    await resolveTitles(db);
+    classifyPending(db);
+    decideAll(db, {});
+    updateStats(db);
+    expect(db.prepare("SELECT final_label FROM mentions").get()).toEqual({ final_label: "needs-review" });
+    expect(db.prepare("SELECT count(*) AS n FROM article_stats").get()).toEqual({ n: 0 });
+
+    db.prepare("UPDATE mentions SET llm_label = 'recommendation', llm_confidence = 0.9, llm_model = 'claude-test'").run();
+    decideAll(db, {});
+    updateStats(db);
+    expect(db.prepare("SELECT final_label, decided_by FROM mentions").get()).toEqual({ final_label: "recommendation", decided_by: "claude-test" });
+    expect(db.prepare("SELECT qualifying, in_words FROM article_stats").get()).toEqual({ qualifying: 1, in_words: 1 });
+  });
+
+  it("applies label files, and keeps held-out rows out of calibration", () => {
+    const row = "INSERT INTO mentions (id, source, community, kind, item_url, discussion_id, discussion_url, created_at, lang, raw_title, context, excerpt, links_in_text, words_in_text, label, reason) VALUES (?, 'x', 'x', 'comment', 'u', 'd', 'u', 1, 'en', ?, 'c', 'e', 1, 1, 'recommendation', 'r')";
+    db.prepare(row).run("a", "A");
+    db.prepare(row).run("b", "B");
+    db.prepare(row).run("held", "C");
+    const reviews = path.join(dir, "reviews.jsonl");
+    const evaluation = path.join(dir, "eval.jsonl");
+    const llm = path.join(dir, "llm.jsonl");
+    fs.writeFileSync(reviews, '{"id":"a","label":"recommendation","reviewer":"x"}\n');
+    fs.writeFileSync(evaluation, '{"id":"held","label":"citation","reviewer":"x"}\n');
+    fs.writeFileSync(llm, '{"id":"b","label":"citation","confidence":0.9,"why":"","model":"claude-test"}\n');
+    expect(applyLabels(db, { reviews, evaluation, llm })).toEqual({ reviews: 2, llm: 1 });
+    const calibration = measureCalibration(db, new Set(["held"]));
+    expect(calibration["comment|r"]).toMatchObject({ checked: 2, confirmed: 1 });
   });
 
   it("keeps stored labels when reviews apply on top, and a review wins", async () => {
     await seed([comment(1, 1000, "Alpha")]);
     vi.stubGlobal("fetch", wikipedia((titles) => ({ query: { pages: titles.map((title) => ({ pageid: 7, ns: 0, title })) } })));
     await resolveTitles(db);
-    classifyPending(db);
+    classify();
     updateStats(db);
     expect(db.prepare("SELECT qualifying FROM article_stats").get()).toEqual({ qualifying: 1 });
 
     db.prepare("UPDATE mentions SET review = 'casual'").run();
-    db.prepare("INSERT OR IGNORE INTO dirty_titles SELECT lang, raw_title FROM mentions").run();
+    decideAll(db, TRUSTED);
     updateStats(db);
     expect(db.prepare("SELECT count(*) AS n FROM article_stats").get()).toEqual({ n: 0 });
-    expect(db.prepare("SELECT label, review FROM mentions").get()).toEqual({ label: "recommendation", review: "casual" });
-    expect(applyReviews(db)).toBeGreaterThanOrEqual(0);
+    expect(db.prepare("SELECT label, review, final_label, decided_by FROM mentions").get()).toEqual({ label: "recommendation", review: "casual", final_label: "casual", decided_by: "review" });
   });
 });

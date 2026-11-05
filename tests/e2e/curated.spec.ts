@@ -6,7 +6,7 @@ import { clippedElements, expectNoHorizontalOverflow, VIEWPORTS } from "./helper
 test.describe("Recommended", () => {
   test("is reached from Discover and shows ranked articles with traceable evidence", async ({ page }) => {
     await page.goto("/discover");
-    await page.getByRole("navigation", { name: "Namespaces" }).getByRole("link", { name: "Recommended" }).click();
+    await page.getByRole("navigation", { name: "Views" }).getByRole("link", { name: "Recommended" }).click();
     await expect(page).toHaveURL(/\/discover\/recommended/);
     await expect(page.getByRole("heading", { level: 1, name: "Recommended" })).toBeVisible();
 
@@ -37,7 +37,8 @@ test.describe("Recommended", () => {
     await page.goto("/discover/recommended");
     const tools = page.locator("#page-tools");
     await expect(tools.getByTestId("evidence-totals")).toContainText(/qualifying recommendations/);
-    await expect(tools.getByText(/Reddit: not available/)).toBeVisible();
+    await expect(tools.getByText(/Reddit \(not available\)/)).toBeVisible();
+    await expect(tools.getByTestId("evaluation-summary")).toContainText(/held-out/);
   });
 
   test("From your reading uses local history and opens from a read article", async ({ page }) => {
@@ -94,7 +95,7 @@ test.describe("existing discovery stays reachable", () => {
     const views = page.getByRole("navigation", { name: "Views" });
     await expect(views.getByRole("link", { name: "Topics" })).toHaveAttribute("href", "/topics");
     await expect(views.getByRole("link", { name: "Random" })).toHaveAttribute("href", "/random");
-    await page.getByRole("navigation", { name: "Namespaces" }).getByRole("link", { name: "Discover", exact: true }).click();
+    await views.getByRole("link", { name: "Discover", exact: true }).click();
     await expect(page.getByTestId("feed-item").first()).toBeVisible({ timeout: 45_000 });
   });
 
@@ -118,4 +119,17 @@ test.describe("responsive", () => {
       }
     });
   }
+});
+
+test.describe("recommended is not the same as mentioned", () => {
+  test("an article people mostly cite does not lead the list, and its citations are shown as such", async ({ request }) => {
+    const page = await (await request.get("/api/curated?collection=most&limit=30")).json();
+    const titles = page.items.map((item: { title: string }) => item.title);
+    for (const cited of ["Betteridge's law of headlines", "Goodhart's law", "Poe's law"]) expect(titles).not.toContain(cited);
+    for (const item of page.items) {
+      expect(item.recommendation.qualifying).toBeGreaterThanOrEqual(3);
+      expect(item.recommendation.evidence.length).toBeGreaterThan(0);
+      expect(item.recommendation.evidence[0].url).toMatch(/^https:/);
+    }
+  });
 });

@@ -11,7 +11,7 @@ import { SiteTools } from "@/components/layout/SiteTools";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { COLLECTIONS, type CollectionId } from "@/lib/curated/rank";
 import { getCollection, hasRecommendations } from "@/lib/curated/service";
-import { getMeta } from "@/lib/curated/store";
+import { getHumanMeta } from "@/lib/curated/store";
 import { requestLanguage } from "@/lib/i18n/server";
 import { attempt } from "@/lib/server/http";
 import { discoverTabs } from "../tabs";
@@ -53,7 +53,7 @@ export default async function RecommendedPage({ searchParams }: { searchParams: 
         tools={
           <SiteTools>
             <ContinuePanel />
-            <RecommendedMethod meta={getMeta()} />
+            <RecommendedMethod meta={getHumanMeta()} />
           </SiteTools>
         }
       >

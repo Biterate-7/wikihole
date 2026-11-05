@@ -22,8 +22,12 @@ function unescapeSql(value: string): string {
 
 const PAGE_ROW = /\((\d+),(-?\d+),'((?:[^'\\]|\\.)*)',([01]),[01],[\d.e-]+,'\d+',(?:'\d+'|NULL),\d+,(\d+),/g;
 
-/** enwiki-latest-page.sql.gz: every article's id, title and size; redirects and other namespaces are skipped. */
-export async function loadPages(db: Db, log: (message: string) => void, file = path.join(DUMP_DIR, "enwiki-latest-page.sql.gz")): Promise<number> {
+/**
+ * enwiki-latest-page.sql.gz: every article's id, title and size; redirects and
+ * other namespaces are skipped. The file's own timestamp says when it was
+ * downloaded, not which dump it is, so the date is only recorded when given.
+ */
+export async function loadPages(db: Db, log: (message: string) => void, file = path.join(DUMP_DIR, "enwiki-latest-page.sql.gz"), dumpDate?: string): Promise<number> {
   const upsert = db.prepare(`
     INSERT INTO catalogue (page_id, title, bytes) VALUES (?, ?, ?)
     ON CONFLICT (page_id) DO UPDATE SET title = excluded.title, bytes = excluded.bytes`);
@@ -53,7 +57,7 @@ export async function loadPages(db: Db, log: (message: string) => void, file = p
   flush();
   setState(db, "catalogue:pages-scanned", scanned);
   setState(db, "catalogue:articles", total);
-  setState(db, "catalogue:pages-dump", fs.statSync(file).mtime.toISOString().slice(0, 10));
+  setState(db, "catalogue:pages-dump", dumpDate ?? "unknown");
   return total;
 }
 
@@ -97,11 +101,17 @@ const toTitle = (value: string) => value.replace(/_/g, " ");
  * clickstream-enwiki-*.tsv.gz: how readers actually move between articles in a
  * month. Gives every article its arrivals, the share from outside Wikipedia, and
  * how many other articles send readers to it. Article-to-article edges are kept
- * only where they touch an article people recommended, to stay small.
+ * only where they touch a page in `targets`, to stay small.
  */
-export async function loadClickstream(db: Db, month: string, log: (message: string) => void, file = path.join(DUMP_DIR, `clickstream-enwiki-${month}.tsv.gz`)): Promise<number> {
-  const recommended = new Set(
-    (db.prepare("SELECT title FROM article_stats WHERE lang = 'en'").all() as Array<{ title: string }>).map((row) => row.title),
+export async function loadClickstream(
+  db: Db,
+  month: string,
+  log: (message: string) => void,
+  file = path.join(DUMP_DIR, `clickstream-enwiki-${month}.tsv.gz`),
+  options: { edgesOnly?: boolean } = {},
+): Promise<number> {
+  const targets = new Set(
+    (db.prepare("SELECT c.title FROM targets t JOIN catalogue c ON c.page_id = t.page_id").all() as Array<{ title: string }>).map((row) => row.title),
   );
   const totals = new Map<string, { clicks: number; external: number; inbound: number }>();
   const edges: Array<[string, string, number]> = [];
@@ -123,7 +133,7 @@ export async function loadClickstream(db: Db, month: string, log: (message: stri
     } else if (type === "link") {
       entry.inbound++;
       const from = toTitle(prev);
-      if (clicks >= 20 && (recommended.has(title) || recommended.has(from))) edges.push([from, title, clicks]);
+      if (clicks >= 20 && (targets.has(title) || targets.has(from))) edges.push([from, title, clicks]);
     }
     if (rows % 5000000 === 0) log(`clickstream: ${rows} rows, ${totals.size} articles`);
   }
@@ -132,7 +142,8 @@ export async function loadClickstream(db: Db, month: string, log: (message: stri
   const update = db.prepare("UPDATE catalogue SET monthly_clicks = ?, external_share = ?, inbound_pages = ? WHERE title = ?");
   let done = 0;
   let open = false;
-  for (const [title, entry] of totals) {
+  // When only the set of targets changed, the per-article totals are already right.
+  for (const [title, entry] of options.edgesOnly ? [] : totals) {
     if (!open) {
       db.exec("BEGIN");
       open = true;

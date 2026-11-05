@@ -5,10 +5,10 @@ import { z } from "zod";
 import { parseWikipediaUrl } from "@/lib/curated/links";
 import { collectionRank, COLLECTIONS, countEvidence, type QualifyingMention } from "@/lib/curated/rank";
 import type { RecommendedSnapshot, CatalogueEntry } from "@/lib/curated/types";
-import { EFFECTIVE_LABEL } from "./classify/run.ts";
 import type { Db } from "./db.ts";
-import { SNAPSHOT_DIR } from "./export.ts";
+import { SNAPSHOT_DIR, type PageFacts } from "./export.ts";
 import { fetchJson } from "./http.ts";
+import { onePerItem } from "./stats.ts";
 import { extractLinks } from "./text.ts";
 
 /**
@@ -49,10 +49,10 @@ const pagesSchema = z.object({
   query: z.object({ pages: z.array(z.object({ pageid: z.number().optional(), ns: z.number().optional(), title: z.string().optional(), missing: z.boolean().optional() })) }).optional(),
 });
 
-export async function verifySnapshot(db: Db, log: (message: string) => void, sizes = { live: 300, sources: 60, recount: 500 }): Promise<CheckResult[]> {
-  const snapshot = read<RecommendedSnapshot>("recommended.json.gz");
-  const catalogue = read<CatalogueEntry[]>("catalogue.json.gz");
-  const provenance = read<Array<[number, string, number, string, string]>>("provenance.json.gz");
+export async function verifySnapshot(db: Db, factsFor: (pageId: number) => PageFacts | undefined, log: (message: string) => void, sizes = { live: 300, sources: 60, recount: 500 }): Promise<CheckResult[]> {
+  const snapshot = read<RecommendedSnapshot>("human/recommended.json.gz");
+  const catalogue = read<CatalogueEntry[]>("catalogue/entries.json.gz");
+  const provenance = read<Array<[number, string, number, string, string]>>("human/provenance.json.gz");
   const results: CheckResult[] = [];
   const now = Math.floor(Date.now() / 1000);
 
@@ -87,16 +87,16 @@ export async function verifySnapshot(db: Db, log: (message: string) => void, siz
 
   // Traceability: recompute published numbers from the stored mentions.
   const mentionsOf = db.prepare(`
-    SELECT m.discussion_id, m.community, m.author_hash, m.created_at
+    SELECT m.item_url, m.discussion_id, m.community, m.author_hash, m.created_at, m.kind
     FROM titles t CROSS JOIN mentions m ON m.lang = t.lang AND m.raw_title = t.raw_title
-    WHERE t.lang = 'en' AND t.page_id = ? AND ${EFFECTIVE_LABEL} = 'recommendation'`);
+    WHERE t.lang = 'en' AND t.page_id = ? AND m.final_label = 'recommendation'`);
   const byPage = new Map<number, number>();
   for (const [page] of provenance) byPage.set(page, (byPage.get(page) ?? 0) + 1);
   results.push(
     check("published counts equal a recount of stored mentions", sample(snapshot.articles, sizes.recount), (article) => {
-      const rows = mentionsOf.all(article.id) as Array<{ discussion_id: string; community: string; author_hash: string | null; created_at: number }>;
+      const rows = onePerItem(mentionsOf.all(article.id) as Array<{ item_url: string; discussion_id: string; community: string; author_hash: string | null; created_at: number; kind: string }>);
       const counts = countEvidence(
-        rows.map((row): QualifyingMention => ({ discussionId: row.discussion_id, community: row.community, authorHash: row.author_hash, at: row.created_at })),
+        rows.map((row): QualifyingMention => ({ discussionId: row.discussion_id, community: row.community, authorHash: row.author_hash, at: row.created_at, inWords: row.kind !== "submission" })),
         now,
       );
       if (counts.qualifying !== article.qualifying || counts.discussions !== article.discussions || counts.recommenders !== article.recommenders || counts.months !== article.months) {
@@ -108,7 +108,6 @@ export async function verifySnapshot(db: Db, log: (message: string) => void, siz
 
   // Collections hold only what their evidence gate allows, in order.
   const byId = new Map(snapshot.articles.map((article) => [article.id, article]));
-  const catalogueById = new Map(catalogue.map((entry) => [entry.id, entry]));
   const statsRow = db.prepare("SELECT effective FROM article_stats WHERE lang = 'en' AND page_id = ?");
   for (const id of COLLECTIONS) {
     let previous = Infinity;
@@ -116,7 +115,8 @@ export async function verifySnapshot(db: Db, log: (message: string) => void, siz
       check(`collection "${id}" meets its gate, in order`, snapshot.collections[id], (page) => {
         const article = byId.get(page);
         if (!article) return `${page} missing from articles`;
-        const entry = catalogueById.get(page);
+        // The same facts the export judged by. Lists are recommended but not all published in Explore.
+        const facts = factsFor(page);
         const effective = (statsRow.get(page) as { effective: number } | undefined)?.effective ?? 0;
         const rank = collectionRank(
           id,
@@ -131,9 +131,11 @@ export async function verifySnapshot(db: Db, log: (message: string) => void, siz
             lastAt: article.lastAt,
             recent12m: article.recent12m,
             effective,
-            monthlyClicks: entry?.monthlyClicks ?? null,
-            inCatalogue: entry !== undefined || id !== "hidden",
-            bytes: entry?.bytes ?? (id === "hidden" ? null : 10000),
+            inWords: article.inWords,
+            mentionsOther: article.otherMentions,
+            monthlyClicks: facts?.monthly_clicks ?? null,
+            inCatalogue: facts !== undefined,
+            bytes: facts?.bytes ?? null,
           },
           now,
         );
@@ -166,7 +168,7 @@ export async function verifySnapshot(db: Db, log: (message: string) => void, siz
   // Sources: the linked comment really exists and really links to the article.
   const redirectsTo = db.prepare("SELECT canonical_title FROM titles WHERE lang = 'en' AND raw_title = ?");
   const hn = sample(
-    snapshot.articles.flatMap((article) => article.evidence.filter((e) => e.community === "Hacker News" && e.kind === "comment").map((evidence) => ({ article, evidence }))),
+    snapshot.articles.flatMap((article) => article.evidence.filter((e) => e.community === "Hacker News").map((evidence) => ({ article, evidence }))),
     sizes.sources,
   );
   const sourceProblems: string[] = [];

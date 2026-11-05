@@ -64,8 +64,9 @@ function RecommendationEvidence({ article }: { article: RecommendedArticle }) {
     <div className={styles.breakdown}>
       <p>
         {plural(article.qualifying, "recommendation")} from {plural(article.recommenders, "person").replace("persons", "people")} in{" "}
-        {plural(article.discussions, "discussion")}, across {plural(article.months, "month")} ({yearsSpan(article)}).
-        {article.otherMentions > 0 ? ` A further ${plural(article.otherMentions, "mention")} only cited it or passed it by, so they did not count.` : ""}
+        {plural(article.discussions, "discussion")}, across {plural(article.months, "month")} ({yearsSpan(article)}): {formatCount(article.inWords)} in words,{" "}
+        {formatCount(article.qualifying - article.inWords)} shared and upvoted.
+        {article.otherMentions > 0 ? ` A further ${plural(article.otherMentions, "mention")} only cited it or passed it by, and do not count.` : ""}
         {article.criticism > 0 ? ` Of those, ${plural(article.criticism, "mention")} criticised it.` : ""}
       </p>
       <ul className={styles.signals}>

@@ -27,7 +27,6 @@ export function saveMentions(db: Db, item: ItemProvenance, links: LinkContext[])
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (id) DO UPDATE SET points = excluded.points, replies = excluded.replies, discussion_title = excluded.discussion_title
   `);
-  const dirty = db.prepare("INSERT OR IGNORE INTO dirty_titles (lang, raw_title) VALUES (?, ?)");
   for (const link of links) {
     const { lang, title, fragment } = link.reference;
     insert.run(
@@ -51,7 +50,6 @@ export function saveMentions(db: Db, item: ItemProvenance, links: LinkContext[])
       link.linksInText,
       link.wordsInText,
     );
-    dirty.run(lang, title);
   }
   return links.length;
 }

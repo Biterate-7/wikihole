@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import zlib from "node:zlib";
-import type { CatalogueEntry, RecommendedArticle, RecommendedSnapshot, RelatedLink, SnapshotMeta } from "@/lib/curated/types";
+import type { CatalogueEntry, RecommendedArticle, RecommendedSnapshot, RelatedLink } from "@/lib/curated/types";
 
 /**
  * A tiny snapshot for tests only, written to a temporary directory and selected
@@ -14,6 +14,7 @@ export function recommended(id: number, title: string, overrides: Partial<Recomm
     id,
     title,
     qualifying: 4,
+    inWords: 3,
     discussions: 3,
     recommenders: 3,
     months: 3,
@@ -54,15 +55,17 @@ export function writeSnapshot(data: {
   snapshot: RecommendedSnapshot;
   catalogue: CatalogueEntry[];
   related?: Record<number, RelatedLink[]>;
+  paths?: Record<number, RelatedLink[]>;
   provenance?: Array<[number, string, number, string, string]>;
-  meta?: Partial<SnapshotMeta>;
 }): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "wikihole-snapshot-"));
   const write = (name: string, value: unknown) => fs.writeFileSync(path.join(dir, name), zlib.gzipSync(JSON.stringify(value)));
-  write("recommended.json.gz", data.snapshot);
-  write("catalogue.json.gz", data.catalogue);
-  write("related.json.gz", data.related ?? {});
-  write("provenance.json.gz", data.provenance ?? []);
-  fs.writeFileSync(path.join(dir, "meta.json"), JSON.stringify(data.meta ?? {}));
+  fs.mkdirSync(path.join(dir, "human"));
+  fs.mkdirSync(path.join(dir, "catalogue"));
+  write("human/recommended.json.gz", data.snapshot);
+  write("human/related.json.gz", data.related ?? {});
+  write("human/provenance.json.gz", data.provenance ?? []);
+  write("catalogue/entries.json.gz", data.catalogue);
+  write("catalogue/paths.json.gz", data.paths ?? {});
   return dir;
 }

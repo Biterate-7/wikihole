@@ -1,9 +1,8 @@
 /*
- * The article reader, styled as a Wikipedia article in Vector 2022: serif
- * h1/h2 over #a2a9b1 rules, a floated infobox and thumbnails, wikitables,
- * references, a navbox and the categories box. The pinned contents live in the
- * left sidebar. Running text keeps to a comfortable measure inside the wider
- * content column, which tables, figures and rules still use in full.
+ * The article reader, styled as a Wikipedia article in Vector 2022:
+ * 16px/1.625 sans-serif body, serif h1/h2 over #a2a9b1 rules, a floated
+ * infobox and thumbnails, wikitables, references, a navbox and the
+ * categories box. The pinned contents live in the left sidebar.
  */
 
 .page {
@@ -27,45 +26,6 @@
   background: var(--color-progressive);
   transform: scaleX(0);
   transform-origin: 0 50%;
-}
-
-/* ---------- Under the title: description and history facts ---------- */
-
-.description {
-  margin-top: 4px;
-  font-family: var(--reading);
-  font-size: 0.9375rem;
-  line-height: 1.5;
-  color: var(--color-base);
-}
-
-.metaLine {
-  display: flex;
-  flex-wrap: wrap;
-  min-height: 1.5em;
-  margin: 2px 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: var(--color-subtle);
-}
-
-.metaLine li {
-  white-space: nowrap;
-}
-
-/* After each item rather than before the next, so a wrapped line never starts with a dot. */
-.metaLine li:not(:last-child)::after {
-  content: "\00b7";
-  margin: 0 0.45em;
-  font-weight: 700;
-}
-
-@media (max-width: 479px) {
-  .metaLine li {
-    white-space: normal;
-  }
 }
 
 /* ---------- Under the title: trail breadcrumbs ---------- */
@@ -119,7 +79,7 @@
 /* ---------- Contents (left sidebar) ---------- */
 
 .toc {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
 }
 
 .toc .tocList {
@@ -144,14 +104,21 @@
 .tocLink,
 .tocLink:visited {
   display: block;
-  padding: 4px 0;
-  line-height: 1.25;
+  padding: 6px 0;
+  line-height: 1.2;
   color: var(--color-progressive);
   word-break: break-word;
 }
 
-.tocActive > .tocLink,
-.tocLink[aria-current="location"] {
+/* At the top of the page nothing is being read yet, so (Top) stays an ordinary link. */
+.tocTop[aria-current="location"],
+.tocTop[aria-current="location"]:visited {
+  font-weight: 400;
+  color: var(--color-progressive);
+}
+
+.tocActive > .tocLink:not(.tocTop),
+.tocLink:not(.tocTop)[aria-current="location"] {
   color: var(--color-base);
   font-weight: 700;
 }
@@ -326,27 +293,10 @@
 /* ---------- Body text ---------- */
 
 .prose {
-  margin-top: 14px;
-  font-family: var(--reading);
+  margin-top: 16px;
   font-size: 1rem;
-  line-height: 1.65;
+  line-height: 1.625;
   color: var(--color-base);
-  text-wrap: pretty;
-  text-rendering: optimizeLegibility;
-}
-
-/* About 80 characters a line. Floats sit in the column's right-hand space. */
-.prose > .p,
-.prose > .note,
-.prose > .list,
-.prose > .dl,
-.prose > .quote,
-.section > .p,
-.section > .note,
-.section > .list,
-.section > .dl,
-.section > .quote {
-  max-width: 44rem;
 }
 
 /* Terms the reader can explain: quiet enough to read past. */
@@ -419,7 +369,7 @@
 
 .h2 {
   margin: 0.25em 0;
-  padding: 0.75em 0 0.17em;
+  padding: 0.5em 0 0.17em;
   border-bottom: 1px solid var(--border-base);
   font-family: var(--serif);
   font-size: 1.5em;
@@ -430,7 +380,7 @@
 }
 
 .h3 {
-  margin: 0.4em 0 0.15em;
+  margin: 0.25em 0;
   padding-top: 0.5em;
   font-size: 1.2em;
   font-weight: 700;
@@ -1263,31 +1213,10 @@
 /* ---------- Narrow screens: article-first, as on Wikipedia's mobile site ---------- */
 
 @media (max-width: 719px) {
-  /* The opening paragraph comes before the infobox, as on Wikipedia's mobile site. */
-  .prose {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .prose > * {
-    order: 2;
-    min-width: 0;
-  }
-
-  .prose > .p:first-of-type {
-    order: 0;
-  }
-
-  /* Flex items do not collapse margins, so paragraphs here carry only their lower one. */
-  .prose > .p {
-    margin-top: 0;
-  }
-
-  .prose > .infobox {
-    order: 1;
+  .infobox {
     float: none;
     width: 100%;
-    margin: 0.25em 0 1em;
+    margin: 0.5em 0 1em;
   }
 
   .figure {
@@ -1306,12 +1235,6 @@
   .figure .img,
   .portrait .img {
     max-width: 100%;
-  }
-
-  /* Landscape images fill the width; portraits would dwarf the text, so they keep their size. */
-  .figure:not(.portrait) .img {
-    width: 100%;
-    max-height: none;
   }
 
   /* The navbox stacks: group heading over its list, as on Wikipedia's narrow layouts. */

@@ -1,0 +1,625 @@
+{
+  "generatedAt": "2026-11-04T18:24:05.133Z",
+  "human": {
+    "bySource": [
+      {
+        "source": "essays",
+        "kind": "essay",
+        "mentions": 97,
+        "items": 14,
+        "discussions": 3,
+        "qualifying": 97,
+        "undecided": 0,
+        "oldest": "2010-09-28",
+        "newest": "2016-11-11"
+      },
+      {
+        "source": "hackernews",
+        "kind": "comment",
+        "mentions": 645365,
+        "items": 569692,
+        "discussions": 244036,
+        "qualifying": 1167,
+        "undecided": 25,
+        "oldest": "2007-02-21",
+        "newest": "2026-11-04"
+      },
+      {
+        "source": "hackernews",
+        "kind": "submission",
+        "mentions": 55647,
+        "items": 55647,
+        "discussions": 55647,
+        "qualifying": 5243,
+        "undecided": 0,
+        "oldest": "2007-02-21",
+        "newest": "2026-11-04"
+      },
+      {
+        "source": "lemmy",
+        "kind": "submission",
+        "mentions": 5448,
+        "items": 5345,
+        "discussions": 5345,
+        "qualifying": 4811,
+        "undecided": 28,
+        "oldest": "2023-06-09",
+        "newest": "2026-11-04"
+      },
+      {
+        "source": "tildes",
+        "kind": "comment",
+        "mentions": 365,
+        "items": 236,
+        "discussions": 109,
+        "qualifying": 68,
+        "undecided": 0,
+        "oldest": "2018-05-04",
+        "newest": "2026-10-23"
+      },
+      {
+        "source": "tildes",
+        "kind": "submission",
+        "mentions": 104,
+        "items": 104,
+        "discussions": 104,
+        "qualifying": 0,
+        "undecided": 0,
+        "oldest": "2018-07-27",
+        "newest": "2026-10-13"
+      }
+    ],
+    "checkpoints": {
+      "hackernewsStoriesCompleteThrough": "1793811113",
+      "hackernewsCommentsCompleteThrough": "1793812664",
+      "hackernewsStoryCursor": null,
+      "hackernewsCommentCursor": null,
+      "lemmyNextPage": "2",
+      "lemmyComplete": "2026-11-04",
+      "tildesAfter": ""
+    },
+    "languages": [
+      {
+        "lang": "en",
+        "mentions": 701031
+      },
+      {
+        "lang": "de",
+        "mentions": 2455
+      },
+      {
+        "lang": "fr",
+        "mentions": 875
+      },
+      {
+        "lang": "simple",
+        "mentions": 415
+      },
+      {
+        "lang": "nl",
+        "mentions": 291
+      },
+      {
+        "lang": "es",
+        "mentions": 284
+      },
+      {
+        "lang": "ru",
+        "mentions": 260
+      },
+      {
+        "lang": "ja",
+        "mentions": 189
+      },
+      {
+        "lang": "sv",
+        "mentions": 186
+      },
+      {
+        "lang": "it",
+        "mentions": 185
+      },
+      {
+        "lang": "zh",
+        "mentions": 115
+      },
+      {
+        "lang": "pt",
+        "mentions": 106
+      }
+    ],
+    "resolution": [
+      {
+        "english": 1,
+        "status": "ok",
+        "titles": 163542
+      },
+      {
+        "english": 1,
+        "status": "redirected",
+        "titles": 28134
+      },
+      {
+        "english": 1,
+        "status": "missing",
+        "titles": 2403
+      },
+      {
+        "english": 1,
+        "status": "disambiguation",
+        "titles": 2083
+      },
+      {
+        "english": 1,
+        "status": "not-article",
+        "titles": 54
+      },
+      {
+        "english": 0,
+        "status": "ok",
+        "titles": 4719
+      },
+      {
+        "english": 0,
+        "status": "redirected",
+        "titles": 282
+      },
+      {
+        "english": 0,
+        "status": "missing",
+        "titles": 124
+      },
+      {
+        "english": 0,
+        "status": "disambiguation",
+        "titles": 53
+      },
+      {
+        "english": 0,
+        "status": "not-article",
+        "titles": 16
+      }
+    ],
+    "unresolvedMentions": 0,
+    "unusableMentions": 4068,
+    "labels": [
+      {
+        "kind": "comment",
+        "decided": "casual",
+        "mentions": 339734
+      },
+      {
+        "kind": "comment",
+        "decided": "citation",
+        "mentions": 279171
+      },
+      {
+        "kind": "comment",
+        "decided": "interesting",
+        "mentions": 24964
+      },
+      {
+        "kind": "comment",
+        "decided": "recommendation",
+        "mentions": 1235
+      },
+      {
+        "kind": "comment",
+        "decided": "criticism",
+        "mentions": 486
+      },
+      {
+        "kind": "comment",
+        "decided": "spam",
+        "mentions": 115
+      },
+      {
+        "kind": "comment",
+        "decided": "needs-review",
+        "mentions": 25
+      },
+      {
+        "kind": "essay",
+        "decided": "recommendation",
+        "mentions": 97
+      },
+      {
+        "kind": "submission",
+        "decided": "casual",
+        "mentions": 36189
+      },
+      {
+        "kind": "submission",
+        "decided": "interesting",
+        "mentions": 14859
+      },
+      {
+        "kind": "submission",
+        "decided": "recommendation",
+        "mentions": 10054
+      },
+      {
+        "kind": "submission",
+        "decided": "citation",
+        "mentions": 66
+      },
+      {
+        "kind": "submission",
+        "decided": "needs-review",
+        "mentions": 28
+      },
+      {
+        "kind": "submission",
+        "decided": "criticism",
+        "mentions": 2
+      },
+      {
+        "kind": "submission",
+        "decided": "spam",
+        "mentions": 1
+      }
+    ],
+    "deciders": [
+      {
+        "decided_by": "heuristic-v7",
+        "label": "recommendation",
+        "mentions": 9740
+      },
+      {
+        "decided_by": "claude-opus-5-5",
+        "label": "recommendation",
+        "mentions": 1390
+      },
+      {
+        "decided_by": "review",
+        "label": "recommendation",
+        "mentions": 256
+      }
+    ],
+    "queues": {
+      "ambiguous": 53,
+      "recallCandidates": 24600
+    },
+    "mostMentionedControl": [
+      {
+        "title": "Betteridge's law of headlines",
+        "qualifying": 3,
+        "inWords": 0,
+        "otherMentions": 996
+      },
+      {
+        "title": "Jevons paradox",
+        "qualifying": 9,
+        "inWords": 0,
+        "otherMentions": 575
+      },
+      {
+        "title": "Paradox of tolerance",
+        "qualifying": 8,
+        "inWords": 4,
+        "otherMentions": 536
+      },
+      {
+        "title": "Goodhart's law",
+        "qualifying": 3,
+        "inWords": 0,
+        "otherMentions": 526
+      },
+      {
+        "title": "Whataboutism",
+        "qualifying": 3,
+        "inWords": 1,
+        "otherMentions": 500
+      },
+      {
+        "title": "Dunning–Kruger effect",
+        "qualifying": 6,
+        "inWords": 2,
+        "otherMentions": 455
+      },
+      {
+        "title": "Poe's law",
+        "qualifying": 1,
+        "inWords": 0,
+        "otherMentions": 442
+      },
+      {
+        "title": "Embrace, extend, and extinguish",
+        "qualifying": 7,
+        "inWords": 0,
+        "otherMentions": 407
+      },
+      {
+        "title": "Eternal September",
+        "qualifying": 7,
+        "inWords": 0,
+        "otherMentions": 379
+      },
+      {
+        "title": "Tragedy of the commons",
+        "qualifying": 1,
+        "inWords": 0,
+        "otherMentions": 324
+      },
+      {
+        "title": "Survivorship bias",
+        "qualifying": 2,
+        "inWords": 1,
+        "otherMentions": 311
+      },
+      {
+        "title": "Perverse incentive",
+        "qualifying": 6,
+        "inWords": 2,
+        "otherMentions": 306
+      },
+      {
+        "title": "Conway's law",
+        "qualifying": 4,
+        "inWords": 0,
+        "otherMentions": 300
+      },
+      {
+        "title": "Room 641A",
+        "qualifying": 7,
+        "inWords": 0,
+        "otherMentions": 294
+      },
+      {
+        "title": "United States v. Microsoft Corp.",
+        "qualifying": 2,
+        "inWords": 2,
+        "otherMentions": 290
+      }
+    ]
+  },
+  "catalogue": {
+    "articles": 7249474,
+    "pagesDump": "2026-10-08",
+    "rowsRead": "66384916",
+    "clickstreamMonth": "2026-10",
+    "enrichmentPending": 0
+  },
+  "runs": {
+    "ingest:hn": {
+      "runs": 2,
+      "completed": 2,
+      "failed": 0,
+      "requests": 4,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {
+        "200": 4
+      },
+      "errors": []
+    },
+    "ingest:tildes": {
+      "runs": 2,
+      "completed": 1,
+      "failed": 1,
+      "requests": 0,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {},
+      "errors": [
+        "database is locked"
+      ]
+    },
+    "ingest:lemmy": {
+      "runs": 5,
+      "completed": 2,
+      "failed": 3,
+      "requests": 61,
+      "retries": 0,
+      "httpFailures": 1,
+      "statuses": {
+        "200": 60,
+        "400": 1
+      },
+      "errors": [
+        "HTTP 408 from lemmy.world",
+        "database is locked",
+        "HTTP 400 for https://lemmy.world/api/v3/post/list?community_name=wikipedia&sort=New&limit=50&page=101"
+      ]
+    },
+    "catalogue:pages": {
+      "runs": 2,
+      "completed": 1,
+      "failed": 1,
+      "requests": 0,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {},
+      "errors": [
+        "0 articles parsed"
+      ]
+    },
+    "catalogue:props": {
+      "runs": 2,
+      "completed": 1,
+      "failed": 1,
+      "requests": 0,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {},
+      "errors": [
+        "0 rows parsed"
+      ]
+    },
+    "catalogue:clickstream": {
+      "runs": 2,
+      "completed": 2,
+      "failed": 0,
+      "requests": 0,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {},
+      "errors": []
+    },
+    "resolve": {
+      "runs": 2,
+      "completed": 2,
+      "failed": 0,
+      "requests": 4,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {
+        "200": 4
+      },
+      "errors": []
+    },
+    "classify": {
+      "runs": 5,
+      "completed": 5,
+      "failed": 0,
+      "requests": 0,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {},
+      "errors": []
+    },
+    "stats": {
+      "runs": 6,
+      "completed": 6,
+      "failed": 0,
+      "requests": 0,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {},
+      "errors": []
+    },
+    "connect": {
+      "runs": 3,
+      "completed": 3,
+      "failed": 0,
+      "requests": 0,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {},
+      "errors": []
+    },
+    "export:human": {
+      "runs": 6,
+      "completed": 6,
+      "failed": 0,
+      "requests": 0,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {},
+      "errors": []
+    },
+    "export:catalogue": {
+      "runs": 3,
+      "completed": 3,
+      "failed": 0,
+      "requests": 0,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {},
+      "errors": []
+    },
+    "catalogue:enrich": {
+      "runs": 3,
+      "completed": 2,
+      "failed": 1,
+      "requests": 2214,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {
+        "200": 2214
+      },
+      "errors": [
+        "The operation was aborted due to timeout"
+      ]
+    },
+    "catalogue:wikidata": {
+      "runs": 3,
+      "completed": 1,
+      "failed": 2,
+      "requests": 376,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {
+        "200": 376
+      },
+      "errors": [
+        "[\n  {\n    \"expected\": \"object\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"entities\",\n      \"Q119395\",\n      \"claims\",\n      \"P646\",\n      0,\n      \"mainsnak\",\n      \"datavalue\",\n      \"value\"\n    ],\n    \"message\": \"Invalid input: expected object, received string\"\n  },\n  {\n    \"expected\": \"obj",
+        "[\n  {\n    \"expected\": \"object\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"entities\",\n      \"Q119395\",\n      \"claims\",\n      \"P646\",\n      0,\n      \"mainsnak\",\n      \"datavalue\",\n      \"value\"\n    ],\n    \"message\": \"Invalid input: expected object, received string\"\n  },\n  {\n    \"expected\": \"obj"
+      ]
+    },
+    "verify": {
+      "runs": 3,
+      "completed": 3,
+      "failed": 0,
+      "requests": 198,
+      "retries": 0,
+      "httpFailures": 0,
+      "statuses": {
+        "200": 198
+      },
+      "errors": []
+    }
+  },
+  "reconstructed": [
+    {
+      "command": "ingest:hn",
+      "status": "completed",
+      "note": "First full walk: 577,337 comment hits and all submissions, back to 2007. HTTP counters were not recorded for this run. No failure was seen."
+    },
+    {
+      "command": "ingest:tildes",
+      "status": "failed",
+      "error": "database is locked",
+      "note": "A long statistics transaction held the store. Resumed from its saved cursor; nothing was lost."
+    },
+    {
+      "command": "ingest:tildes",
+      "status": "completed",
+      "note": "Search results for 'wikipedia' ran out. HTTP counters were not recorded."
+    },
+    {
+      "command": "ingest:lemmy",
+      "status": "failed",
+      "error": "HTTP 408 from lemmy.world",
+      "note": "408 was not treated as retryable; fixed. Resumed from page 10."
+    },
+    {
+      "command": "ingest:lemmy",
+      "status": "failed",
+      "error": "database is locked",
+      "note": "Same cause as Tildes. Resumed from its saved page."
+    },
+    {
+      "command": "catalogue:pages",
+      "status": "failed",
+      "error": "0 articles parsed",
+      "note": "The parser expected many rows per INSERT line; current dumps put one per line. Fixed, tested against real rows, and re-run: 7,249,474 articles."
+    },
+    {
+      "command": "catalogue:props",
+      "status": "failed",
+      "error": "0 rows parsed",
+      "note": "Same cause. Re-run: 17,727,673 properties read."
+    },
+    {
+      "command": "catalogue:pages",
+      "status": "completed",
+      "note": "7,249,474 articles from the page dump dated 2026-10-08."
+    },
+    {
+      "command": "catalogue:props",
+      "status": "completed",
+      "note": "17,727,673 properties read."
+    },
+    {
+      "command": "catalogue:clickstream",
+      "status": "completed",
+      "note": "October 2026 clickstream: 4,853,646 articles with click data."
+    },
+    {
+      "command": "resolve",
+      "status": "completed",
+      "note": "35,937 titles resolved through the API; the rest from the catalogue. HTTP counters were not recorded."
+    }
+  ]
+}

@@ -12,7 +12,7 @@ import {
   SectionsSkeleton,
   StudyNavbox,
 } from "@/components/article/ArticleParts";
-import { ArticleDescription, ArticleMetadata } from "@/components/article/ArticleMetadata";
+import { ArticleMetadata } from "@/components/article/ArticleMetadata";
 import { Blocks } from "@/components/article/Blocks";
 import { InsightsPanel } from "@/components/article/InsightsPanel";
 import { ReadingLayer } from "@/components/article/ReadingLayer";
@@ -155,6 +155,14 @@ async function BodySlot({ title, lang }: Slot) {
   );
 }
 
+function HistoryFacts({ title, lang, meta }: Slot & { meta: PageMeta }) {
+  return (
+    <Suspense fallback={<ArticleMetadata title={meta.title} lang={lang} history={null} lastEdited={meta.lastEdited} />}>
+      <MetadataSlot title={title} lang={lang} lastEdited={meta.lastEdited} />
+    </Suspense>
+  );
+}
+
 async function ToolsSlot({ title, lang, meta }: Slot & { meta: PageMeta }) {
   const doc = await attempt(() => loadArticle(title, lang));
   const recommendation = lang === DEFAULT_LANGUAGE ? getRecommendation(meta.pageId) : undefined;
@@ -164,6 +172,7 @@ async function ToolsSlot({ title, lang, meta }: Slot & { meta: PageMeta }) {
       doc={doc.ok ? doc.value : null}
       concepts={doc.ok ? <KeyConcepts doc={doc.value} /> : null}
       recommendation={recommendation ? <Recommendation article={recommendation} /> : null}
+      history={<HistoryFacts title={title} lang={lang} meta={meta} />}
     />
   );
 }
@@ -290,16 +299,12 @@ export async function ArticleView({ slug, lang }: { slug: string[]; lang: string
           />
         }
         tools={
-          <Suspense fallback={<ArticleTools meta={meta} doc={null} concepts={null} />}>
+          <Suspense fallback={<ArticleTools meta={meta} doc={null} concepts={null} history={<HistoryFacts {...slot} meta={meta} />} />}>
             <ToolsSlot {...slot} meta={meta} />
           </Suspense>
         }
       >
         <SiteSub>{siteSub(lang)}</SiteSub>
-        <ArticleDescription description={meta.description} />
-        <Suspense fallback={<ArticleMetadata title={meta.title} lang={lang} history={null} lastEdited={meta.lastEdited} />}>
-          <MetadataSlot {...slot} lastEdited={meta.lastEdited} />
-        </Suspense>
         <TrailTracker title={meta.title} description={meta.description} lang={lang} />
         <div id="article-body" className={styles.prose} lang={locale} dir={language.dir}>
           <Infobox title={meta.title} rows={lead.infobox} image={image} description={meta.description} />

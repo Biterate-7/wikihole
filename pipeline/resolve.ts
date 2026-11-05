@@ -35,15 +35,22 @@ const BATCH = 50;
 /** About 180 requests a minute, under Wikimedia's 200 for a client with contact details. */
 const GAP_MS = 340;
 
-export function resolveFromCatalogue(db: Db): number {
-  const result = db
-    .prepare(`
-      INSERT INTO titles (lang, raw_title, page_id, canonical_title, status, checked_at)
-      SELECT DISTINCT 'en', m.raw_title, c.page_id, c.title, CASE WHEN c.disambiguation = 1 THEN 'disambiguation' ELSE 'ok' END, unixepoch()
-      FROM mentions m JOIN catalogue c ON c.title = m.raw_title
-      WHERE m.lang = 'en' AND NOT EXISTS (SELECT 1 FROM titles t WHERE t.lang = 'en' AND t.raw_title = m.raw_title)`)
-    .run();
-  return Number(result.changes);
+export function resolveFromCatalogue(db: Db, catalogue: Db): number {
+  const pending = db
+    .prepare("SELECT DISTINCT raw_title FROM mentions m WHERE lang = 'en' AND NOT EXISTS (SELECT 1 FROM titles t WHERE t.lang = 'en' AND t.raw_title = m.raw_title)")
+    .all() as Array<{ raw_title: string }>;
+  const find = catalogue.prepare("SELECT page_id, title, disambiguation FROM catalogue WHERE title = ?");
+  const insert = db.prepare("INSERT OR IGNORE INTO titles (lang, raw_title, page_id, canonical_title, status, checked_at) VALUES ('en', ?, ?, ?, ?, unixepoch())");
+  let resolved = 0;
+  transaction(db, () => {
+    for (const { raw_title } of pending) {
+      const page = find.get(raw_title) as { page_id: number; title: string; disambiguation: number } | undefined;
+      if (!page) continue;
+      insert.run(raw_title, page.page_id, page.title, page.disambiguation === 1 ? "disambiguation" : "ok");
+      resolved++;
+    }
+  });
+  return resolved;
 }
 
 export async function resolveTitles(db: Db, options: { lang?: string; limit?: number; qualifyingOnly?: boolean; log?: (message: string) => void } = {}): Promise<number> {
@@ -57,7 +64,7 @@ export async function resolveTitles(db: Db, options: { lang?: string; limit?: nu
   for (const lang of langs) {
     const pending = db.prepare(`
       SELECT DISTINCT raw_title FROM mentions m
-      WHERE lang = ? ${options.qualifyingOnly ? "AND COALESCE(review, label) = 'recommendation'" : ""}
+      WHERE lang = ? ${options.qualifyingOnly ? "AND final_label IN ('recommendation', 'needs-review')" : ""}
         AND NOT EXISTS (SELECT 1 FROM titles t WHERE t.lang = m.lang AND t.raw_title = m.raw_title)
       LIMIT ?`);
     for (;;) {

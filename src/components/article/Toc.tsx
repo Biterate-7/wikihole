@@ -113,8 +113,8 @@ export function Toc({ headings }: { headings: Heading[] }) {
     <nav ref={nav} className={styles.toc} aria-label="Article contents">
       <PinnableHeader label="Contents" panel="toc" place="sidebar" />
       <ul className={styles.tocList}>
-        <li className={`${styles.tocItem} ${active === null ? styles.tocActive : ""}`}>
-          <a href="#" onClick={scrollTop} className={styles.tocLink} aria-current={active === null ? "location" : undefined}>
+        <li className={styles.tocItem}>
+          <a href="#" onClick={scrollTop} className={`${styles.tocLink} ${styles.tocTop}`} aria-current={active === null ? "location" : undefined}>
             (Top)
           </a>
         </li>

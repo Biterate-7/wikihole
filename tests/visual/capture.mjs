@@ -5,6 +5,10 @@
  *
  *   node tests/visual/capture.mjs <outDir> [--record]
  *
+ * Long article sections skip painting off screen (content-visibility), so they
+ * come out blank in a full-page capture. Set VISUAL_PAINT_ALL=1 to paint them, for
+ * comparing the middle of an article between two builds.
+ *
  * Run `npm run build` first. Wikimedia recordings live in tests/visual/.recording.
  */
 import { spawn } from "node:child_process";
@@ -95,10 +99,14 @@ try {
       await page.goto(base + target.path, { waitUntil: "networkidle", timeout: 120_000 }).catch(() => {});
       await page.locator(target.ready).first().waitFor({ timeout: 60_000 }).catch(() => {});
       await page.evaluate(() => document.fonts.ready);
+      if (process.env.VISUAL_PAINT_ALL === "1") {
+        await page.addStyleTag({ content: "* { content-visibility: visible !important; }" });
+      }
       await page.waitForTimeout(800);
       await page.screenshot({
         path: path.join(outDir, `${target.name}-${viewport.name}.png`),
         fullPage: true,
+        timeout: 300_000,
         animations: "disabled",
         mask: [page.locator("canvas")],
       });

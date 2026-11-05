@@ -315,7 +315,7 @@ export async function getRelated(doc: ArticleDocument, limit = 14): Promise<Disc
 
     // Offline evidence about this article joins the seeds; it costs no request here.
     if (lang === DEFAULT_LANGUAGE) {
-      for (const link of getRelatedLinks()[doc.pageId] ?? []) add(curatedSeed(link));
+      for (const link of getRelatedLinks()(doc.pageId)) add(curatedSeed(link));
     }
     doc.seeAlso.slice(0, 15).forEach((title) =>
       add({ title, strength: 1, relation: { kind: "see-also", label: "Listed under See also" } }),
@@ -403,8 +403,8 @@ export async function getContextual(titles: string[], exclude: number[] = [], li
   await Promise.all(
     titles.map(async (title) => {
       const known = byTitle.get(title);
-      const related = known ? links[known.id] : undefined;
-      if (related?.length) {
+      const related = known ? links(known.id) : [];
+      if (related.length) {
         for (const link of related) add(curatedSeed(link), title);
         return;
       }

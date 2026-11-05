@@ -6,7 +6,7 @@ import { fetchJson } from "../http.ts";
  * Deep metadata for a selected part of the catalogue, from the Action API:
  * incoming links, ORES article topics, categories, assessment class and last
  * revision. The dumps cover every article; this step costs one request per 50
- * articles, so it covers articles people recommended, Wikipedia's own showcase
+ * articles, so it covers pages another dataset asked about (`targets`), Wikipedia's own showcase
  * lists, and a broad sample of substantial articles. It resumes where it stopped.
  */
 
@@ -132,8 +132,8 @@ export async function selectForEnrichment(db: Db, log: (message: string) => void
     setState(db, "enrich:selected", "1");
   }
   db.exec(`
-    UPDATE catalogue SET sources = COALESCE(sources, '') || 'recommended '
-    WHERE page_id IN (SELECT page_id FROM article_stats WHERE lang = 'en') AND (sources IS NULL OR sources NOT LIKE '%recommended %')`);
+    UPDATE catalogue SET sources = COALESCE(sources, '') || 'target '
+    WHERE page_id IN (SELECT page_id FROM targets) AND (sources IS NULL OR sources NOT LIKE '%target %')`);
   return (db.prepare("SELECT count(*) AS n FROM catalogue WHERE sources IS NOT NULL").get() as { n: number }).n;
 }
 
@@ -201,15 +201,17 @@ export async function enrichCatalogue(db: Db, options: { limit?: number; log: (m
 export async function enrichWikidata(db: Db, options: { limit?: number; log: (message: string) => void }): Promise<number> {
   const pending = db.prepare(`
     SELECT page_id, qid FROM catalogue
-    WHERE qid IS NOT NULL AND instance_of IS NULL AND sources LIKE '%recommended %' AND page_id > ? ORDER BY page_id LIMIT 50`);
+    WHERE qid IS NOT NULL AND instance_of IS NULL AND sources LIKE '%target %' AND page_id > ? ORDER BY page_id LIMIT 50`);
   const update = db.prepare("UPDATE catalogue SET instance_of = ? WHERE page_id = ?");
   const entitySchema = z.object({
     entities: z.record(
       z.string(),
       z.object({
         labels: z.record(z.string(), z.object({ value: z.string() })).optional(),
+        // Only "instance of" is read. Other properties hold strings, dates and more.
         claims: z
-          .record(z.string(), z.array(z.object({ mainsnak: z.object({ datavalue: z.object({ value: z.object({ id: z.string().optional() }).loose() }).optional() }) })))
+          .object({ P31: z.array(z.object({ mainsnak: z.object({ datavalue: z.object({ value: z.object({ id: z.string().optional() }).loose() }).optional() }) })).optional() })
+          .loose()
           .optional(),
       }),
     ),

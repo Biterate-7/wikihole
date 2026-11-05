@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { classifyHeuristically, type MentionInput } from "../../pipeline/classify/heuristic";
 import { parseRobots } from "../../pipeline/http";
+import { subjectLinks } from "../../pipeline/sources/lemmy";
 import { extractLinks } from "../../pipeline/text";
 import { interestScore, isExplorable } from "@/lib/curated/interest";
 import { findWikipediaUrls, parseWikipediaUrl } from "@/lib/curated/links";
-import { collectionRank, countEvidence, DISCUSSION_CAP, effectiveWeight, recommendationScore, type CollectionInput, type QualifyingMention } from "@/lib/curated/rank";
+import { collectionRank, countEvidence, DISCUSSION_CAP, effectiveWeight, focus, recommendationScore, SHARED_WEIGHT, type CollectionInput, type QualifyingMention } from "@/lib/curated/rank";
+import { AUTO_ACCEPT, calibrate, decide, MIN_CALIBRATION_SAMPLES, type DecisionInput } from "../../pipeline/classify/decide";
+import { wilson } from "../../pipeline/classify/evaluate";
 
 describe("parseWikipediaUrl", () => {
   it("reduces the spellings of a link to one reference", () => {
@@ -143,6 +146,12 @@ describe("classifyHeuristically", () => {
     expect(classifyHeuristically(submission(900, "Lynn Conway has died")).label).toBe("casual");
   });
 
+  it("does not take upvotes for an unrelated headline as endorsement of the page", () => {
+    const shared = (title: string, article: string): MentionInput => ({ ...comment("Submitted"), kind: "submission", points: 200, title: article, discussionTitle: title });
+    expect(classifyHeuristically(shared("We have >5000 users!", "5th millennium BC")).reason).toBe("submitted under a title unrelated to the article");
+    expect(classifyHeuristically(shared("Langton's Ant", "Langton's ant")).reason).toBe("submitted; 50 or more points from readers");
+  });
+
   it("flags spam", () => {
     expect(classifyHeuristically(comment("Buy now with this promo code [[Foo]]")).label).toBe("spam");
   });
@@ -171,6 +180,20 @@ describe("ranking", () => {
     expect(recommendationScore(sustained)).toBeGreaterThan(recommendationScore(spike));
   });
 
+  it("separates recommended from merely mentioned", () => {
+    const counts = countEvidence(Array.from({ length: 6 }, (_, i) => mention(`d${i}`, `a${i}`, at(2012 + i * 2))), NOW);
+    expect(recommendationScore(counts, 0)).toBeGreaterThan(recommendationScore(counts, 500));
+    expect(focus(6, 0)).toBe(1);
+    expect(focus(1, 999)).toBeCloseTo(0.6, 2);
+  });
+
+  it("weights saying so in words above sharing a link", () => {
+    expect(effectiveWeight([mention("d1", "a", at(2020))])).toBe(1);
+    expect(effectiveWeight([{ ...mention("d1", "a", at(2020)), inWords: false }])).toBe(SHARED_WEIGHT);
+    const counts = countEvidence([mention("d1", "a", at(2020)), { ...mention("d2", "b", at(2020)), inWords: false }], NOW);
+    expect(counts.inWords).toBe(1);
+  });
+
   it("counts what it says it counts", () => {
     const counts = countEvidence([mention("d1", "a", at(2015, 1)), mention("d1", "b", at(2015, 1)), mention("d2", "a", at(2026, 5), "Lemmy")], NOW);
     expect(counts).toMatchObject({ qualifying: 3, discussions: 2, recommenders: 2, months: 2, years: 2, communities: 2, recent12m: 1 });
@@ -178,6 +201,7 @@ describe("ranking", () => {
 
   const input = (mentions: QualifyingMention[], overrides: Partial<CollectionInput> = {}): CollectionInput => ({
     ...countEvidence(mentions, NOW),
+    mentionsOther: 0,
     monthlyClicks: 500,
     inCatalogue: true,
     bytes: 20000,
@@ -236,5 +260,50 @@ describe("catalogue interest", () => {
     expect(isExplorable("Mercury", 30000, true)).toBe(false);
     expect(isExplorable("1984", 30000, false)).toBe(false);
     expect(isExplorable("Stubby", 900, false)).toBe(false);
+  });
+});
+
+describe("decision stage", () => {
+  const base: DecisionInput = { kind: "comment", label: "recommendation", reason: "r", classifier: "rules", review: null, llm_label: null, llm_confidence: null, llm_model: null };
+  const measured = (confirmed: number, checked: number) => calibrate(Array.from({ length: checked }, (_, i) => ({ kind: "comment", reason: "r", truth: i < confirmed ? "recommendation" : "citation" })));
+
+  it("counts a rule only when its measured precision clears the bar", () => {
+    expect(decide(base, measured(49, 50))).toMatchObject({ label: "recommendation", decidedBy: "rules" });
+    expect(decide(base, measured(33, 50)).label).toBe("needs-review");
+    expect(decide(base, {}).label).toBe("needs-review");
+    expect(decide(base, measured(MIN_CALIBRATION_SAMPLES - 1, MIN_CALIBRATION_SAMPLES - 1)).label).toBe("needs-review");
+    expect(decide(base, measured(49, 50)).confidence).toBeGreaterThanOrEqual(AUTO_ACCEPT);
+  });
+
+  it("orders authority: review, then model, then rules", () => {
+    const calibration = measured(49, 50);
+    expect(decide({ ...base, llm_label: "citation", llm_confidence: 0.9, llm_model: "m" }, calibration)).toMatchObject({ label: "citation", decidedBy: "m" });
+    expect(decide({ ...base, llm_label: "citation", llm_confidence: 0.9, llm_model: "m", review: "recommendation" }, calibration)).toMatchObject({ label: "recommendation", decidedBy: "review" });
+  });
+
+  it("sends a doubtful model recommendation back to review", () => {
+    expect(decide({ ...base, llm_label: "recommendation", llm_confidence: 0.5, llm_model: "m" }, {}).label).toBe("needs-review");
+    expect(decide({ ...base, llm_label: "recommendation", llm_confidence: 0.9, llm_model: "m" }, {}).label).toBe("recommendation");
+  });
+
+  it("passes other labels through", () => {
+    expect(decide({ ...base, label: "citation" }, {})).toMatchObject({ label: "citation", decidedBy: "rules" });
+  });
+
+  it("gives honest intervals on small samples", () => {
+    const rate = wilson(9, 10);
+    expect(rate.value).toBe(0.9);
+    expect(rate.low!).toBeLessThan(0.7);
+    expect(rate.high!).toBeLessThan(1);
+    expect(wilson(0, 0).value).toBeNull();
+  });
+});
+
+describe("Lemmy posts", () => {
+  it("counts the article a post is about, not every link in a pasted intro", () => {
+    const body = "<a href=\"https://en.wikipedia.org/wiki/Adolf_Hitler\">Hitler</a> and the <a href=\"https://en.wikipedia.org/wiki/Night_of_the_Long_Knives\">purge</a>";
+    expect(subjectLinks("Night of the Long Knives", body).map((link) => link.reference.title)).toEqual(["Night of the Long Knives"]);
+    expect(subjectLinks("Something else entirely", body).map((link) => link.reference.title)).toEqual(["Adolf Hitler"]);
+    expect(subjectLinks("No links here", "at all")).toEqual([]);
   });
 });

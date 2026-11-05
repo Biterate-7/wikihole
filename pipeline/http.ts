@@ -40,34 +40,57 @@ export interface FetchOptions {
   accept?: string;
 }
 
+/** What this process has asked for, so every run can report its own failures. */
+export const httpCounters = { requests: 0, retries: 0, failures: 0, byStatus: {} as Record<string, number> };
+
 export async function politeFetch(url: string, options: FetchOptions = {}): Promise<Response> {
   const { gapMs = 1000, retries = 5, timeoutMs = 60_000, accept } = options;
   const host = new URL(url).hostname;
   let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
     await waitForHost(host, gapMs);
+    httpCounters.requests++;
+    if (attempt > 0) httpCounters.retries++;
     try {
       const response = await fetch(url, {
         headers: { "User-Agent": pipelineUserAgent(), "Api-User-Agent": pipelineUserAgent(), ...(accept ? { Accept: accept } : {}) },
         signal: AbortSignal.timeout(timeoutMs),
       });
+      httpCounters.byStatus[response.status] = (httpCounters.byStatus[response.status] ?? 0) + 1;
       if (response.ok) return response;
       if (!isRetryable(response.status)) throw new HttpError(`HTTP ${response.status} for ${url}`, response.status);
       const retryAfter = Number(response.headers.get("retry-after"));
       lastError = new HttpError(`HTTP ${response.status} for ${url}`, response.status);
       await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 2000 * 2 ** attempt);
     } catch (error) {
-      if (error instanceof HttpError && !isRetryable(error.status)) throw error;
+      if (error instanceof HttpError && !isRetryable(error.status)) {
+        httpCounters.failures++;
+        throw error;
+      }
       lastError = error;
       await sleep(2000 * 2 ** attempt);
     }
   }
+  httpCounters.failures++;
   throw lastError instanceof Error ? lastError : new Error(`Request failed: ${url}`);
 }
 
+/** The timeout also covers reading the body, which can stall after the headers arrive, so that is retried too. */
 export async function fetchJson<T>(url: string, options?: FetchOptions): Promise<T> {
-  const response = await politeFetch(url, { accept: "application/json", ...options });
-  return (await response.json()) as T;
+  const retries = options?.retries ?? 5;
+  for (let attempt = 0; ; attempt++) {
+    const response = await politeFetch(url, { accept: "application/json", ...options });
+    try {
+      return (await response.json()) as T;
+    } catch (error) {
+      if (attempt >= retries) {
+        httpCounters.failures++;
+        throw error;
+      }
+      httpCounters.retries++;
+      await sleep(2000 * 2 ** attempt);
+    }
+  }
 }
 
 /* ------------------------------------------------------------------------ */
