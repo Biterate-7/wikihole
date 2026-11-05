@@ -24,13 +24,12 @@
   display: flex;
   flex: none;
   align-items: center;
-  margin-right: 12px;
+  margin-right: 24px;
 }
 
 @media (min-width: 1120px) {
   .headerStart {
     min-width: var(--column);
-    margin-right: 0;
   }
 }
 

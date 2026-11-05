@@ -9,7 +9,6 @@ import {
   KeyConcepts,
   SectionsSkeleton,
   StudyNavbox,
-  wikipediaLinks,
 } from "@/components/article/ArticleParts";
 import { Blocks } from "@/components/article/Blocks";
 import { InsightsPanel } from "@/components/article/InsightsPanel";
@@ -31,7 +30,7 @@ import { leadSentences } from "@/lib/format";
 import { DEFAULT_LANGUAGE, getLanguage, languageLocale } from "@/lib/i18n/languages";
 import { attempt, describeError } from "@/lib/server/http";
 import { WikipediaError } from "@/lib/wikipedia/http";
-import { articlePath, titleFromSlug, wikipediaUrl } from "@/lib/wikipedia/titles";
+import { articlePath, titleFromSlug } from "@/lib/wikipedia/titles";
 import type { PageMeta } from "@/lib/wikipedia/types";
 
 /**
@@ -124,8 +123,8 @@ async function BodySlot({ title, lang }: Slot) {
       kind="error"
       title="The rest of this article could not be loaded."
       action={
-        <a className="btn" href={wikipediaUrl(title, lang)} target="_blank" rel="noopener noreferrer">
-          Read it on Wikipedia
+        <a className="btn" href={articlePath(title, undefined, lang)}>
+          Try again
         </a>
       }
     >
@@ -136,7 +135,7 @@ async function BodySlot({ title, lang }: Slot) {
 
 async function ToolsSlot({ title, lang, meta }: Slot & { meta: PageMeta }) {
   const doc = await attempt(() => loadArticle(title, lang));
-  return <ArticleTools meta={meta} doc={doc.ok ? doc.value : null} concepts={doc.ok ? <KeyConcepts doc={doc.value} /> : null} />;
+  return <ArticleTools meta={meta} concepts={doc.ok ? <KeyConcepts doc={doc.value} /> : null} />;
 }
 
 async function FooterSlot({ title, lang }: Slot) {
@@ -185,8 +184,6 @@ function articleTabs(title: string, lang: string) {
     ],
     right: [
       { label: "Read", href: articlePath(title, undefined, lang), selected: true },
-      { label: "View on Wikipedia", href: wikipediaUrl(title, lang), external: true, testId: "source-link" },
-      { label: "View history", href: wikipediaLinks(title, lang).history, external: true },
     ],
   };
 }
@@ -210,14 +207,9 @@ export async function ArticleView({ slug, lang }: { slug: string[]; lang: string
           kind="error"
           title={`“${title}” could not be loaded.`}
           action={
-            <>
-              <a className="btn" href={articlePath(title, undefined, lang)}>
-                Try again
-              </a>
-              <a className="btn" href={wikipediaUrl(title, lang)} target="_blank" rel="noopener noreferrer">
-                Open on Wikipedia
-              </a>
-            </>
+            <a className="btn" href={articlePath(title, undefined, lang)}>
+              Try again
+            </a>
           }
         >
           {describeError(loaded.error).message}
@@ -267,7 +259,7 @@ export async function ArticleView({ slug, lang }: { slug: string[]; lang: string
           />
         }
         tools={
-          <Suspense fallback={<ArticleTools meta={meta} doc={null} concepts={null} />}>
+          <Suspense fallback={<ArticleTools meta={meta} concepts={null} />}>
             <ToolsSlot {...slot} meta={meta} />
           </Suspense>
         }

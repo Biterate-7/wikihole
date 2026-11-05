@@ -7,29 +7,11 @@ import type { ArticleDocument, InfoboxRow, Section, WikiImage } from "@/lib/cont
 import { classifyGroup, readingMinutes, sourcedDate } from "@/lib/discovery/score";
 import { GROUPS } from "@/lib/discovery/topics";
 import { ASSESSMENT_LABELS, formatCount, formatDate } from "@/lib/format";
-import { DEFAULT_LANGUAGE, wikipediaDomain } from "@/lib/i18n/languages";
 import { articlePath } from "@/lib/wikipedia/titles";
 import { PAGEVIEW_DAYS, type PageMeta } from "@/lib/wikipedia/types";
 import { Blocks } from "./Blocks";
 import { InlineContent, MathView } from "./Inline";
 import styles from "./article.module.css";
-
-const wikiPage = (domain: string, title: string) => `https://${domain}/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
-const wikiAction = (domain: string, title: string, action: string) =>
-  `https://${domain}/w/index.php?title=${encodeURIComponent(title.replace(/ /g, "_"))}&action=${action}`;
-
-/** Links for the article's view tabs and tools, on its own Wikipedia edition. */
-export function wikipediaLinks(title: string, lang = DEFAULT_LANGUAGE) {
-  const domain = wikipediaDomain(lang);
-  return {
-    history: wikiAction(domain, title, "history"),
-    info: wikiAction(domain, title, "info"),
-    whatLinksHere: wikiPage(domain, `Special:WhatLinksHere/${title}`),
-    category: (name: string) => wikiPage(domain, `Category:${name}`),
-    revision: (revId: number) => `https://${domain}/w/index.php?oldid=${revId}`,
-    domain,
-  };
-}
 
 /**
  * The infobox: Wikipedia's right-floated summary table, with the lead image,
@@ -157,18 +139,14 @@ export function PageInformation({ meta }: { meta: PageMeta }) {
   );
 }
 
-/** The article's tools column: Wikipedia's tools plus Wikihole's key concepts. */
-export function ArticleTools({ meta, doc, concepts }: { meta: PageMeta; doc: ArticleDocument | null; concepts: React.ReactNode }) {
-  const links = wikipediaLinks(meta.title, meta.lang);
+/** The article's tools column: Wikihole's own tools plus its key concepts. */
+export function ArticleTools({ meta, concepts }: { meta: PageMeta; concepts: React.ReactNode }) {
   return (
     <div className={layout.tools}>
       <Portlet
         id="tools-general"
         heading="General"
         items={[
-          { href: links.whatLinksHere, label: "What links here", external: true },
-          { href: links.info, label: "Page information", external: true },
-          ...(doc ? [{ href: links.revision(doc.revId), label: "Permanent link", external: true, title: `Revision ${doc.revId}` }] : []),
           { href: "#rabbit-hole", label: "Related articles" },
           { href: "/random", label: "Random discovery" },
         ]}
@@ -182,14 +160,13 @@ export function ArticleTools({ meta, doc, concepts }: { meta: PageMeta; doc: Art
           </li>
         </ul>
       </Portlet>
-      <Portlet
-        id="tools-projects"
-        heading="In other projects"
-        items={[
-          { href: `https://${links.domain}/`, label: "Wikipedia", external: true },
-          ...(meta.wikidataId ? [{ href: `https://www.wikidata.org/wiki/${meta.wikidataId}`, label: "Wikidata item", external: true }] : []),
-        ]}
-      />
+      {meta.wikidataId ? (
+        <Portlet
+          id="tools-projects"
+          heading="In other projects"
+          items={[{ href: `https://www.wikidata.org/wiki/${meta.wikidataId}`, label: "Wikidata item", external: true }]}
+        />
+      ) : null}
     </div>
   );
 }
@@ -283,28 +260,16 @@ export function StudyNavbox({ doc }: { doc: ArticleDocument }) {
 /** The categories box at the foot of every Wikipedia article. */
 export function Catlinks({ doc }: { doc: ArticleDocument }) {
   if (doc.categories.length === 0) return null;
-  const links = wikipediaLinks(doc.title, doc.lang);
   return (
     <div className={styles.catlinks}>
-      <a href={`https://${links.domain}/wiki/Help:Category`} target="_blank" rel="noopener noreferrer">
-        Categories
-      </a>
-      :{" "}
+      Categories:{" "}
       <ul>
         {doc.categories.map((c) => (
-          <li key={c}>
-            <a href={links.category(c)} target="_blank" rel="noopener noreferrer">
-              {c}
-            </a>
-          </li>
+          <li key={c}>{c}</li>
         ))}
       </ul>
       <p className={styles.catlinksSource}>
-        {doc.stats.words.toLocaleString("en-US")} words · {doc.stats.references} references · revision{" "}
-        <a href={links.revision(doc.revId)} target="_blank" rel="noopener noreferrer">
-          {doc.revId}
-        </a>{" "}
-        ·{" "}
+        {doc.stats.words.toLocaleString("en-US")} words · {doc.stats.references} references · revision {doc.revId} ·{" "}
         <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="license noopener noreferrer">
           CC BY-SA 4.0
         </a>

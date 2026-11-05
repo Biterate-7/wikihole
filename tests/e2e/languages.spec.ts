@@ -54,7 +54,7 @@ test.describe("I: homepage portal and languages", () => {
     await expect(page).toHaveURL(/\/de\/wiki\/Halteproblem$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Halteproblem");
     await expect(page.getByTestId("article-section").first()).toBeVisible();
-    await expect(page.getByTestId("source-link")).toHaveAttribute("href", "https://de.wikipedia.org/wiki/Halteproblem");
+    await expect(page.locator('a[href*="wikipedia.org"]')).toHaveCount(0);
 
     // In-article links and Rabbit Hole suggestions stay on German Wikipedia.
     const inline = await page.locator("#article-body a[data-wiki-link]").evaluateAll((els) => els.slice(0, 10).map((e) => e.getAttribute("href")));

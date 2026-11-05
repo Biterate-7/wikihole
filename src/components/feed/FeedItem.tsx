@@ -74,10 +74,6 @@ export function FeedItem({ item, rank, visited }: { item: Discovery; rank: numbe
             Rabbit hole
           </Link>
           <span className="dot" aria-hidden="true" />
-          <a className="action" href={item.url} target="_blank" rel="noopener noreferrer" aria-label={`${item.title} on Wikipedia (opens in new tab)`}>
-            Wikipedia
-          </a>
-          <span className="dot" aria-hidden="true" />
           <button
             type="button"
             className={`action ${styles.scoreToggle}`}
