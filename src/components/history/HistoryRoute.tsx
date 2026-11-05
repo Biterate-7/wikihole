@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { Suspense } from "react";
-import { articleTabs, wikipediaLinks } from "@/components/article/ArticleParts";
+import { articleTabs } from "@/components/article/ArticleParts";
 import { RecentChangesSkeleton } from "@/components/article/RecentChanges";
 import { DiffSkeleton, DiffView } from "@/components/history/DiffView";
 import { PageShell, SiteSub } from "@/components/layout/PageShell";
@@ -15,7 +15,7 @@ import { attempt, describeError } from "@/lib/server/http";
 import { compareRevisions, ComparisonError, getRevisionPage } from "@/lib/wikipedia/revisions";
 import { WikipediaError } from "@/lib/wikipedia/http";
 import { articlePath, historyPath, titleFromSlug } from "@/lib/wikipedia/titles";
-import { ContributorName, countLabel, revisionUrl, SizeDelta, SummaryText } from "./RevisionParts";
+import { ContributorName, countLabel, SizeDelta, SummaryText } from "./RevisionParts";
 import styles from "./history.module.css";
 
 /** An article's revision history and comparisons, shared by /history/<Title> and /<lang>/history/<Title>. */
@@ -109,10 +109,10 @@ async function RevisionList({ title, lang, older, selectedTo, selectedFrom }: { 
               <input type="radio" name="from" value={revision.id} defaultChecked={revision.id === defaultFrom} aria-label={`Compare from the revision of ${formatDateTime(revision.timestamp)}`} />
               <input type="radio" name="to" value={revision.id} defaultChecked={revision.id === defaultTo} aria-label={`Compare to the revision of ${formatDateTime(revision.timestamp)}`} />
             </span>
-            <a className={styles.time} href={revisionUrl(lang, revision.id)} target="_blank" rel="noopener noreferrer" title="This revision on Wikipedia">
-              <time dateTime={revision.timestamp}>{formatDateTime(revision.timestamp)}</time>
-            </a>
-            <ContributorName contributor={revision.contributor} lang={lang} />
+            <time className={`${styles.time} ${styles.plainTime}`} dateTime={revision.timestamp}>
+              {formatDateTime(revision.timestamp)}
+            </time>
+            <ContributorName contributor={revision.contributor} />
             <span className={styles.summary}>
               {revision.minor ? (
                 <abbr className={styles.flag} title="Minor edit">
@@ -178,12 +178,7 @@ export async function HistoryView({ slug, lang, search }: { slug: string[]; lang
         }
         tabs={articleTabs(title, lang, "history")}
       >
-        <SiteSub>
-          From{" "}
-          <a href={wikipediaLinks(title, lang).history} target="_blank" rel="noopener noreferrer">
-            Wikipedia&rsquo;s revision records
-          </a>
-        </SiteSub>
+        <SiteSub>From Wikipedia&rsquo;s revision records</SiteSub>
         <Suspense fallback={<div className={styles.factsPlaceholder} />}>
           <Facts title={title} lang={lang} />
         </Suspense>

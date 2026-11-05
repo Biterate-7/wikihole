@@ -9,25 +9,13 @@ import type { RecommendedArticle } from "@/lib/curated/types";
 import { classifyGroup, readingMinutes, sourcedDate } from "@/lib/discovery/score";
 import { GROUPS } from "@/lib/discovery/topics";
 import { ASSESSMENT_LABELS, formatCount } from "@/lib/format";
-import { DEFAULT_LANGUAGE, wikipediaDomain } from "@/lib/i18n/languages";
+import { DEFAULT_LANGUAGE } from "@/lib/i18n/languages";
 import { articlePath, historyPath } from "@/lib/wikipedia/titles";
 import { PAGEVIEW_DAYS, type PageMeta } from "@/lib/wikipedia/types";
 import { Blocks } from "./Blocks";
 import { InlineContent, MathView } from "./Inline";
 import { SectionSummary } from "./SectionSummary";
 import styles from "./article.module.css";
-
-/**
- * The article's original history on its own Wikipedia edition. Linked only from the
- * history page, as the attribution for the revisions it shows.
- */
-export function wikipediaLinks(title: string, lang = DEFAULT_LANGUAGE) {
-  const domain = wikipediaDomain(lang);
-  return {
-    history: `https://${domain}/w/index.php?title=${encodeURIComponent(title.replace(/ /g, "_"))}&action=history`,
-    domain,
-  };
-}
 
 /** The article's namespace and view tabs. The history page shares them, so it marks a different tab as current. */
 export function articleTabs(title: string, lang: string, view: "read" | "history" = "read") {

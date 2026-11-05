@@ -34,7 +34,7 @@ export function RecentChanges({ title, lang, data }: { title: string; lang: stri
               <span className={`${history.time} ${history.plainTime}`}>
                 <time dateTime={revision.timestamp}>{formatDateTime(revision.timestamp)}</time>
               </span>
-              <ContributorName contributor={revision.contributor} lang={lang} linked={false} />
+              <ContributorName contributor={revision.contributor} />
               <span className={history.summary}>
                 {revision.minor ? (
                   <abbr className={history.flag} title="Minor edit">
