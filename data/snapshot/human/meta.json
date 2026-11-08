@@ -13,17 +13,6 @@
       "newest": "2016-11-11"
     },
     {
-      "id": "hackernews",
-      "name": "Hacker News",
-      "status": "complete",
-      "detail": "Every comment and submission the official Algolia API returns for wikipedia.org, walked to the start of the site.",
-      "mentions": 701012,
-      "qualifying": 6410,
-      "undecided": 25,
-      "oldest": "2007-02-21",
-      "newest": "2026-11-04"
-    },
-    {
       "id": "lemmy",
       "name": "Lemmy (!wikipedia@lemmy.world)",
       "status": "complete",
@@ -66,116 +55,62 @@
   ],
   "classification": {
     "labels": {
-      "casual": 375923,
-      "citation": 279237,
-      "criticism": 488,
-      "interesting": 39823,
-      "needs-review": 53,
-      "recommendation": 11386,
-      "spam": 116
+      "recommendation": 4976,
+      "needs-review": 28
     },
     "deciders": {
-      "claude-opus-5-5": 1390,
-      "heuristic-v7": 9740,
-      "review": 256
+      "heuristic-v7": 4747,
+      "claude-opus-5-5": 161,
+      "review": 50
     },
     "evaluation": {
       "labeller": "claude-opus-5-5",
-      "labelled": 350,
-      "strata": [
-        {
-          "stratum": "comment:casual",
-          "population": 339758,
-          "labelled": 60,
-          "recommendations": 0
-        },
-        {
-          "stratum": "comment:citation",
-          "population": 278717,
-          "labelled": 60,
-          "recommendations": 0
-        },
-        {
-          "stratum": "comment:interesting",
-          "population": 25087,
-          "labelled": 80,
-          "recommendations": 1
-        },
-        {
-          "stratum": "comment:recommendation",
-          "population": 1567,
-          "labelled": 80,
-          "recommendations": 55
-        },
-        {
-          "stratum": "essay:recommendation",
-          "population": 97,
-          "labelled": 15,
-          "recommendations": 15
-        },
-        {
-          "stratum": "submission:interesting",
-          "population": 14819,
-          "labelled": 15,
-          "recommendations": 0
-        },
-        {
-          "stratum": "submission:recommendation",
-          "population": 10189,
-          "labelled": 40,
-          "recommendations": 40
-        }
-      ],
+      "labelled": 35,
+      "strata": [],
       "comments": {
         "rulePrecision": {
-          "value": 0.6875,
-          "low": 0.5793201821792608,
-          "high": 0.7784974167215235,
-          "n": 80
+          "value": 0.8571428571428571,
+          "low": 0.48686549668097007,
+          "high": 0.9743210440510253,
+          "n": 7
         },
-        "estimatedRuleRecall": 0.7745434610683729,
-        "estimatedTrueRecommendations": 1391
+        "estimatedRuleRecall": null,
+        "estimatedTrueRecommendations": null
       },
       "submissions": {
         "rulePrecision": {
           "value": 1,
-          "low": 0.9123754607496077,
+          "low": 0.7574992425007574,
           "high": 1,
-          "n": 40
+          "n": 12
         },
-        "estimatedRuleRecall": 1
+        "estimatedRuleRecall": null
       },
       "decided": {
         "acceptedPrecision": {
-          "value": 0.9838709677419355,
-          "low": 0.914130769926111,
-          "high": 0.9971472063077598,
-          "n": 62
+          "value": null,
+          "low": null,
+          "high": null,
+          "n": 0
         }
       }
     }
   },
-  "resolution": {
-    "disambiguation": 2136,
-    "missing": 2527,
-    "not-article": 70,
-    "ok": 168261,
-    "redirected": 28416
-  },
+  "resolution": {},
   "totals": {
-    "mentions": 707026,
-    "articles": 9137,
-    "published": 9137,
-    "qualifying": 11386,
-    "inWords": 1332,
-    "discussions": 11137,
+    "mentions": 6014,
+    "articles": 4706,
+    "published": 4706,
+    "qualifying": 4976,
+    "inWords": 165,
+    "discussions": 4793,
     "nonEnglishMentions": 5995
   },
   "collections": {
-    "most": 413,
-    "hidden": 956,
-    "recent": 860,
-    "evergreen": 78,
-    "rising": 55
+    "most": 0,
+    "hidden": 136,
+    "recent": 664,
+    "evergreen": 2,
+    "rising": 22
   }
 }

@@ -11,7 +11,6 @@ import { httpCounters } from "./http.ts";
 import { printReport } from "./report.ts";
 import { resolveFromCatalogue, resolveTitles } from "./resolve.ts";
 import { ingestEssays } from "./sources/essays.ts";
-import { ingestHackerNews } from "./sources/hackernews.ts";
 import { ingestLemmy } from "./sources/lemmy.ts";
 import { ingestTildes } from "./sources/tildes.ts";
 import { updateStats } from "./stats.ts";
@@ -39,18 +38,6 @@ const outcome: Record<string, unknown> = {};
 
 const COMMANDS: Record<string, () => Promise<void>> = {
   /* Human dataset: ingestion. */
-  "ingest:hn": async () => {
-    for (const kind of ["story", "comment"] as const) {
-      const done = await ingestHackerNews(openHuman(), kind, {
-        maxPages: numeric("max-pages"),
-        onProgress: (p) => {
-          if (p.items % 10000 === 0) log(`hn ${p.kind}: ${p.items} items, ${p.mentions} mentions, at ${new Date((p.cursor ?? 0) * 1000).toISOString().slice(0, 10)}`);
-        },
-      });
-      outcome[kind] = { items: done.items, mentions: done.mentions, complete: !done.cursor };
-      log(`hn ${kind} finished this run: ${done.items} items, ${done.mentions} mentions${done.cursor ? " (walk incomplete)" : ""}`);
-    }
-  },
   "ingest:lemmy": async () => {
     outcome.mentions = await ingestLemmy(openHuman(), { maxPages: numeric("max-pages"), log });
     log(`lemmy: ${outcome.mentions} mentions`);

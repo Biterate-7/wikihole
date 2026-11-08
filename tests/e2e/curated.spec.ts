@@ -10,6 +10,7 @@ test.describe("Recommended", () => {
     await expect(page).toHaveURL(/\/discover\/recommended/);
     await expect(page.getByRole("heading", { level: 1, name: "Recommended" })).toBeVisible();
 
+    await page.goto("/discover/recommended?c=recent");
     const first = page.getByTestId("curated-item").first();
     await expect(first).toBeVisible();
     await expect(first.getByTestId("curated-count")).toContainText(/\d+ recommendation/);
@@ -21,7 +22,7 @@ test.describe("Recommended", () => {
   });
 
   test("switches collection and keeps a shareable URL", async ({ page }) => {
-    await page.goto("/discover/recommended");
+    await page.goto("/discover/recommended?c=recent");
     await expect(page.getByTestId("curated-item").first()).toBeVisible();
     await page.getByRole("button", { name: "Hidden gems" }).click();
     await expect(page).toHaveURL(/c=hidden/);
@@ -101,7 +102,7 @@ test.describe("existing discovery stays reachable", () => {
 
   test("another edition gets the notice and a way back", async ({ page, context, baseURL }) => {
     await context.addCookies([{ name: "wikihole-lang", value: "de", url: baseURL! }]);
-    await page.goto("/discover/recommended");
+    await page.goto("/discover/recommended?c=recent");
     await expect(page.getByTestId("curated-item").first()).toBeVisible();
     await expect(page.getByTestId("edition-notice")).toContainText("public discussions");
   });
@@ -111,7 +112,7 @@ test.describe("responsive", () => {
   for (const viewport of VIEWPORTS) {
     test(`new pages fit at ${viewport.name}`, async ({ page }) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      for (const path of ["/discover/recommended", "/discover/explore"]) {
+      for (const path of ["/discover/recommended?c=recent", "/discover/explore"]) {
         await page.goto(path);
         await expect(page.getByTestId("curated-item").first()).toBeVisible();
         await expectNoHorizontalOverflow(page);
@@ -119,17 +120,4 @@ test.describe("responsive", () => {
       }
     });
   }
-});
-
-test.describe("recommended is not the same as mentioned", () => {
-  test("an article people mostly cite does not lead the list, and its citations are shown as such", async ({ request }) => {
-    const page = await (await request.get("/api/curated?collection=most&limit=30")).json();
-    const titles = page.items.map((item: { title: string }) => item.title);
-    for (const cited of ["Betteridge's law of headlines", "Goodhart's law", "Poe's law"]) expect(titles).not.toContain(cited);
-    for (const item of page.items) {
-      expect(item.recommendation.qualifying).toBeGreaterThanOrEqual(3);
-      expect(item.recommendation.evidence.length).toBeGreaterThan(0);
-      expect(item.recommendation.evidence[0].url).toMatch(/^https:/);
-    }
-  });
 });

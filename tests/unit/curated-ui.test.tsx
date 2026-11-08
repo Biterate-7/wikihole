@@ -40,12 +40,12 @@ describe("CuratedItem", () => {
     await user.click(screen.getByRole("button", { name: "Why people recommend it" }));
     const quote = screen.getByTestId("curated-evidence");
     expect(quote.textContent).toContain("The Wikipedia article on Great Stink is great.");
-    expect(within(quote).getByRole("link", { name: /Hacker News/ }).getAttribute("href")).toBe("https://news.ycombinator.com/item?id=1");
+    expect(within(quote).getByRole("link", { name: /Test forum/ }).getAttribute("href")).toBe("https://forum.example.test/item?id=1");
   });
 
   it("loads every source when asked", async () => {
     const user = userEvent.setup();
-    const fetchMock = mockFetch(() => ({ sources: [{ url: "https://news.ycombinator.com/item?id=77", at: 1000, community: "Hacker News", decidedBy: "x" }] }));
+    const fetchMock = mockFetch(() => ({ sources: [{ url: "https://forum.example.test/item?id=77", at: 1000, community: "Test forum", decidedBy: "x" }] }));
     render(<CuratedItem item={item({ recommendation: recommended(1, "Great Stink", { qualifying: 12 }) })} rank={1} />);
     await user.click(screen.getByRole("button", { name: "Why people recommend it" }));
     await user.click(screen.getByRole("button", { name: "All 12 sources" }));

@@ -28,7 +28,7 @@ const HISTORY_SEEDS = 8;
 
 type Status = "ready" | "loading" | "appending" | "error";
 
-export function RecommendedFeed({ initial, view: initialView }: { initial: CuratedPage | null; view: RecommendedView }) {
+export function RecommendedFeed({ initial, view: initialView, defaultView = "most" }: { initial: CuratedPage | null; view: RecommendedView; defaultView?: CollectionId }) {
   const [view, setView] = useState(initialView);
   const [items, setItems] = useState<Item[]>(initial?.items ?? []);
   const [contextual, setContextual] = useState<Discovery[]>([]);
@@ -106,7 +106,7 @@ export function RecommendedFeed({ initial, view: initialView }: { initial: Curat
   const change = (next: RecommendedView) => {
     if (next === view) return;
     setView(next);
-    window.history.replaceState(null, "", next === "most" ? "/discover/recommended" : `/discover/recommended?c=${next}`);
+    window.history.replaceState(null, "", next === defaultView ? "/discover/recommended" : `/discover/recommended?c=${next}`);
     if (next === "for-you") void loadContextual();
     else void load(next, 0);
   };

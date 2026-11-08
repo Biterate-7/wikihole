@@ -11,7 +11,6 @@ import styles from "./layout.module.css";
 const NAVIGATION = [
   { href: "/", label: "Main page", match: (p: string) => p === "/" },
   { href: "/discover", label: "Discover", match: (p: string) => p.startsWith("/discover") },
-  { href: "/hackernews", label: "Hacker News", match: (p: string) => p.startsWith("/hackernews") },
   { href: "/topics", label: "Topics", match: (p: string) => p === "/topics" },
   { href: "/random", label: "Random article", match: (p: string) => p.startsWith("/random") },
   { href: "/search", label: "Search", match: (p: string) => p.startsWith("/search") },

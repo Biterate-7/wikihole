@@ -10,7 +10,7 @@ import { PageShell, SiteSub } from "@/components/layout/PageShell";
 import { SiteTools } from "@/components/layout/SiteTools";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { COLLECTIONS, type CollectionId } from "@/lib/curated/rank";
-import { getCollection, hasRecommendations } from "@/lib/curated/service";
+import { defaultCollection, getCollection, hasRecommendations } from "@/lib/curated/service";
 import { getHumanMeta } from "@/lib/curated/store";
 import { requestLanguage } from "@/lib/i18n/server";
 import { attempt } from "@/lib/server/http";
@@ -24,12 +24,12 @@ export const metadata: Metadata = {
   description: "Wikipedia articles that people genuinely recommend to each other, with the evidence for each one.",
 };
 
-function parseView(value: unknown): RecommendedView {
+function parseView(value: unknown, fallback: CollectionId): RecommendedView {
   if (value === "for-you") return value;
-  return (COLLECTIONS as readonly unknown[]).includes(value) ? (value as CollectionId) : "most";
+  return (COLLECTIONS as readonly unknown[]).includes(value) ? (value as CollectionId) : fallback;
 }
 
-async function InitialFeed({ view }: { view: RecommendedView }) {
+async function InitialFeed({ view, defaultView }: { view: RecommendedView; defaultView: CollectionId }) {
   if (!hasRecommendations()) {
     return (
       <StateMessage kind="empty" title="The recommendation dataset has not been built on this deployment.">
@@ -37,14 +37,15 @@ async function InitialFeed({ view }: { view: RecommendedView }) {
       </StateMessage>
     );
   }
-  if (view === "for-you") return <RecommendedFeed initial={null} view={view} />;
+  if (view === "for-you") return <RecommendedFeed initial={null} view={view} defaultView={defaultView} />;
   const result = await attempt(() => getCollection(view));
-  return <RecommendedFeed initial={result.ok ? result.value : null} view={view} />;
+  return <RecommendedFeed initial={result.ok ? result.value : null} view={view} defaultView={defaultView} />;
 }
 
 export default async function RecommendedPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
-  const view = parseView(params.c);
+  const defaultView = defaultCollection();
+  const view = parseView(params.c, defaultView);
   return (
     <LanguageProvider initialLang={await requestLanguage()}>
       <PageShell
@@ -64,7 +65,7 @@ export default async function RecommendedPage({ searchParams }: { searchParams: 
         </p>
         <EditionNotice feature="This list" source="public discussions of English Wikipedia articles" />
         <Suspense key={view} fallback={Array.from({ length: 6 }, (_, i) => <FeedItemSkeleton key={i} />)}>
-          <InitialFeed view={view} />
+          <InitialFeed view={view} defaultView={defaultView} />
         </Suspense>
       </PageShell>
     </LanguageProvider>

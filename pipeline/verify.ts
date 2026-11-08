@@ -2,18 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 import { z } from "zod";
-import { parseWikipediaUrl } from "@/lib/curated/links";
 import { collectionRank, COLLECTIONS, countEvidence, type QualifyingMention } from "@/lib/curated/rank";
 import type { RecommendedSnapshot, CatalogueEntry } from "@/lib/curated/types";
 import type { Db } from "./db.ts";
 import { SNAPSHOT_DIR, type PageFacts } from "./export.ts";
 import { fetchJson } from "./http.ts";
 import { onePerItem } from "./stats.ts";
-import { extractLinks } from "./text.ts";
 
 /**
- * Checks the published snapshot against the working store and against the live
- * sources. Each check samples at random and reports failures by name, so a
+ * Checks the published snapshot against the working store and against live
+ * Wikipedia. Each check samples at random and reports failures by name, so a
  * problem can be traced. Writes data/snapshot/verification.json.
  */
 
@@ -49,7 +47,7 @@ const pagesSchema = z.object({
   query: z.object({ pages: z.array(z.object({ pageid: z.number().optional(), ns: z.number().optional(), title: z.string().optional(), missing: z.boolean().optional() })) }).optional(),
 });
 
-export async function verifySnapshot(db: Db, factsFor: (pageId: number) => PageFacts | undefined, log: (message: string) => void, sizes = { live: 300, sources: 60, recount: 500 }): Promise<CheckResult[]> {
+export async function verifySnapshot(db: Db, factsFor: (pageId: number) => PageFacts | undefined, log: (message: string) => void, sizes = { live: 300, recount: 500 }): Promise<CheckResult[]> {
   const snapshot = read<RecommendedSnapshot>("human/recommended.json.gz");
   const catalogue = read<CatalogueEntry[]>("catalogue/entries.json.gz");
   const provenance = read<Array<[number, string, number, string, string]>>("human/provenance.json.gz");
@@ -164,31 +162,6 @@ export async function verifySnapshot(db: Db, factsFor: (pageId: number) => PageF
   }
   results.push({ name: "page ids resolve to live articles with the published title", checked: live.length, failed: problems.length, examples: problems.slice(0, 8) });
   log(`live check: ${problems.length} of ${live.length} differ`);
-
-  // Sources: the linked comment really exists and really links to the article.
-  const redirectsTo = db.prepare("SELECT canonical_title FROM titles WHERE lang = 'en' AND raw_title = ?");
-  const hn = sample(
-    snapshot.articles.flatMap((article) => article.evidence.filter((e) => e.community === "Hacker News").map((evidence) => ({ article, evidence }))),
-    sizes.sources,
-  );
-  const sourceProblems: string[] = [];
-  for (const { article, evidence } of hn) {
-    const id = new URL(evidence.url).searchParams.get("id");
-    try {
-      const item = await fetchJson<{ text?: string | null; url?: string | null }>(`https://hn.algolia.com/api/v1/items/${id}`, { gapMs: 1000, retries: 2 });
-      const titles = extractLinks(item.text ?? "").map((link) => link.reference);
-      const direct = item.url ? parseWikipediaUrl(item.url) : null;
-      const linked = [...titles, ...(direct ? [direct] : [])].some((reference) => {
-        if (reference.title === article.title) return true;
-        const row = redirectsTo.get(reference.title) as { canonical_title: string | null } | undefined;
-        return row?.canonical_title === article.title;
-      });
-      if (!linked) sourceProblems.push(`${evidence.url} does not link to ${article.title}`);
-    } catch (error) {
-      sourceProblems.push(`${evidence.url}: ${error instanceof Error ? error.message : "failed"}`);
-    }
-  }
-  results.push({ name: "sampled source comments exist and link to the article", checked: hn.length, failed: sourceProblems.length, examples: sourceProblems.slice(0, 8) });
 
   fs.writeFileSync(path.join(SNAPSHOT_DIR, "verification.json"), `${JSON.stringify({ at: new Date().toISOString(), results }, null, 2)}\n`);
   return results;

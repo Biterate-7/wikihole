@@ -1,6 +1,5 @@
 import "server-only";
 import { after, NextResponse } from "next/server";
-import { HackerNewsError } from "@/lib/hackernews/client";
 import { WikipediaError } from "@/lib/wikipedia/http";
 
 /** Shared helpers for route handlers: rate limiting and error responses. */
@@ -52,11 +51,6 @@ export function describeError(error: unknown): { message: string; status: number
       default:
         return { message: "Wikipedia is unavailable right now. Try again shortly.", status: 502 };
     }
-  }
-  if (error instanceof HackerNewsError) {
-    return error.kind === "timeout"
-      ? { message: "Hacker News took too long to respond. Try again.", status: 504 }
-      : { message: "Hacker News is unavailable right now. Try again shortly.", status: 502 };
   }
   console.error("[wikihole] unexpected error", error);
   return { message: "Something went wrong on our side.", status: 500 };

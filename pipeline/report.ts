@@ -53,10 +53,6 @@ export function buildReport(human: Db, catalogue: Db, runLog: string) {
          FROM mentions GROUP BY source, kind ORDER BY source, kind`,
       ),
       checkpoints: {
-        hackernewsStoriesCompleteThrough: getState(human, "hn:story:complete-through"),
-        hackernewsCommentsCompleteThrough: getState(human, "hn:comment:complete-through"),
-        hackernewsStoryCursor: getState(human, "hn:story:cursor"),
-        hackernewsCommentCursor: getState(human, "hn:comment:cursor"),
         lemmyNextPage: getState(human, "lemmy:page"),
         lemmyComplete: getState(human, "lemmy:complete"),
         tildesAfter: getState(human, "tildes:after"),
