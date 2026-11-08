@@ -58,7 +58,7 @@ describe("parseWikipediaUrl", () => {
 });
 
 describe("extractLinks", () => {
-  it("reads Hacker News comment markup, including escaped hrefs", () => {
+  it("reads comment markup, including escaped hrefs", () => {
     const links = extractLinks(
       'It&#x27;s worth a read: <a href="https:&#x2F;&#x2F;en.wikipedia.org&#x2F;wiki&#x2F;Great_Stink" rel="nofollow">https:&#x2F;&#x2F;en.wikipedia.org&#x2F;wiki&#x2F;Great_Stink</a><p>Second paragraph.',
     );
@@ -91,7 +91,7 @@ describe("extractLinks", () => {
 describe("classifyHeuristically", () => {
   const comment = (context: string, overrides: Partial<MentionInput> = {}): MentionInput => ({
     kind: "comment",
-    source: "hackernews",
+    source: "forum",
     context,
     title: "Foo",
     discussionTitle: "Some thread",
@@ -135,7 +135,7 @@ describe("classifyHeuristically", () => {
   });
 
   it("trusts threads that ask for articles", () => {
-    expect(classifyHeuristically(comment("[[Foo]]", { discussionTitle: "Ask HN: What's your favorite Wikipedia article?" })).label).toBe("recommendation");
+    expect(classifyHeuristically(comment("[[Foo]]", { discussionTitle: "What's your favorite Wikipedia article?" })).label).toBe("recommendation");
   });
 
   it("requires readers' endorsement of a submission", () => {
@@ -160,7 +160,7 @@ describe("classifyHeuristically", () => {
 describe("ranking", () => {
   const at = (year: number, month = 0) => Date.UTC(year, month, 15) / 1000;
   const NOW = at(2026, 10);
-  const mention = (discussionId: string, authorHash: string | null, time: number, community = "HN"): QualifyingMention => ({ discussionId, authorHash, at: time, community });
+  const mention = (discussionId: string, authorHash: string | null, time: number, community = "Forum"): QualifyingMention => ({ discussionId, authorHash, at: time, community });
 
   it("caps one viral thread", () => {
     const viral = Array.from({ length: 50 }, (_, i) => mention("d1", `a${i}`, at(2020)));

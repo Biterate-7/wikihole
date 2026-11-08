@@ -19,7 +19,6 @@ const PAGES = [
   "/de/wiki/Turingmaschine",
   "/history/Enigma_machine",
   "/history/Enigma_machine?from=1381391950&to=1381401534",
-  "/hackernews",
 ];
 
 test.describe("no outbound Wikipedia links", () => {

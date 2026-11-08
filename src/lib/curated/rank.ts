@@ -1,5 +1,5 @@
 /**
- * The recommendation model. Inspired by HackerTube's idea that what many people
+ * The recommendation model. Built on the idea that what many people
  * independently recommend over years beats what a single viral thread pushes.
  * Pure functions, shared by the pipeline and tests; every input is a count that
  * can be traced to stored mentions.

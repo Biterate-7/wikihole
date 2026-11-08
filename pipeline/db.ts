@@ -20,8 +20,8 @@ const HUMAN_SCHEMA = `
 ${STATE}
 CREATE TABLE IF NOT EXISTS mentions (
   id TEXT PRIMARY KEY,              -- source:item:lang:title, so re-ingesting is idempotent
-  source TEXT NOT NULL,             -- platform, e.g. hackernews
-  community TEXT NOT NULL,          -- community within it, e.g. "Hacker News", "Tildes ~science"
+  source TEXT NOT NULL,             -- platform, e.g. lemmy
+  community TEXT NOT NULL,          -- community within it, e.g. "Tildes ~science"
   kind TEXT NOT NULL,               -- comment | submission | essay
   item_url TEXT NOT NULL,           -- the exact comment, post or page
   discussion_id TEXT NOT NULL,      -- groups items from one thread

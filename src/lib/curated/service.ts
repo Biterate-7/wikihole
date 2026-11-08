@@ -3,7 +3,7 @@ import { readingMinutes } from "@/lib/discovery/score";
 import { getPagesMetaMap } from "@/lib/wikipedia/api";
 import { wikipediaUrl } from "@/lib/wikipedia/titles";
 import type { Thumbnail } from "@/lib/wikipedia/types";
-import type { CollectionId } from "./rank";
+import { COLLECTIONS, type CollectionId } from "./rank";
 import { getCatalogue, getProvenance, getRecommended } from "./store";
 import type { CatalogueEntry, RecommendedArticle } from "./types";
 
@@ -67,6 +67,12 @@ async function hydrate(seeds: Array<{ id: number; title: string }>): Promise<Cur
 
 export function hasRecommendations(): boolean {
   return getRecommended().byId.size > 0;
+}
+
+/** The first collection that has articles, so the Recommended page never opens on an empty one. */
+export function defaultCollection(): CollectionId {
+  const { collections } = getRecommended();
+  return COLLECTIONS.find((id) => (collections?.[id]?.length ?? 0) > 0) ?? COLLECTIONS[0];
 }
 
 export async function getCollection(id: CollectionId, offset = 0, limit = 12): Promise<CuratedPage> {

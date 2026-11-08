@@ -5,7 +5,6 @@ import styles from "./layout.module.css";
 const GENERAL: MenuItem[] = [
   { href: "/random", label: "Random discovery" },
   { href: "/discover", label: "Discover feed" },
-  { href: "/hackernews", label: "Hacker News rabbit holes" },
   { href: "/topics", label: "All topics" },
   { href: "/discover#ranking", label: "How ranking works" },
   { href: "/search", label: "Search articles" },

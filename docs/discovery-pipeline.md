@@ -4,7 +4,7 @@ WikiHole's discovery pages read two small published datasets in `data/snapshot`.
 
 ```
  HUMAN DATASET                                                     published to data/snapshot/human
-   Hacker News, Lemmy, Tildes, essays                                recommended.json.gz   articles, counts, evidence, collections
+   Lemmy, Tildes, essays                                             recommended.json.gz   articles, counts, evidence, collections
      └─ ingest ─▶ data/work/human.db                                 provenance.json.gz    every qualifying source link
                     mentions, titles, article_stats                  related.json.gz       recommended in the same threads
                     └─ rules ▶ labels ▶ LLM review ▶ decide ▶ stats  meta.json             coverage and classifier quality
@@ -25,7 +25,6 @@ Requires Node 22.18 or later (the pipeline uses `node:sqlite`). Set `WIKIHOLE_PI
 
 | Step | Command | Cost and speed |
 | --- | --- | --- |
-| Ingest Hacker News | `npm run pipeline -- ingest:hn` | About 1 request per second. A full history took about 25 minutes; updates take seconds. |
 | Ingest Lemmy | `npm run pipeline -- ingest:lemmy --max-pages=120` | One request per minute, the crawl delay lemmy.world asks for. The API refuses pages past 100, so the walk goes newest first to that limit, then oldest first until it meets what it has read. |
 | Ingest Tildes | `npm run pipeline -- ingest:tildes --max-topics=600` | One request per 3 seconds. |
 | Ingest essays | `npm run pipeline -- ingest:essays` | A few requests. Sources are listed in `pipeline/sources/essays.ts`. |
@@ -52,7 +51,7 @@ Dumps, from <https://dumps.wikimedia.org>: `enwiki-latest-page.sql.gz` (2.4 GB),
 | Command | What it does |
 | --- | --- |
 | `npm run pipeline -- report` | Coverage, failures, decisions and queues, written to `data/snapshot/pipeline-report.json`. |
-| `npm run pipeline -- verify` | Checks the snapshot against the store and the live sources, written to `data/snapshot/verification.json`. |
+| `npm run pipeline -- verify` | Checks the snapshot against the store and live Wikipedia, written to `data/snapshot/verification.json`. |
 | `npm run pipeline -- trace "Great Stink"` | Every mention of an article with its decision and link. |
 | `npm run pipeline -- classify:queue --queue=ambiguous` | What is waiting for review. |
 | `npm run pipeline -- eval:sheet` | A CSV of the evaluation set for a person to check. |
@@ -60,7 +59,6 @@ Dumps, from <https://dumps.wikimedia.org>: `enwiki-latest-page.sql.gz` (2.4 GB),
 ### Updating
 
 ```bash
-npm run pipeline -- ingest:hn
 npm run pipeline -- ingest:lemmy --max-pages=2
 npm run pipeline -- classify
 npm run pipeline -- resolve
@@ -74,7 +72,6 @@ Each ingester keeps a cursor, so this fetches only what is new. Upserts are keye
 
 | Source | Status | Why |
 | --- | --- | --- |
-| Hacker News | Complete | Official Algolia API, no key, walked back to 2007. By far the richest source. |
 | Lemmy `!wikipedia@lemmy.world` | See the report | Public API, at the crawl delay its robots.txt requests. Posts only, not comments. |
 | Tildes | Partial | robots.txt welcomes informational scrapers at a reasonable rate. No API, so only topics its search returns for "wikipedia". |
 | Essays and forum threads | Partial | A short list of pages written to recommend articles, each read before being listed. |
@@ -106,11 +103,11 @@ Each mention gets one of six labels: `recommendation`, `interesting`, `citation`
 
 ### Human dataset
 
-`src/lib/curated/rank.ts`, inspired by HackerTube's approach of mining what people recommend:
+`src/lib/curated/rank.ts`:
 
 - **Independent weight:** a person's k-th recommendation of an article counts 1/k, any one discussion counts for at most 2, and a shared, upvoted link counts half of someone saying so in words. A viral thread and a single enthusiast are both capped.
 - **Score (0 to 100):** 50% independent weight, 25% distinct months, 15% distinct years, 10% more than one community. All saturate, and points or vote totals are deliberately not an input.
-- **Focus:** the score is multiplied by a factor falling from 1 to 0.6 as an article's recommendations become a small share of all its mentions. This is what separates recommended from merely well known. Betteridge's law has 998 mentions and 2 recommendations; it does not lead anything.
+- **Focus:** the score is multiplied by a factor falling from 1 to 0.6 as an article's recommendations become a small share of all its mentions. This is what separates recommended from merely well known. An article that is cited constantly but rarely recommended does not lead anything.
 
 | Collection | Evidence required | Order |
 | --- | --- | --- |

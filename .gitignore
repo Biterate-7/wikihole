@@ -46,9 +46,6 @@ next-env.d.ts
 /playwright/.cache/
 !.env.example
 
-# server-side data (Hacker News rabbit holes)
-/.data/
-
 # visual regression recordings
 /tests/visual/.recording/
 /tests/visual/out/

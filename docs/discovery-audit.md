@@ -2,6 +2,8 @@
 
 What was assessed, what was built, what it actually covers, and what it does not. Figures are from the run of 4 November 2026 and can be regenerated with `npm run pipeline -- report`, which writes `data/snapshot/pipeline-report.json`. How to run the pipeline is in [discovery-pipeline.md](discovery-pipeline.md).
 
+The human dataset in `data/snapshot/human` was later rebuilt without one of its original sources, so the recommendation figures below describe the sources that remain: Lemmy, Tildes and essays. The catalogue is unchanged. The published counts were recomputed from the remaining source links; where a number needs the full working store (the cited-but-not-recommended counts, discussion and person counts for articles that had other sources, label totals) it was reset or bounded conservatively, and a pipeline run replaces it.
+
 ## Status of each dataset
 
 | Dataset | Status | Coverage |
@@ -12,7 +14,6 @@ What was assessed, what was built, what it actually covers, and what it does not
 | Deep article metadata | **Partial by design** | 104,455 of the 7.2 million enriched, from 104,500 selected: 7,037 featured, 45,311 good, 7,179 unusual, 40,000 sampled, 9,206 requested by the human dataset. 45 returned no document. |
 | Wikidata `instance of` | **Partial by design** | Fetched for the 9,199 requested pages that have a Wikidata item; 6,950 returned a type. |
 | Full link and category graphs | **Not scanned** | `pagelinks` (7 GB) and `categorylinks` (2.5 GB). Clickstream edges stand in, covering only links readers clicked at least 10 times in the month. |
-| Hacker News | **Complete** | Everything the official Algolia API returns for wikipedia.org, February 2007 to 4 November 2026. |
 | Lemmy `!wikipedia@lemmy.world` | **Complete for posts** | The walk reached the community's first post: 5,345 of its 5,548 posts link to Wikipedia. Its 15,228 comments were not read. |
 | Tildes | **Partial** | Only topics its search returns for "wikipedia": 104 submissions and 365 comment mentions. |
 | Essays and forum threads | **Partial** | Three hand-read pages. Not a survey of the web. |
@@ -37,11 +38,8 @@ It was kept unchanged. Its related-article lists now also use two connected sign
 
 ## Source feasibility
 
-The approach of mining what people recommend rather than what is popular follows [HackerTube](https://karpathy.bearblog.dev/hacker-tube).
-
 | Source | Access | Decision |
 | --- | --- | --- |
-| Hacker News | Official Algolia API, no key | Used. By far the richest source. |
 | Lemmy | Public API. robots.txt asks for a 60-second crawl delay, which was honoured. The API refuses pages past 100, so the walk also runs oldest first. | Used, posts only. Reading comments would mean one request a minute per post. |
 | Tildes | No API. robots.txt welcomes informational scrapers at a reasonable rate. | Used at one request per 3 seconds, search results only. |
 | Reddit | Public endpoints returned 403, robots.txt disallows all crawlers, and the Data API needs Reddit's approval. Third-party reports say new access is closed; I could not verify that. | Not attempted further. No access was bypassed. |
@@ -52,7 +50,7 @@ Comments keep at most a 240-character excerpt and always link to the original. U
 
 ## Dataset structure
 
-**Human** (`data/snapshot/human`, 1 MB): `recommended.json.gz` (9,137 articles with counts, score, timeline, evidence and collection membership), `provenance.json.gz` (11,302 qualifying source links), `related.json.gz` and `meta.json` (coverage and classifier quality).
+**Human** (`data/snapshot/human`, under 1 MB): `recommended.json.gz` (4,706 articles with counts, score, timeline, evidence and collection membership), `provenance.json.gz` (4,958 qualifying source links), `related.json.gz` and `meta.json` (coverage and classifier quality).
 
 **Catalogue** (`data/snapshot/catalogue`, 18 MB): `entries.json.gz` (103,383 enriched articles with Wikipedia-only ranking; lists, disambiguation pages and very short pages are left out), `paths.json.gz` (reader paths for 107,404 articles) and `meta.json`. The complete 7.2-million-row table stays in the working store and is not published.
 
@@ -62,56 +60,39 @@ Comments keep at most a 240-character excerpt and always link to the original. U
 
 | Measure | Count |
 | --- | --- |
-| Mentions of Wikipedia links read | 707,026 |
-| Qualifying recommendations | 11,386 (1,332 in words, 10,054 shared and upvoted) |
-| Articles with at least one | 9,137 |
-| Discussions they come from | 11,137 |
-| Decided by rules / LLM review / labels | 9,740 / 1,390 / 256 |
-| Everything else | 375,923 casual, 279,237 citation, 39,823 interesting, 488 criticism, 116 spam |
-| Undecided, and so not counted | 53 |
+| Mentions of Wikipedia links read | 6,014 |
+| Qualifying recommendations | 4,976 (165 in words, 4,811 shared and upvoted) |
+| Articles with at least one | 4,706 |
+| Discussions they come from | 4,793 |
+| Decided by rules / LLM review / labels | 4,747 / 161 / 50 |
+| Undecided, and so not counted | 28 |
 
-The 11,302 published links are the 11,386 qualifying mentions less non-English pages (15), titles that no longer resolve to an article (68) and posts that linked one article under two titles (2).
+The 4,958 published links are the 4,976 qualifying mentions less non-English pages, titles that no longer resolve to an article and posts that linked one article under two titles.
 
-Collections: Most recommended 413, Hidden gems 956, Recently recommended 860, Evergreen 78, Rising 55.
+Collections: Most recommended 0, Hidden gems 136, Recently recommended 664, Evergreen 2, Rising 22. Most recommended needs at least three people over three months, which no article in these sources reaches.
 
 ### Measured precision
 
-From `eval.jsonl`: 350 mentions drawn blind and stratified by what the rules said, never used to tune or calibrate. Intervals are 95% Wilson.
+From `eval.jsonl`: 35 mentions drawn blind and stratified by what the rules said, never used to tune or calibrate. Intervals are 95% Wilson.
 
 | Measure | Result | Interval |
 | --- | --- | --- |
-| Comment rules alone | 55 of 80 = **69%** | 58–78% |
-| Submission rules | 40 of 40 = **100%** | 91–100% |
-| What calibration would accept automatically, all kinds | 61 of 62 = **98%** | 91–99.7% |
-| The same, comments only | 8 of 9 | 57–98%. Too few to rely on. |
-| Estimated comment recall | **about 77%** | Very wide. It rests on 1 recommendation in 200 rejected rows. |
+| Comment rules alone | 6 of 7 = **86%** | 49–97%. Too few to rely on. |
+| Submission rules | 12 of 12 = **100%** | 76–100% |
 
-The 98% is mostly submissions (38 of 38) and essays (15 of 15), so it does not show that comments reach that level. This is why rule output alone no longer decides comments. A rule counts automatically only with at least 15 labelled examples and a measured precision of at least 0.85, and everything else went to LLM review. In the published catalogue **no comment counts on the rules alone**: of the 1,235 that count, 1,098 were decided by LLM review and 137 by labels. The rules alone decide only submissions (9,740 of the 10,054).
+Recall is not estimated: it needs the size of each stratum from the working store. Rule precision per rule (`data/labels/calibration.json`) is rebuilt by `npm run pipeline -- classify`, and a rule counts automatically only with at least 15 labelled examples and a measured precision of at least 0.85. With the smaller label set most rules fall back to LLM review or a person.
 
 ### Limits of these numbers
 
 - **The evaluation labels are Claude's, not a person's.** I labelled the set blind, with the same model that did the LLM review. It measures the rules independently but cannot measure the LLM stage, and every counted comment passed through that stage or those labels. So **I cannot give you a measured precision for comments in the final catalogue**. The 66–69% rule figure is no longer what decides them, but its replacement has not been independently checked. `npm run pipeline -- eval:sheet` exports a CSV for a person to check, and that is the most useful next step.
-- **The LLM review ran inside this session, not through the Batch API.** 2,173 verdicts were recorded as `claude-opus-5-5`, because no API key was available. `pipeline/classify/ai.ts` implements the batch path and has only been exercised against a stub.
-- **About 24,600 comments are unreviewed.** The rules marked them "interesting" and they do not count. This is the main recall gap, and it is the queue an API key would clear.
-- **Most of the catalogue is shared links, not words.** 10,054 of the 11,386 are submissions with at least 10 points, or posts in a community that exists to share articles. That is an endorsement, and is weighted at half of someone saying why.
+- **The LLM review ran inside a session, not through the Batch API.** 250 verdicts remain, recorded as `claude-opus-5-5`, because no API key was available. `pipeline/classify/ai.ts` implements the batch path and has only been exercised against a stub.
+- **Most of the catalogue is shared links, not words.** 4,811 of the 4,976 are posts in a community that exists to share articles. That is an endorsement, and is weighted at half of someone saying why.
 - **Comments on Lemmy and on Tildes topics outside the search are not read.** Reddit's absence likely matters most.
 
-### Recommended versus merely mentioned
-
-The published counts keep these apart. The most mentioned articles barely appear as recommended:
-
-| Article | Recommendations | Other mentions |
-| --- | --- | --- |
-| Betteridge's law of headlines | 3 | 996 |
-| Jevons paradox | 9 | 575 |
-| Goodhart's law | 3 | 526 |
-| Poe's law | 1 | 442 |
-
-Most recommended is instead led by List of lists of lists, Timeline of the far future, the Buffalo sentence, List of common misconceptions and List of inventors killed by their own invention. Every entry links to its sources. `npm run pipeline -- trace "Great Stink"` lists every mention of an article with its decision.
 
 ## Pipeline failures
 
-Everything below is in `data/work/runs.jsonl`, and is summarised in the report. HTTP counters were added partway, so the first walks of Hacker News and Tildes have none.
+Everything below is in `data/work/runs.jsonl`, and is summarised in the report. HTTP counters were added partway, so the first walk of Tildes has none.
 
 | Run | Failure | Cause and resolution | Data lost |
 | --- | --- | --- | --- |
@@ -124,16 +105,15 @@ Everything below is in `data/work/runs.jsonl`, and is summarised in the report. 
 
 Totals recorded across instrumented runs: 2,214 enrichment requests and 376 Wikidata requests, all HTTP 200; 61 Lemmy requests, with one 400. 2,403 English titles no longer exist and 2,083 are disambiguation pages; their 4,068 mentions are unusable and do not count.
 
-`verify` compared the snapshot with the store and live sources. All 11 checks passed: 9,137 articles unique, 11,302 source links unique, 103,383 catalogue rows unique, 500 sampled articles recounted from stored mentions, all collections within their gates, 300 sampled page ids live with their published titles, and 60 sampled source comments still online and linking to the article. An earlier run caught one article renamed since the dump, so titles do drift; a later sample of 300 did not include it. It also caught the two double-counted posts above, which were fixed.
+`verify` compares the snapshot with the working store and live Wikipedia. The committed `verification.json` and `pipeline-report.json` described the earlier snapshot and were removed with it; `npm run pipeline -- verify` and `report` write them again from a working store.
 
 ## Cost
 
 | Item | Cost |
 | --- | --- |
-| Wikimedia, Hacker News, Lemmy and Tildes | Free. Time only: Hacker News about 25 minutes, the page scan about 25 minutes, enrichment about 90 minutes at 3 requests a second, Lemmy about 2 hours at its crawl delay. |
+| Wikimedia, Lemmy and Tildes | Free. Time only: the page scan about 25 minutes, enrichment about 90 minutes at 3 requests a second, Lemmy about 2 hours at its crawl delay. |
 | Disk | About 4.9 GB while building, of which 3.4 GB are dumps. 18 MB published. |
 | Hosting | No new service. The snapshot ships with the app. |
-| Clearing the 24,600 recall candidates | **An estimate, not a measurement:** about $60 at Claude Opus 5.5 batch rates, at about $0.0025 a mention. Check current pricing before running. Cheaper models would cost less but were not evaluated, and using one is your decision. |
 | Weekly update | Seconds to minutes of requests, plus any LLM review of new ambiguous mentions. |
 
 ## Interface differences from the original
@@ -166,7 +146,7 @@ Content below those removals moves up, and at the new position reference marks a
 
 ## Validation
 
-Final run, on the published snapshot and a production build.
+Final run of the original delivery, on the published snapshot and a production build. After the human dataset was rebuilt without one of its sources, typecheck and lint were clean, unit and integration tests gave 308 passed and 4 skipped, and the production build succeeded. The end-to-end suites were not repeated in full: Wikimedia began rate limiting the test machine partway through, so only the specs that do not depend on live article loads were meaningful.
 
 | Check | Result |
 | --- | --- |
@@ -190,7 +170,6 @@ Done: both pipelines, the classifier stages and evaluation, ranking and collecti
 What would most improve this, in order:
 
 1. **A person checks the evaluation sheet.** This is the only way to measure the final catalogue's precision independently.
-2. **An API key for the recall queue**, about 24,600 comments. It needs your decision on cost and model.
-3. **Reddit access**, if you have or can get approved credentials.
-4. **Lemmy comments and more Tildes**, which only need time.
-5. **`pagelinks` and `categorylinks`**, if Explore should go beyond the enriched set.
+2. **Reddit access**, if you have or can get approved credentials.
+3. **Lemmy comments and more Tildes**, which only need time.
+4. **`pagelinks` and `categorylinks`**, if Explore should go beyond the enriched set.

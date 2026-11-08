@@ -24,8 +24,8 @@ beforeAll(() => {
     ],
     related: { 1: [{ id: 2, title: "Zip bomb", kind: "co-recommended", weight: 3 }] },
     provenance: [
-      [1, "https://news.ycombinator.com/item?id=9", 2000, "Hacker News", "heuristic-test"],
-      [1, "https://news.ycombinator.com/item?id=8", 1000, "Lemmy", "review"],
+      [1, "https://forum.example.test/item?id=9", 2000, "Test forum", "heuristic-test"],
+      [1, "https://forum.example.test/item?id=8", 1000, "Lemmy", "review"],
     ],
   });
   vi.stubEnv("WIKIHOLE_SNAPSHOT_DIR", dir);
@@ -75,7 +75,7 @@ describe("collections", () => {
     expect(page.items[0].extract).toContain("real intro");
     expect(page.items[0].pageId).toBe(1);
     expect(page.items[0].recommendation.qualifying).toBe(4);
-    expect(page.items[0].recommendation.evidence[0].url).toContain("news.ycombinator.com");
+    expect(page.items[0].recommendation.evidence[0].url).toContain("forum.example.test");
   });
 
   it("paginates to the end", async () => {
@@ -108,7 +108,7 @@ describe("collections", () => {
   it("lists every source for an article, newest first", async () => {
     const { GET } = await import("@/app/api/curated/route");
     const { sources } = await (await GET(getReq("sources=1"))).json();
-    expect(sources.map((s: { url: string }) => s.url)).toEqual(["https://news.ycombinator.com/item?id=9", "https://news.ycombinator.com/item?id=8"]);
+    expect(sources.map((s: { url: string }) => s.url)).toEqual(["https://forum.example.test/item?id=9", "https://forum.example.test/item?id=8"]);
     expect((await GET(getReq("sources=abc"))).status).toBe(400);
   });
 });

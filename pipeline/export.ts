@@ -210,11 +210,6 @@ function buildHumanMeta(db: Db, articles: number, published: number, collections
       FROM mentions GROUP BY source`)
     .all() as Array<{ source: string; mentions: number; qualifying: number; undecided: number; oldest: string; newest: string }>;
   const describe: Record<string, Pick<SourceCoverage, "name" | "status" | "detail">> = {
-    hackernews: {
-      name: "Hacker News",
-      status: getState(db, "hn:comment:complete-through") && getState(db, "hn:story:complete-through") ? "complete" : "partial",
-      detail: "Every comment and submission the official Algolia API returns for wikipedia.org, walked to the start of the site.",
-    },
     lemmy: {
       name: "Lemmy (!wikipedia@lemmy.world)",
       status: getState(db, "lemmy:complete") ? "complete" : "partial",
