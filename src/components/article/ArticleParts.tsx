@@ -175,12 +175,15 @@ export function ArticleTools({
   concepts,
   recommendation,
   history,
+  trailHref,
 }: {
   meta: PageMeta;
   concepts: React.ReactNode;
   recommendation?: React.ReactNode;
   /** The history facts, which stream in separately. */
   history: React.ReactNode;
+  /** Unexpected connections from this article, when a trail can start here. */
+  trailHref?: string;
 }) {
   return (
     <div className={layout.tools}>
@@ -190,6 +193,7 @@ export function ArticleTools({
         items={[
           { href: "#recent-changes", label: "Recent changes" },
           { href: "#rabbit-hole", label: "Related articles" },
+          ...(trailHref ? [{ href: trailHref, label: "Start a trail from here" }] : []),
           { href: "/random", label: "Random discovery" },
         ]}
       />

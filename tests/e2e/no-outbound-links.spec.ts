@@ -15,6 +15,8 @@ const PAGES = [
   "/search?q=enigma%20machine",
   "/random",
   "/saved",
+  "/connections",
+  "/connections?from=Raytheon",
   "/wiki/Enigma_machine",
   "/de/wiki/Turingmaschine",
   "/history/Enigma_machine",

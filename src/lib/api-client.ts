@@ -7,6 +7,7 @@ import type { Discovery } from "@/lib/discovery/types";
 import type { ExplainRequest, ExplainResponse } from "@/lib/ai/explain-types";
 import type { ReaderTerm } from "@/lib/content/terms";
 import { DEFAULT_LANGUAGE } from "@/lib/i18n/languages";
+import type { ResolvedTrail } from "@/lib/trails/types";
 import type { SearchSuggestion } from "@/lib/wikipedia/types";
 
 /** Browser-side helpers for WikiHole's own API routes. */
@@ -98,6 +99,13 @@ export function fetchSources(pageId: number, signal?: AbortSignal): Promise<{ so
 
 export function fetchContextual(body: { titles: string[]; exclude?: number[]; limit?: number }, signal?: AbortSignal): Promise<{ items: Discovery[] }> {
   return request("/api/contextual", { ...json(body), signal });
+}
+
+export type TrailsResponse = { enabled: false } | { enabled: true; trails: ResolvedTrail[]; rejected: number };
+
+/** AI-proposed trails from an article, already verified against Wikipedia on the server. */
+export function fetchTrails(title: string, signal?: AbortSignal): Promise<TrailsResponse> {
+  return request<TrailsResponse>("/api/trails", { ...json({ title }), signal, timeoutMs: 100000 });
 }
 
 export async function fetchTerms(title: string, lang: string = DEFAULT_LANGUAGE): Promise<ReaderTerm[]> {

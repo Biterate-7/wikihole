@@ -32,6 +32,13 @@ function answer(body) {
     const titles = between(content, "linked_articles").split("\n").filter(Boolean).slice(0, 2);
     return { connections: titles.map((title) => ({ title, reason: `Stub reason linking the passage to ${title}.` })) };
   }
+  if (properties.trails) {
+    // Steps through the start article's first linked articles. Later steps are rarely linked from
+    // each other, so the server's verification usually rejects these: that path gets exercised too.
+    const titles = between(content, "linked_articles").split("\n").filter(Boolean).slice(0, 3);
+    const steps = titles.map((title) => ({ title, summary: `Stub step to ${title}.`, detail: `Stub detail about ${title}.` }));
+    return { trails: [{ steps, payoff: "Stub payoff." }] };
+  }
   if (properties.points) return { points: [{ point: "Stub summary point.", evidence: quote(source) }] };
   if (properties.summary) return { summary: "Stub description of this change." };
   if (properties.simpler) {
