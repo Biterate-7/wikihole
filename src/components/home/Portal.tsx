@@ -15,6 +15,7 @@ import { articlePath } from "@/lib/wikipedia/titles";
 import { PAGEVIEW_DAYS } from "@/lib/wikipedia/types";
 import { ContinueExploring } from "./ContinueExploring";
 import { LanguageRing, PORTAL_SEARCH_ID } from "./LanguageRing";
+import { UnexpectedConnections } from "./UnexpectedConnections";
 import styles from "./home.module.css";
 
 /** Server-side budget for live article counts; the page renders without them if Wikipedia is slow. */
@@ -206,6 +207,7 @@ function SectionSkeleton({ lines = 5 }: { lines?: number }) {
 }
 
 const OTHER_AREAS = [
+  { href: "/connections", title: "Unexpected connections", text: "Trails from an ordinary article to a surprising one, with the reason for every step." },
   { href: "/discover", title: "Discover", text: "A live, ranked stream of obscure and technically deep articles." },
   { href: "/topics", title: "Topics", text: `${GROUPS.length} topic areas and ${COLLECTIONS} collections defined by Wikipedia categories.` },
   { href: "/random", title: "Random article", text: "A random article that passed the quality gate, not Special:Random." },
@@ -250,6 +252,8 @@ export function Portal({ lang }: { lang: string }) {
           </Suspense>
         </div>
       </div>
+
+      <UnexpectedConnections />
 
       <div className={styles.upper}>
         <div className={`${styles.column} ${styles.green}`}>

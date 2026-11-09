@@ -85,3 +85,40 @@ describe("GET /api/health", () => {
     vi.unstubAllEnvs();
   });
 });
+
+describe("POST /api/trails", () => {
+  it("reports AI as disabled without calling Wikipedia when no credentials are configured", async () => {
+    vi.stubEnv("AI_API_KEY", "");
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { POST } = await import("@/app/api/trails/route");
+    const res = await POST(post("http://t/api/trails", { title: "Cold War" }, client()));
+    expect(await res.json()).toEqual({ enabled: false });
+    expect(fetchMock).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+  });
+
+  it("validates the title before doing any work", async () => {
+    vi.stubEnv("AI_API_KEY", "test-key");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { POST } = await import("@/app/api/trails/route");
+    expect((await POST(post("http://t/api/trails", "{oops", client()))).status).toBe(400);
+    expect((await POST(post("http://t/api/trails", { title: "" }, client()))).status).toBe(400);
+    expect((await POST(post("http://t/api/trails", { title: "Category:Physics" }, client()))).status).toBe(400);
+    expect((await POST(post("http://t/api/trails", { title: "a|b" }, client()))).status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+  });
+
+  it("returns a JSON error when Wikipedia is down", async () => {
+    vi.stubEnv("AI_API_KEY", "test-key");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("upstream down", { status: 503 })));
+    const { POST } = await import("@/app/api/trails/route");
+    const res = await POST(post("http://t/api/trails", { title: "Cold War" }, client()));
+    expect(res.status).toBeGreaterThanOrEqual(500);
+    expect(((await res.json()) as { error: string }).error).toMatch(/Wikipedia/);
+    vi.unstubAllEnvs();
+  });
+});

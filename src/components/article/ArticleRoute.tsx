@@ -35,6 +35,8 @@ import { GROUPS } from "@/lib/discovery/topics";
 import { leadSentences } from "@/lib/format";
 import { DEFAULT_LANGUAGE, getLanguage, languageLocale } from "@/lib/i18n/languages";
 import { attempt, describeError } from "@/lib/server/http";
+import { trailsFromPath } from "@/lib/trails/paths";
+import { TRAIL_LANGUAGE, canStartTrail } from "@/lib/trails/service";
 import { WikipediaError } from "@/lib/wikipedia/http";
 import { articlePath, titleFromSlug } from "@/lib/wikipedia/titles";
 import type { PageMeta } from "@/lib/wikipedia/types";
@@ -120,6 +122,11 @@ function tocHeadings(doc: ArticleDocument): Heading[] {
 
 type Slot = { title: string; lang: string };
 
+/** "Start a trail from here", offered only where a trail can actually start (trails are English articles). */
+function trailHref(title: string, lang: string): string | undefined {
+  return lang === TRAIL_LANGUAGE && canStartTrail(title) ? trailsFromPath(title) : undefined;
+}
+
 async function TocSlot({ title, lang }: Slot) {
   const doc = await attempt(() => loadArticle(title, lang));
   return doc.ok ? <Toc headings={tocHeadings(doc.value)} /> : null;
@@ -172,6 +179,7 @@ async function ToolsSlot({ title, lang, meta }: Slot & { meta: PageMeta }) {
       concepts={doc.ok ? <KeyConcepts doc={doc.value} /> : null}
       recommendation={recommendation ? <Recommendation article={recommendation} /> : null}
       history={<HistoryFacts title={title} lang={lang} meta={meta} />}
+      trailHref={trailHref(meta.title, lang)}
     />
   );
 }
@@ -293,7 +301,7 @@ export async function ArticleView({ slug, lang }: { slug: string[]; lang: string
           />
         }
         tools={
-          <Suspense fallback={<ArticleTools meta={meta} concepts={null} history={<HistoryFacts {...slot} meta={meta} />} />}>
+          <Suspense fallback={<ArticleTools meta={meta} concepts={null} history={<HistoryFacts {...slot} meta={meta} />} trailHref={trailHref(meta.title, lang)} />}>
             <ToolsSlot {...slot} meta={meta} />
           </Suspense>
         }
